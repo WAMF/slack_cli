@@ -4,7 +4,7 @@
 /// typed methods for posting messages, listing channels, and more.
 ///
 /// ```dart
-/// import 'package:slackcli/slackcli.dart';
+/// import 'package:dart_slack/dart_slack.dart';
 ///
 /// final slack = Slack(token: 'xoxp-...');
 /// final msg = await slack.postMessage(channel: 'C123', text: 'Hello!');

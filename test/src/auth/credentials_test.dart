@@ -1,4 +1,4 @@
-import 'package:slackcli/src/auth/credentials.dart';
+import 'package:dart_slack/src/auth/credentials.dart';
 import 'package:test/test.dart';
 
 void main() {

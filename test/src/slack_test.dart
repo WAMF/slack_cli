@@ -1,9 +1,9 @@
 import 'dart:convert';
 
+import 'package:dart_slack/src/slack.dart';
+import 'package:dart_slack/src/slack_api/slack_urls.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
-import 'package:slackcli/src/slack.dart';
-import 'package:slackcli/src/slack_api/slack_urls.dart';
 import 'package:test/test.dart';
 
 class _MockHttpClient extends Mock implements http.Client {}

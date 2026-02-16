@@ -1,7 +1,7 @@
 import 'dart:convert';
 
+import 'package:dart_slack/src/slack_api/slack_urls.dart';
 import 'package:http/http.dart' as http;
-import 'package:slackcli/src/slack_api/slack_urls.dart';
 
 /// Thrown when the Slack API returns a non-ok response.
 class SlackApiException implements Exception {

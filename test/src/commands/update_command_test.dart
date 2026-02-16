@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:dart_slack/src/cli/command_runner.dart';
+import 'package:dart_slack/src/cli/commands/commands.dart';
+import 'package:dart_slack/src/cli/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pub_updater/pub_updater.dart';
-import 'package:slackcli/src/cli/command_runner.dart';
-import 'package:slackcli/src/cli/commands/commands.dart';
-import 'package:slackcli/src/cli/version.dart';
 import 'package:test/test.dart';
 
 class _MockLogger extends Mock implements Logger {}
@@ -20,14 +20,14 @@ void main() {
   group('update', () {
     late PubUpdater pubUpdater;
     late Logger logger;
-    late SlackcliCommandRunner commandRunner;
+    late DartSlackCommandRunner commandRunner;
 
     setUp(() {
       final progress = _MockProgress();
       final progressLogs = <String>[];
       pubUpdater = _MockPubUpdater();
       logger = _MockLogger();
-      commandRunner = SlackcliCommandRunner(
+      commandRunner = DartSlackCommandRunner(
         logger: logger,
         pubUpdater: pubUpdater,
       );

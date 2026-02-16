@@ -1,4 +1,4 @@
-import 'package:slackcli/src/models/slack_channel.dart';
+import 'package:dart_slack/src/models/slack_channel.dart';
 import 'package:test/test.dart';
 
 void main() {

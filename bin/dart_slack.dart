@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:slackcli/src/cli/command_runner.dart';
+import 'package:dart_slack/src/cli/command_runner.dart';
 
 Future<void> main(List<String> args) async {
-  await _flushThenExit(await SlackcliCommandRunner().run(args));
+  await _flushThenExit(await DartSlackCommandRunner().run(args));
 }
 
 /// Flushes the stdout and stderr streams, then exits the program with the given

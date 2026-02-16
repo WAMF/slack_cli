@@ -1,8 +1,8 @@
+import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
+import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:slackcli/src/cli/commands/authenticated_command.dart';
-import 'package:slackcli/src/slack.dart';
 
-/// `slackcli reply --channel <id> --thread <ts> --text "message"`
+/// `dart_slack reply --channel <id> --thread <ts> --text "message"`
 ///
 /// Replies to a message thread in a Slack channel.
 class ReplyCommand extends AuthenticatedCommand {

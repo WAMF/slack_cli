@@ -1,6 +1,6 @@
+import 'package:dart_slack/src/cli/commands/reply_command.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:slackcli/src/cli/commands/reply_command.dart';
 import 'package:test/test.dart';
 
 class _MockLogger extends Mock implements Logger {}

@@ -1,8 +1,8 @@
 import 'package:args/command_runner.dart';
+import 'package:dart_slack/src/auth/credentials_store.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:slackcli/src/auth/credentials_store.dart';
 
-/// `slackcli logout`
+/// `dart_slack logout`
 ///
 /// Removes stored Slack credentials.
 class LogoutCommand extends Command<int> {

@@ -1,8 +1,8 @@
+import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
+import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:slackcli/src/cli/commands/authenticated_command.dart';
-import 'package:slackcli/src/slack.dart';
 
-/// `slackcli dm --user <id> --text "message"`
+/// `dart_slack dm --user <id> --text "message"`
 ///
 /// Sends a direct message to a Slack user.
 class DmCommand extends AuthenticatedCommand {

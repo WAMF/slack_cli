@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
+import 'package:dart_slack/src/cli/command_runner.dart';
+import 'package:dart_slack/src/cli/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pub_updater/pub_updater.dart';
-import 'package:slackcli/src/cli/command_runner.dart';
-import 'package:slackcli/src/cli/version.dart';
 import 'package:test/test.dart';
 
 class _MockLogger extends Mock implements Logger {}
@@ -24,10 +24,10 @@ final updatePrompt =
 Run ${lightCyan.wrap('$executableName update')} to update''';
 
 void main() {
-  group('SlackcliCommandRunner', () {
+  group('DartSlackCommandRunner', () {
     late PubUpdater pubUpdater;
     late Logger logger;
-    late SlackcliCommandRunner commandRunner;
+    late DartSlackCommandRunner commandRunner;
 
     setUp(() {
       pubUpdater = _MockPubUpdater();
@@ -38,7 +38,7 @@ void main() {
 
       logger = _MockLogger();
 
-      commandRunner = SlackcliCommandRunner(
+      commandRunner = DartSlackCommandRunner(
         logger: logger,
         pubUpdater: pubUpdater,
       );
@@ -122,7 +122,7 @@ void main() {
     test(
       'can be instantiated without an explicit logger instance',
       () {
-        final commandRunner = SlackcliCommandRunner();
+        final commandRunner = DartSlackCommandRunner();
         expect(commandRunner, isNotNull);
         expect(commandRunner, isA<CompletionCommandRunner<int>>());
       },

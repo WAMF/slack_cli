@@ -1,8 +1,8 @@
+import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
+import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:slackcli/src/cli/commands/authenticated_command.dart';
-import 'package:slackcli/src/slack.dart';
 
-/// `slackcli send --channel <id> --text "message"`
+/// `dart_slack send --channel <id> --text "message"`
 ///
 /// Posts a message to a Slack channel.
 class SendCommand extends AuthenticatedCommand {

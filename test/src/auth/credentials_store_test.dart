@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:slackcli/src/auth/credentials.dart';
-import 'package:slackcli/src/auth/credentials_store.dart';
+import 'package:dart_slack/src/auth/credentials.dart';
+import 'package:dart_slack/src/auth/credentials_store.dart';
 import 'package:test/test.dart';
 
 void main() {

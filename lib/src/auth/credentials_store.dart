@@ -1,20 +1,20 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:slackcli/src/auth/credentials.dart';
+import 'package:dart_slack/src/auth/credentials.dart';
 
 /// Manages persistence of Slack OAuth credentials to disk.
 ///
-/// Credentials are stored at `~/.slackcli/credentials.json` with file
+/// Credentials are stored at `~/.dart_slack/credentials.json` with file
 /// mode 0600 (owner read/write only) on POSIX systems.
 class CredentialsStore {
   /// Creates a [CredentialsStore] that writes to [configDirectory].
   ///
-  /// Defaults to `~/.slackcli` when [configDirectory] is omitted.
+  /// Defaults to `~/.dart_slack` when [configDirectory] is omitted.
   CredentialsStore({Directory? configDirectory})
     : _configDirectory =
           configDirectory ??
-          Directory('${Platform.environment['HOME']}/.slackcli');
+          Directory('${Platform.environment['HOME']}/.dart_slack');
 
   final Directory _configDirectory;
 

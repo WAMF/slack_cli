@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:dart_slack/src/auth/credentials_store.dart';
+import 'package:dart_slack/src/slack.dart';
+import 'package:dart_slack/src/slack_api/slack_api_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:mason_logger/mason_logger.dart';
-import 'package:slackcli/src/auth/credentials_store.dart';
-import 'package:slackcli/src/slack.dart';
-import 'package:slackcli/src/slack_api/slack_api_client.dart';
 
 /// Base class for commands that require Slack authentication.
 ///
@@ -33,7 +33,7 @@ abstract class AuthenticatedCommand extends Command<int> {
   Future<int> run() async {
     final credentials = credentialsStore.load();
     if (credentials == null) {
-      logger.err("Not logged in. Run 'slackcli login' first.");
+      logger.err("Not logged in. Run 'dart_slack login' first.");
       return ExitCode.noUser.code;
     }
 

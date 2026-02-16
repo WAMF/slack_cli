@@ -1,27 +1,27 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
+import 'package:dart_slack/src/cli/commands/commands.dart';
+import 'package:dart_slack/src/cli/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
-import 'package:slackcli/src/cli/commands/commands.dart';
-import 'package:slackcli/src/cli/version.dart';
 
-const executableName = 'slackcli';
-const packageName = 'slackcli';
+const executableName = 'dart_slack';
+const packageName = 'dart_slack';
 const description =
     'A CLI for posting messages, replying to threads, '
     'and sending DMs in Slack.';
 
-/// {@template slackcli_command_runner}
+/// {@template dart_slack_command_runner}
 /// A [CommandRunner] for the CLI.
 ///
 /// ```bash
-/// $ slackcli --version
+/// $ dart_slack --version
 /// ```
 /// {@endtemplate}
-class SlackcliCommandRunner extends CompletionCommandRunner<int> {
-  /// {@macro slackcli_command_runner}
-  SlackcliCommandRunner({Logger? logger, PubUpdater? pubUpdater})
+class DartSlackCommandRunner extends CompletionCommandRunner<int> {
+  /// {@macro dart_slack_command_runner}
+  DartSlackCommandRunner({Logger? logger, PubUpdater? pubUpdater})
     : _logger = logger ?? Logger(),
       _pubUpdater = pubUpdater ?? PubUpdater(),
       super(executableName, description) {

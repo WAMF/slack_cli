@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_slack/src/auth/credentials.dart';
+import 'package:dart_slack/src/slack_api/slack_scopes.dart';
+import 'package:dart_slack/src/slack_api/slack_urls.dart';
 import 'package:http/http.dart' as http;
 import 'package:mason_logger/mason_logger.dart';
-import 'package:slackcli/src/auth/credentials.dart';
-import 'package:slackcli/src/slack_api/slack_scopes.dart';
-import 'package:slackcli/src/slack_api/slack_urls.dart';
 
 /// The port on which the local OAuth callback server listens.
 const int _callbackPort = 8585;
@@ -43,7 +43,7 @@ class OAuthFlow {
   /// to prevent a real browser from opening during tests.
   ///
   /// The [configDirectory] is where the self-signed TLS certificate and
-  /// key are stored. Defaults to `~/.slackcli`.
+  /// key are stored. Defaults to `~/.dart_slack`.
   OAuthFlow({
     required String clientId,
     required String clientSecret,
@@ -58,7 +58,7 @@ class OAuthFlow {
        _processStarter = processStarter ?? Process.start,
        _configDirectory =
            configDirectory ??
-           Directory('${Platform.environment['HOME']}/.slackcli');
+           Directory('${Platform.environment['HOME']}/.dart_slack');
 
   final String _clientId;
   final String _clientSecret;

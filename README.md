@@ -1,4 +1,4 @@
-# slackcli
+# dart_slack
 
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 [![License: MIT][license_badge]][license_link]
@@ -7,10 +7,10 @@ A Dart package and CLI for interacting with the Slack Web API.
 
 ## Package API
 
-Use `slackcli` as a library in any Dart or Flutter app:
+Use `dart_slack` as a library in any Dart or Flutter app:
 
 ```dart
-import 'package:slackcli/slackcli.dart';
+import 'package:dart_slack/dart_slack.dart';
 ```
 
 ### SlackApiClient
@@ -64,11 +64,11 @@ print('Token: ${credentials.accessToken}');
 print('Team: ${credentials.teamName}');
 ```
 
-Opens the user's browser, listens on `https://localhost:8585/callback`, and exchanges the authorization code for a user token. A self-signed TLS certificate is generated automatically in `~/.slackcli/`.
+Opens the user's browser, listens on `https://localhost:8585/callback`, and exchanges the authorization code for a user token. A self-signed TLS certificate is generated automatically in `~/.dart_slack/`.
 
 ### CredentialsStore
 
-Persists OAuth credentials to `~/.slackcli/credentials.json` with `0600` file permissions.
+Persists OAuth credentials to `~/.dart_slack/credentials.json` with `0600` file permissions.
 
 ```dart
 final store = CredentialsStore();
@@ -140,22 +140,22 @@ dart pub get
 
 ```sh
 # Authenticate
-dart run bin/slackcli.dart login
+dart run bin/dart_slack.dart login
 
 # List channels
-dart run bin/slackcli.dart channels
+dart run bin/dart_slack.dart channels
 
 # Send a message
-dart run bin/slackcli.dart send -c <channel-id> -t "Hello from the CLI"
+dart run bin/dart_slack.dart send -c <channel-id> -t "Hello from the CLI"
 
 # Reply to a thread
-dart run bin/slackcli.dart reply -c <channel-id> -r <thread_ts> -t "Thread reply"
+dart run bin/dart_slack.dart reply -c <channel-id> -r <thread_ts> -t "Thread reply"
 
 # Send a DM
-dart run bin/slackcli.dart dm -u <user-id> -t "Hey there"
+dart run bin/dart_slack.dart dm -u <user-id> -t "Hey there"
 
 # Log out
-dart run bin/slackcli.dart logout
+dart run bin/dart_slack.dart logout
 ```
 
 ---

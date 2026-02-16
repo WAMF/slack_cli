@@ -1,7 +1,7 @@
+import 'package:dart_slack/src/auth/credentials_store.dart';
+import 'package:dart_slack/src/models/models.dart';
+import 'package:dart_slack/src/slack_api/slack_api_client.dart';
 import 'package:http/http.dart' as http;
-import 'package:slackcli/src/auth/credentials_store.dart';
-import 'package:slackcli/src/models/models.dart';
-import 'package:slackcli/src/slack_api/slack_api_client.dart';
 
 /// High-level facade for the Slack Web API.
 ///

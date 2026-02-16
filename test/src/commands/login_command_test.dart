@@ -1,9 +1,9 @@
+import 'package:dart_slack/src/auth/credentials.dart';
+import 'package:dart_slack/src/auth/credentials_store.dart';
+import 'package:dart_slack/src/auth/oauth_flow.dart';
+import 'package:dart_slack/src/cli/commands/login_command.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:slackcli/src/auth/credentials.dart';
-import 'package:slackcli/src/auth/credentials_store.dart';
-import 'package:slackcli/src/auth/oauth_flow.dart';
-import 'package:slackcli/src/cli/commands/login_command.dart';
 import 'package:test/test.dart';
 
 class _MockLogger extends Mock implements Logger {}

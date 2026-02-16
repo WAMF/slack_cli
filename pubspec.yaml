@@ -1,7 +1,11 @@
-name: slackcli
+name: dart_slack
 description: A CLI for posting messages, replying to threads, and sending DMs in Slack.
-version: 0.0.1
-publish_to: none
+version: 0.1.0
+repository: https://github.com/WAMF/slack_cli
+topics:
+  - slack
+  - cli
+  - api
 
 environment:
   sdk: ^3.10.0
@@ -22,4 +26,4 @@ dev_dependencies:
   very_good_analysis: ^10.1.0
 
 executables:
-  slackcli:
+  dart_slack:
