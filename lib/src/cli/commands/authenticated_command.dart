@@ -1,0 +1,59 @@
+import 'dart:io';
+
+import 'package:args/command_runner.dart';
+import 'package:http/http.dart' as http;
+import 'package:mason_logger/mason_logger.dart';
+import 'package:slackcli/src/auth/credentials_store.dart';
+import 'package:slackcli/src/slack_api/slack_api_client.dart';
+
+/// Base class for commands that require Slack authentication.
+///
+/// Loads credentials from [CredentialsStore], creates a [SlackApiClient],
+/// and delegates to [runAuthenticated]. Handles missing credentials and
+/// [SlackApiException] errors centrally.
+abstract class AuthenticatedCommand extends Command<int> {
+  /// Creates an [AuthenticatedCommand].
+  AuthenticatedCommand({
+    required this.logger,
+    CredentialsStore? credentialsStore,
+    this.httpClient,
+  }) : credentialsStore = credentialsStore ?? CredentialsStore();
+
+  /// Logger for user-facing output.
+  final Logger logger;
+
+  /// Store for reading persisted credentials.
+  final CredentialsStore credentialsStore;
+
+  /// Optional HTTP client override for testing.
+  final http.Client? httpClient;
+
+  @override
+  Future<int> run() async {
+    final credentials = credentialsStore.load();
+    if (credentials == null) {
+      logger.err("Not logged in. Run 'slackcli login' first.");
+      return ExitCode.noUser.code;
+    }
+
+    final client = SlackApiClient(
+      token: credentials.accessToken,
+      httpClient: httpClient,
+    );
+
+    try {
+      return await runAuthenticated(client);
+    } on SlackApiException catch (e) {
+      logger.err('Slack API error: ${e.error}');
+      return ExitCode.software.code;
+    } on SocketException catch (_) {
+      logger.err('Network error: cannot reach the Slack API.');
+      return ExitCode.software.code;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Subclasses implement this with their specific Slack API logic.
+  Future<int> runAuthenticated(SlackApiClient client);
+}
