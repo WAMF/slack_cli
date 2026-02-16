@@ -1,15 +1,19 @@
 /// Dart package for interacting with the Slack Web API.
 ///
-/// Provides a client for posting messages, listing channels, and joining
-/// channels, along with OAuth authentication and local credential storage.
+/// The primary entry point is the `Slack` facade class, which provides
+/// typed methods for posting messages, listing channels, and more.
 ///
 /// ```dart
 /// import 'package:slackcli/slackcli.dart';
 ///
-/// final client = SlackApiClient(token: 'xoxp-...');
-/// await client.postMessage(channel: 'C123', text: 'Hello!');
+/// final slack = Slack(token: 'xoxp-...');
+/// final msg = await slack.postMessage(channel: 'C123', text: 'Hello!');
+/// print(msg.ts);
+/// slack.close();
 /// ```
 library;
 
 export 'src/auth/auth.dart';
+export 'src/models/models.dart';
+export 'src/slack.dart';
 export 'src/slack_api/slack_api.dart';

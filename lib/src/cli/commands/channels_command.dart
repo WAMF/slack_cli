@@ -1,6 +1,6 @@
 import 'package:mason_logger/mason_logger.dart';
 import 'package:slackcli/src/cli/commands/authenticated_command.dart';
-import 'package:slackcli/src/slack_api/slack_api_client.dart';
+import 'package:slackcli/src/slack.dart';
 
 /// `slackcli channels`
 ///
@@ -17,8 +17,8 @@ class ChannelsCommand extends AuthenticatedCommand {
   String get name => 'channels';
 
   @override
-  Future<int> runAuthenticated(SlackApiClient client) async {
-    final channels = await client.listChannels();
+  Future<int> runAuthenticated(Slack slack) async {
+    final channels = await slack.listChannels();
 
     if (channels.isEmpty) {
       logger.info('No channels found.');
@@ -26,11 +26,8 @@ class ChannelsCommand extends AuthenticatedCommand {
     }
 
     for (final channel in channels) {
-      final id = channel['id'] as String;
-      final name = channel['name'] as String;
-      final isPrivate = channel['is_private'] as bool? ?? false;
-      final prefix = isPrivate ? '🔒' : '#';
-      logger.info('$prefix $name  ($id)');
+      final prefix = channel.isPrivate ? '🔒' : '#';
+      logger.info('$prefix ${channel.name}  (${channel.id})');
     }
 
     return ExitCode.success.code;

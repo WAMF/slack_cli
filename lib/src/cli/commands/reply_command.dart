@@ -1,6 +1,6 @@
 import 'package:mason_logger/mason_logger.dart';
 import 'package:slackcli/src/cli/commands/authenticated_command.dart';
-import 'package:slackcli/src/slack_api/slack_api_client.dart';
+import 'package:slackcli/src/slack.dart';
 
 /// `slackcli reply --channel <id> --thread <ts> --text "message"`
 ///
@@ -41,12 +41,12 @@ class ReplyCommand extends AuthenticatedCommand {
   String get name => 'reply';
 
   @override
-  Future<int> runAuthenticated(SlackApiClient client) async {
+  Future<int> runAuthenticated(Slack slack) async {
     final channel = argResults!['channel'] as String;
     final thread = argResults!['thread'] as String;
     final text = argResults!['text'] as String;
 
-    await client.postMessage(
+    await slack.postMessage(
       channel: channel,
       text: text,
       threadTs: thread,

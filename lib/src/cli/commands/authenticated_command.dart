@@ -4,11 +4,12 @@ import 'package:args/command_runner.dart';
 import 'package:http/http.dart' as http;
 import 'package:mason_logger/mason_logger.dart';
 import 'package:slackcli/src/auth/credentials_store.dart';
+import 'package:slackcli/src/slack.dart';
 import 'package:slackcli/src/slack_api/slack_api_client.dart';
 
 /// Base class for commands that require Slack authentication.
 ///
-/// Loads credentials from [CredentialsStore], creates a [SlackApiClient],
+/// Loads credentials from [CredentialsStore], creates a [Slack] facade,
 /// and delegates to [runAuthenticated]. Handles missing credentials and
 /// [SlackApiException] errors centrally.
 abstract class AuthenticatedCommand extends Command<int> {
@@ -36,13 +37,13 @@ abstract class AuthenticatedCommand extends Command<int> {
       return ExitCode.noUser.code;
     }
 
-    final client = SlackApiClient(
+    final slack = Slack(
       token: credentials.accessToken,
       httpClient: httpClient,
     );
 
     try {
-      return await runAuthenticated(client);
+      return await runAuthenticated(slack);
     } on SlackApiException catch (e) {
       logger.err('Slack API error: ${e.error}');
       return ExitCode.software.code;
@@ -50,10 +51,10 @@ abstract class AuthenticatedCommand extends Command<int> {
       logger.err('Network error: cannot reach the Slack API.');
       return ExitCode.software.code;
     } finally {
-      client.close();
+      slack.close();
     }
   }
 
   /// Subclasses implement this with their specific Slack API logic.
-  Future<int> runAuthenticated(SlackApiClient client);
+  Future<int> runAuthenticated(Slack slack);
 }
