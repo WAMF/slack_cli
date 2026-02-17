@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/dart_slack.yaml"
+      - "bin/**"
       - "lib/**"
       - "test/**"
       - "pubspec.yaml"
@@ -16,12 +17,16 @@ on:
       - main
     paths:
       - ".github/workflows/dart_slack.yaml"
+      - "bin/**"
       - "lib/**"
       - "test/**"
       - "pubspec.yaml"
 
+permissions: read-all
+
 jobs:
   semantic-pull-request:
+    if: github.event_name == 'pull_request'
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@v1
 
   build:
@@ -42,16 +47,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📚 Git Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: 🎯 Setup Dart
         uses: dart-lang/setup-dart@v1
         with:
-          sdk: "stable"
+          sdk: "3.10.0"
 
       - name: 📦 Install Dependencies
-        run: |
-          dart pub get
+        run: dart pub get
 
       - name: 🔎 Verify version
         run: dart run test --run-skipped -t version-verify

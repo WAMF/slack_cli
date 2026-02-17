@@ -18,6 +18,8 @@ on:
       - "pubspec.yaml"
       - ".github/workflows/license_check.yaml"
 
+permissions: read-all
+
 jobs:
   license_check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
