@@ -7,7 +7,11 @@ import 'package:mason_logger/mason_logger.dart';
 /// Lists Slack channels the authenticated user has access to.
 class ChannelsCommand extends AuthenticatedCommand {
   /// Creates a [ChannelsCommand].
-  ChannelsCommand({required super.logger});
+  ChannelsCommand({
+    required super.logger,
+    super.credentialsStore,
+    super.httpClient,
+  });
 
   @override
   String get description =>

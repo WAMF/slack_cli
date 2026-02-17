@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:meta/meta.dart';
+
 /// Slack app credentials loaded from environment variables or a `.env` file.
 ///
 /// Resolution order:
@@ -8,7 +10,18 @@ import 'dart:io';
 ///
 /// Throws [StateError] if either value is missing from both sources.
 abstract final class SlackApp {
-  static final Map<String, String> _env = _loadEnv();
+  static Map<String, String>? _envCache;
+
+  static String? _dotEnvPath;
+
+  static Map<String, String> get _env => _envCache ??= _loadEnv();
+
+  /// Resets the cached environment so the next access re-reads values.
+  @visibleForTesting
+  static void resetForTesting({String? dotEnvPath}) {
+    _envCache = null;
+    _dotEnvPath = dotEnvPath;
+  }
 
   /// OAuth client identifier.
   static String get clientId =>
@@ -29,7 +42,7 @@ abstract final class SlackApp {
   static Map<String, String> _loadEnv() {
     final env = Map<String, String>.of(Platform.environment);
 
-    final dotEnvFile = File('.env');
+    final dotEnvFile = File(_dotEnvPath ?? '.env');
     if (dotEnvFile.existsSync()) {
       for (final line in dotEnvFile.readAsLinesSync()) {
         final trimmed = line.trim();

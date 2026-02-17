@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dart_slack/src/auth/credentials.dart';
 import 'package:dart_slack/src/slack_api/slack_scopes.dart';
@@ -16,6 +17,22 @@ const String _callbackPath = '/callback';
 
 /// Maximum time to wait for the user to authorize in the browser.
 const Duration _authTimeout = Duration(minutes: 5);
+
+/// Number of random bytes used to generate the OAuth state token.
+const int _stateLength = 32;
+
+String _generateState() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(_stateLength, (_) => random.nextInt(256));
+  return base64Url.encode(bytes);
+}
+
+String _escapeHtml(String input) => input
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 
 /// Thrown when the OAuth authorization flow fails.
 class OAuthException implements Exception {
@@ -51,6 +68,7 @@ class OAuthFlow {
     http.Client? httpClient,
     Future<Process> Function(String, List<String>)? processStarter,
     Directory? configDirectory,
+    int? port,
   }) : _clientId = clientId,
        _clientSecret = clientSecret,
        _logger = logger,
@@ -58,7 +76,8 @@ class OAuthFlow {
        _processStarter = processStarter ?? Process.start,
        _configDirectory =
            configDirectory ??
-           Directory('${Platform.environment['HOME']}/.dart_slack');
+           Directory('${Platform.environment['HOME']}/.dart_slack'),
+       _port = port ?? _callbackPort;
 
   final String _clientId;
   final String _clientSecret;
@@ -66,6 +85,7 @@ class OAuthFlow {
   final http.Client _httpClient;
   final Future<Process> Function(String, List<String>) _processStarter;
   final Directory _configDirectory;
+  final int _port;
 
   File get _certFile => File('${_configDirectory.path}/cert.pem');
   File get _keyFile => File('${_configDirectory.path}/key.pem');
@@ -80,19 +100,21 @@ class OAuthFlow {
 
     final server = await HttpServer.bindSecure(
       InternetAddress.loopbackIPv4,
-      _callbackPort,
+      _port,
       context,
     );
-    const redirectUri =
-        'https://localhost:$_callbackPort$_callbackPath';
+    final redirectUri =
+        'https://localhost:${server.port}$_callbackPath';
 
     try {
+      final state = _generateState();
       final authorizeUrl = SlackUrls.authorize.replace(
         queryParameters: {
           'client_id': _clientId,
           'user_scope': SlackScopes.joined,
           'redirect_uri': redirectUri,
           'response_type': 'code',
+          'state': state,
         },
       );
 
@@ -100,8 +122,11 @@ class OAuthFlow {
       await _openBrowser(authorizeUrl.toString());
       _logger.info('Waiting for authorization callback...');
 
-      final code = await _waitForCallback(server);
-      return _exchangeCodeForToken(
+      final code = await _waitForCallback(
+        server,
+        expectedState: state,
+      );
+      return await _exchangeCodeForToken(
         code: code,
         redirectUri: redirectUri,
       );
@@ -156,7 +181,10 @@ class OAuthFlow {
     await _processStarter(command, [url]);
   }
 
-  Future<String> _waitForCallback(HttpServer server) async {
+  Future<String> _waitForCallback(
+    HttpServer server, {
+    required String expectedState,
+  }) async {
     final completer = Completer<String>();
 
     final subscription = server.listen((request) {
@@ -168,6 +196,7 @@ class OAuthFlow {
 
       final code = request.uri.queryParameters['code'];
       final error = request.uri.queryParameters['error'];
+      final returnedState = request.uri.queryParameters['state'];
 
       if (error != null) {
         _respondWithHtml(
@@ -175,6 +204,16 @@ class OAuthFlow {
           'Authorization failed: $error',
         );
         completer.completeError(OAuthException(error));
+      } else if (returnedState != expectedState) {
+        _respondWithHtml(
+          request.response,
+          'Authorization failed: invalid state parameter.',
+        );
+        completer.completeError(
+          const OAuthException(
+            'Invalid OAuth state parameter (possible CSRF)',
+          ),
+        );
       } else if (code != null) {
         _respondWithHtml(
           request.response,
@@ -207,12 +246,13 @@ class OAuthFlow {
   }
 
   void _respondWithHtml(HttpResponse response, String body) {
+    final safeBody = _escapeHtml(body);
     response
       ..statusCode = HttpStatus.ok
       ..headers.contentType = ContentType.html
       ..write(
         '<html><body style="font-family:sans-serif;text-align:center;'
-        ' padding:40px"><h2>$body</h2></body></html>',
+        ' padding:40px"><h2>$safeBody</h2></body></html>',
       );
     unawaited(response.close());
   }
