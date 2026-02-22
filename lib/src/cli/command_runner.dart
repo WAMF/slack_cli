@@ -40,6 +40,7 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
 
     // Add sub commands
     addCommand(ChannelsCommand(logger: _logger));
+    addCommand(ConfigureCommand(logger: _logger));
     addCommand(DeleteCommand(logger: _logger));
     addCommand(DmCommand(logger: _logger));
     addCommand(EditCommand(logger: _logger));
@@ -50,9 +51,11 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
     addCommand(MembersCommand(logger: _logger));
     addCommand(ReplyCommand(logger: _logger));
     addCommand(SendCommand(logger: _logger));
+    addCommand(StreamCommand(logger: _logger));
     addCommand(ThreadCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, pubUpdater: _pubUpdater));
     addCommand(UsersCommand(logger: _logger));
+    addCommand(WatchCommand(logger: _logger));
     addCommand(WhoisCommand(logger: _logger));
   }
 

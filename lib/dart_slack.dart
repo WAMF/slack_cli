@@ -17,3 +17,4 @@ export 'src/auth/auth.dart';
 export 'src/models/models.dart';
 export 'src/slack.dart';
 export 'src/slack_api/slack_api.dart';
+export 'src/socket_mode/socket_mode.dart';

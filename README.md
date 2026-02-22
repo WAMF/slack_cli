@@ -66,6 +66,26 @@ print(json['ts']);
 client.close();
 ```
 
+### SocketModeClient
+
+Real-time event streaming over WebSocket using Slack's [Socket Mode](https://api.slack.com/apis/socket-mode). Requires an app-level token (`xapp-*`).
+
+```dart
+import 'package:dart_slack/dart_slack.dart';
+
+final client = SocketModeClient(appToken: 'xapp-...');
+await client.connect();
+
+client.events.listen((event) {
+  print('${event.channel}: <${event.user}> ${event.text}');
+});
+
+// Later...
+await client.close();
+```
+
+Events are automatically acknowledged. The client reconnects with exponential backoff on disconnect.
+
 ### OAuthFlow
 
 Runs the Slack OAuth 2.0 V2 authorization flow over a local HTTPS server.
@@ -152,9 +172,10 @@ Returned by `Slack.listChannels`.
 
 1. Go to https://api.slack.com/apps and create a new app **From scratch**.
 2. Under **OAuth & Permissions**, add these **User Token Scopes**:
-   - `chat:write`
+   - `channels:history`
    - `channels:read`
    - `channels:write`
+   - `chat:write`
    - `groups:read`
    - `im:write`
    - `users:read`
@@ -169,6 +190,15 @@ Returned by `Slack.listChannels`.
    SLACK_CLIENT_SECRET=<your-client-secret>
    ```
    Alternatively, set these as environment variables.
+
+#### Socket Mode (optional, for `stream` command)
+
+1. Under **Socket Mode**, toggle it on and generate an **App-Level Token** with the `connections:write` scope.
+2. Under **Event Subscriptions**, enable events and subscribe to `message.channels`.
+3. Add the token to your `.env` file:
+   ```
+   SLACK_APP_TOKEN=xapp-...
+   ```
 
 ### Getting Started
 
@@ -185,14 +215,44 @@ dart run bin/dart_slack.dart login
 # List channels
 dart run bin/dart_slack.dart channels
 
+# Show channel details
+dart run bin/dart_slack.dart info -c <channel-id>
+
+# List channel members
+dart run bin/dart_slack.dart members -c <channel-id>
+
+# Show recent messages
+dart run bin/dart_slack.dart history -c <channel-id> -l 20
+
+# Show thread replies
+dart run bin/dart_slack.dart thread -c <channel-id> --ts <thread_ts>
+
 # Send a message
 dart run bin/dart_slack.dart send -c <channel-id> -t "Hello from the CLI"
 
 # Reply to a thread
 dart run bin/dart_slack.dart reply -c <channel-id> -r <thread_ts> -t "Thread reply"
 
+# Edit a message
+dart run bin/dart_slack.dart edit -c <channel-id> --ts <message_ts> -t "Updated text"
+
+# Delete a message
+dart run bin/dart_slack.dart delete -c <channel-id> --ts <message_ts>
+
 # Send a DM
 dart run bin/dart_slack.dart dm -u <user-id> -t "Hey there"
+
+# List workspace users
+dart run bin/dart_slack.dart users
+
+# Look up a user profile
+dart run bin/dart_slack.dart whois -u <user-id>
+
+# Watch a channel (poll-based, uses user token)
+dart run bin/dart_slack.dart watch -c <channel-id> -i 5 -n 10
+
+# Stream a channel in real time (Socket Mode, uses app-level token)
+dart run bin/dart_slack.dart stream -c <channel-id>
 
 # Log out
 dart run bin/dart_slack.dart logout

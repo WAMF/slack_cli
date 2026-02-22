@@ -1,5 +1,6 @@
 export 'authenticated_command.dart';
 export 'channels_command.dart';
+export 'configure_command.dart';
 export 'delete_command.dart';
 export 'dm_command.dart';
 export 'edit_command.dart';
@@ -10,7 +11,9 @@ export 'logout_command.dart';
 export 'members_command.dart';
 export 'reply_command.dart';
 export 'send_command.dart';
+export 'stream_command.dart';
 export 'thread_command.dart';
 export 'update_command.dart';
 export 'users_command.dart';
+export 'watch_command.dart';
 export 'whois_command.dart';
