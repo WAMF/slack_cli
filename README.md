@@ -13,40 +13,58 @@ Use `dart_slack` as a library in any Dart or Flutter app:
 import 'package:dart_slack/dart_slack.dart';
 ```
 
-### SlackApiClient
+### Slack
 
-Authenticated HTTP client for the Slack Web API.
+High-level facade with typed return values. This is the recommended entry point.
 
 ```dart
-final client = SlackApiClient(token: 'xoxp-...');
+final slack = Slack(token: 'xoxp-...');
 
 // Post a message
-await client.postMessage(channel: 'C0123ABCDEF', text: 'Hello!');
+final msg = await slack.postMessage(channel: 'C0123ABCDEF', text: 'Hello!');
+print(msg.ts); // message timestamp
 
 // Reply to a thread
-await client.postMessage(
+await slack.postMessage(
   channel: 'C0123ABCDEF',
   text: 'Thread reply',
   threadTs: '1234567890.123456',
 );
 
 // Send a DM (pass a user ID as the channel)
-await client.postMessage(channel: 'U0123ABCDEF', text: 'Hey!');
+await slack.postMessage(channel: 'U0123ABCDEF', text: 'Hey!');
 
 // List channels
-final channels = await client.listChannels();
+final channels = await slack.listChannels();
 for (final channel in channels) {
-  print('${channel['name']} (${channel['id']})');
+  print('${channel.name} (${channel.id})');
 }
 
 // Join a public channel
-await client.joinChannel('C0123ABCDEF');
+await slack.joinChannel('C0123ABCDEF');
 
 // Release resources when done
-client.close();
+slack.close();
 ```
 
-All methods throw `SlackApiException` when the API returns an error. `postMessage` automatically joins the channel on `not_in_channel` and retries.
+`postMessage` returns a `SlackMessage`, `listChannels` returns a `List<SlackChannel>`. All methods throw `SlackApiException` when the API returns an error. `postMessage` automatically joins the channel on `not_in_channel` and retries.
+
+You can also create an instance from stored credentials:
+
+```dart
+final slack = Slack.fromStore(); // returns null if not logged in
+```
+
+### SlackApiClient
+
+Lower-level HTTP client that returns raw `Map<String, dynamic>` responses. Use this when you need direct access to the full Slack API response.
+
+```dart
+final client = SlackApiClient(token: 'xoxp-...');
+final json = await client.postMessage(channel: 'C0123ABCDEF', text: 'Hello!');
+print(json['ts']);
+client.close();
+```
 
 ### OAuthFlow
 
@@ -64,7 +82,7 @@ print('Token: ${credentials.accessToken}');
 print('Team: ${credentials.teamName}');
 ```
 
-Opens the user's browser, listens on `https://localhost:8585/callback`, and exchanges the authorization code for a user token. A self-signed TLS certificate is generated automatically in `~/.dart_slack/`.
+Opens the user's browser, listens on `https://localhost:8585/callback`, and exchanges the authorization code for a user token. A self-signed TLS certificate is generated automatically in `~/.dart_slack/`. CSRF protection is handled via the OAuth `state` parameter.
 
 ### CredentialsStore
 
@@ -86,7 +104,9 @@ if (store.hasCredentials) { ... }
 store.delete();
 ```
 
-### Credentials
+### Models
+
+#### Credentials
 
 Data class holding the access token and workspace metadata.
 
@@ -98,6 +118,26 @@ Data class holding the access token and workspace metadata.
 | `userId` | `String?` | Authenticated user ID |
 
 Supports `fromJson` / `toJson` for serialization.
+
+#### SlackMessage
+
+Returned by `Slack.postMessage`.
+
+| Field | Type | Description |
+|---|---|---|
+| `channel` | `String` | Channel the message was posted to |
+| `ts` | `String` | Message timestamp (used for threading) |
+| `text` | `String` | Message text content |
+
+#### SlackChannel
+
+Returned by `Slack.listChannels`.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `String` | Channel identifier (e.g. `C0123ABCDEF`) |
+| `name` | `String` | Channel name without the `#` prefix |
+| `isPrivate` | `bool` | Whether this is a private channel |
 
 ---
 
