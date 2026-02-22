@@ -5,11 +5,14 @@ import 'package:http/http.dart' as http;
 
 /// Thrown when the Slack API returns a non-ok response.
 class SlackApiException implements Exception {
-  /// Creates a [SlackApiException] with the given Slack API [error] string.
-  const SlackApiException(this.error);
+  /// Creates a [SlackApiException] from the decoded JSON error response.
+  const SlackApiException(this.error, {this.needed});
 
   /// The error code returned by the Slack API (e.g. `invalid_auth`).
   final String error;
+
+  /// The OAuth scope required for the request, present on `missing_scope`.
+  final String? needed;
 
   @override
   String toString() => 'SlackApiException: $error';
@@ -80,6 +83,148 @@ class SlackApiClient {
     }
   }
 
+  /// Lists channels the authenticated user has access to.
+  ///
+  /// Returns a list of channel maps, each containing at minimum
+  /// `id`, `name`, and `is_private`.
+  Future<List<Map<String, dynamic>>> listChannels({
+    bool excludeArchived = true,
+  }) async {
+    final uri = SlackUrls.conversationsList.replace(
+      queryParameters: {
+        'exclude_archived': '$excludeArchived',
+        'types': 'public_channel,private_channel',
+        'limit': '200',
+      },
+    );
+
+    final json = await _get(uri);
+    return (json['channels'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+  }
+
+  /// Fetches message history for [channel].
+  ///
+  /// Returns a map containing `messages` (list) and pagination metadata.
+  Future<Map<String, dynamic>> conversationsHistory({
+    required String channel,
+    int limit = 100,
+    String? cursor,
+    String? oldest,
+    String? latest,
+  }) async {
+    final params = <String, String>{
+      'channel': channel,
+      'limit': '$limit',
+      'cursor': ?cursor,
+      'oldest': ?oldest,
+      'latest': ?latest,
+    };
+    return _get(
+      SlackUrls.conversationsHistory.replace(queryParameters: params),
+    );
+  }
+
+  /// Fetches thread replies for [channel] starting at [ts].
+  ///
+  /// Returns a map containing `messages` (list) and pagination metadata.
+  Future<Map<String, dynamic>> conversationsReplies({
+    required String channel,
+    required String ts,
+    int limit = 100,
+    String? cursor,
+    String? oldest,
+    String? latest,
+  }) async {
+    final params = <String, String>{
+      'channel': channel,
+      'ts': ts,
+      'limit': '$limit',
+      'cursor': ?cursor,
+      'oldest': ?oldest,
+      'latest': ?latest,
+    };
+    return _get(
+      SlackUrls.conversationsReplies.replace(queryParameters: params),
+    );
+  }
+
+  /// Gets detailed information about [channel].
+  Future<Map<String, dynamic>> conversationsInfo({
+    required String channel,
+  }) {
+    final params = <String, String>{'channel': channel};
+    return _get(
+      SlackUrls.conversationsInfo.replace(queryParameters: params),
+    );
+  }
+
+  /// Lists member user IDs for [channel].
+  ///
+  /// Returns a map containing `members` (list of strings) and pagination
+  /// metadata.
+  Future<Map<String, dynamic>> conversationsMembers({
+    required String channel,
+    int limit = 100,
+    String? cursor,
+  }) async {
+    final params = <String, String>{
+      'channel': channel,
+      'limit': '$limit',
+      'cursor': ?cursor,
+    };
+    return _get(
+      SlackUrls.conversationsMembers.replace(queryParameters: params),
+    );
+  }
+
+  /// Lists all users in the workspace.
+  ///
+  /// Returns a map containing `members` (list) and pagination metadata.
+  Future<Map<String, dynamic>> usersList({
+    int limit = 100,
+    String? cursor,
+  }) async {
+    final params = <String, String>{
+      'limit': '$limit',
+      'cursor': ?cursor,
+    };
+    return _get(SlackUrls.usersList.replace(queryParameters: params));
+  }
+
+  /// Gets detailed information about a [user].
+  Future<Map<String, dynamic>> usersInfo({
+    required String user,
+  }) {
+    final params = <String, String>{'user': user};
+    return _get(SlackUrls.usersInfo.replace(queryParameters: params));
+  }
+
+  /// Releases the underlying HTTP client resources.
+  void close() => _httpClient.close();
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  /// Sends a GET request and returns the decoded JSON body.
+  ///
+  /// Throws [SlackApiException] when the response contains `ok: false`.
+  Future<Map<String, dynamic>> _get(Uri uri) async {
+    final response = await _httpClient.get(
+      uri,
+      headers: {'Authorization': 'Bearer $_token'},
+    );
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    if (json['ok'] != true) {
+      throw SlackApiException(
+        json['error'] as String? ?? 'unknown_error',
+        needed: json['needed'] as String?,
+      );
+    }
+    return json;
+  }
+
   Future<http.Response> _postMessageRaw({
     required String channel,
     required String text,
@@ -116,42 +261,9 @@ class SlackApiClient {
     if (json['ok'] != true) {
       throw SlackApiException(
         json['error'] as String? ?? 'unknown_error',
+        needed: json['needed'] as String?,
       );
     }
     return json;
   }
-
-  /// Lists channels the authenticated user has access to.
-  ///
-  /// Returns a list of channel maps, each containing at minimum
-  /// `id`, `name`, and `is_private`.
-  Future<List<Map<String, dynamic>>> listChannels({
-    bool excludeArchived = true,
-  }) async {
-    final uri = SlackUrls.conversationsList.replace(
-      queryParameters: {
-        'exclude_archived': '$excludeArchived',
-        'types': 'public_channel,private_channel',
-        'limit': '200',
-      },
-    );
-
-    final response = await _httpClient.get(
-      uri,
-      headers: {'Authorization': 'Bearer $_token'},
-    );
-
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    if (json['ok'] != true) {
-      throw SlackApiException(
-        json['error'] as String? ?? 'unknown_error',
-      );
-    }
-
-    return (json['channels'] as List<dynamic>)
-        .cast<Map<String, dynamic>>();
-  }
-
-  /// Releases the underlying HTTP client resources.
-  void close() => _httpClient.close();
 }

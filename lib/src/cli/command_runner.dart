@@ -9,8 +9,8 @@ import 'package:pub_updater/pub_updater.dart';
 const executableName = 'dart_slack';
 const packageName = 'dart_slack';
 const description =
-    'A CLI for posting messages, replying to threads, '
-    'and sending DMs in Slack.';
+    'A CLI for reading and writing messages, browsing channels, '
+    'and looking up users in Slack.';
 
 /// {@template dart_slack_command_runner}
 /// A [CommandRunner] for the CLI.
@@ -40,12 +40,18 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
 
     // Add sub commands
     addCommand(ChannelsCommand(logger: _logger));
+    addCommand(DmCommand(logger: _logger));
+    addCommand(HistoryCommand(logger: _logger));
+    addCommand(InfoCommand(logger: _logger));
     addCommand(LoginCommand(logger: _logger));
     addCommand(LogoutCommand(logger: _logger));
-    addCommand(SendCommand(logger: _logger));
+    addCommand(MembersCommand(logger: _logger));
     addCommand(ReplyCommand(logger: _logger));
-    addCommand(DmCommand(logger: _logger));
+    addCommand(SendCommand(logger: _logger));
+    addCommand(ThreadCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, pubUpdater: _pubUpdater));
+    addCommand(UsersCommand(logger: _logger));
+    addCommand(WhoisCommand(logger: _logger));
   }
 
   @override

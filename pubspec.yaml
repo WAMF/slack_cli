@@ -1,5 +1,5 @@
 name: dart_slack
-description: A CLI for posting messages, replying to threads, and sending DMs in Slack.
+description: A CLI for reading and writing messages, browsing channels, and looking up users in Slack.
 version: 0.1.0
 repository: https://github.com/WAMF/slack_cli
 topics:

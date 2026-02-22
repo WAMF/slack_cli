@@ -46,6 +46,10 @@ abstract class AuthenticatedCommand extends Command<int> {
       return await runAuthenticated(slack);
     } on SlackApiException catch (e) {
       logger.err('Slack API error: ${e.error}');
+      if (e.needed != null) {
+        logger.err("Missing scope '${e.needed}'. "
+            "Run 'dart_slack login' to re-authorize.");
+      }
       return ExitCode.software.code;
     } on SocketException catch (_) {
       logger.err('Network error: cannot reach the Slack API.');

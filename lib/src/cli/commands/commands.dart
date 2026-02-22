@@ -1,8 +1,14 @@
 export 'authenticated_command.dart';
 export 'channels_command.dart';
 export 'dm_command.dart';
+export 'history_command.dart';
+export 'info_command.dart';
 export 'login_command.dart';
 export 'logout_command.dart';
+export 'members_command.dart';
 export 'reply_command.dart';
 export 'send_command.dart';
+export 'thread_command.dart';
 export 'update_command.dart';
+export 'users_command.dart';
+export 'whois_command.dart';

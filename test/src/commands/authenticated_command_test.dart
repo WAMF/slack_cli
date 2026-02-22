@@ -135,6 +135,33 @@ void main() {
       ).called(1);
     });
 
+    test('shows needed scope on missing_scope error', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+        onRun: (_) => throw const SlackApiException(
+          'missing_scope',
+          needed: 'channels:history',
+        ),
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.software.code));
+      verify(
+        () => logger.err('Slack API error: missing_scope'),
+      ).called(1);
+      verify(
+        () => logger.err(
+          "Missing scope 'channels:history'. "
+          "Run 'dart_slack login' to re-authorize.",
+        ),
+      ).called(1);
+    });
+
     test('closes Slack client after successful execution', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
 

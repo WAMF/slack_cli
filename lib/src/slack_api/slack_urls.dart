@@ -24,4 +24,34 @@ abstract final class SlackUrls {
   static final Uri conversationsList = Uri.parse(
     'https://slack.com/api/conversations.list',
   );
+
+  /// Fetch message history for a conversation.
+  static final Uri conversationsHistory = Uri.parse(
+    'https://slack.com/api/conversations.history',
+  );
+
+  /// Fetch replies to a thread.
+  static final Uri conversationsReplies = Uri.parse(
+    'https://slack.com/api/conversations.replies',
+  );
+
+  /// Get information about a conversation.
+  static final Uri conversationsInfo = Uri.parse(
+    'https://slack.com/api/conversations.info',
+  );
+
+  /// List members of a conversation.
+  static final Uri conversationsMembers = Uri.parse(
+    'https://slack.com/api/conversations.members',
+  );
+
+  /// List all users in the workspace.
+  static final Uri usersList = Uri.parse(
+    'https://slack.com/api/users.list',
+  );
+
+  /// Get information about a user.
+  static final Uri usersInfo = Uri.parse(
+    'https://slack.com/api/users.info',
+  );
 }
