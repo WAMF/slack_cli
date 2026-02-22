@@ -78,5 +78,43 @@ void main() {
       expect(message.threadTs, equals('1512085950.000216'));
       expect(message.replyCount, isNull);
     });
+
+    test('fromHistory parses reactions and files', () {
+      final message = SlackMessage.fromHistory(
+        channel: 'C123',
+        json: const {
+          'ts': '1512085950.000216',
+          'text': 'Check this out',
+          'reactions': [
+            {'name': 'thumbsup', 'count': 2},
+            {'name': 'heart', 'count': 1},
+          ],
+          'files': [
+            {'name': 'design.png'},
+            {'name': 'notes.txt'},
+          ],
+        },
+      );
+
+      expect(message.reactions, hasLength(2));
+      expect(message.reactions![0].name, equals('thumbsup'));
+      expect(message.reactions![0].count, equals(2));
+      expect(message.reactions![1].name, equals('heart'));
+      expect(message.files, hasLength(2));
+      expect(message.files![0].name, equals('design.png'));
+    });
+
+    test('fromHistory leaves reactions and files null when absent', () {
+      final message = SlackMessage.fromHistory(
+        channel: 'C123',
+        json: const {
+          'ts': '1512085951.000300',
+          'text': 'Plain message',
+        },
+      );
+
+      expect(message.reactions, isNull);
+      expect(message.files, isNull);
+    });
   });
 }

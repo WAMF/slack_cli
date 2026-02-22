@@ -10,9 +10,19 @@ abstract final class SlackUrls {
     'https://slack.com/api/oauth.v2.access',
   );
 
+  /// Delete a message.
+  static final Uri chatDelete = Uri.parse(
+    'https://slack.com/api/chat.delete',
+  );
+
   /// Post a message to a channel, thread, or DM.
   static final Uri postMessage = Uri.parse(
     'https://slack.com/api/chat.postMessage',
+  );
+
+  /// Update the text of an existing message.
+  static final Uri chatUpdate = Uri.parse(
+    'https://slack.com/api/chat.update',
   );
 
   /// Join a public channel.

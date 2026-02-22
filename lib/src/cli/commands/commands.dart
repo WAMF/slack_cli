@@ -1,6 +1,8 @@
 export 'authenticated_command.dart';
 export 'channels_command.dart';
+export 'delete_command.dart';
 export 'dm_command.dart';
+export 'edit_command.dart';
 export 'history_command.dart';
 export 'info_command.dart';
 export 'login_command.dart';

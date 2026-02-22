@@ -175,5 +175,127 @@ void main() {
       slackClient.close();
       verify(() => httpClient.close()).called(1);
     });
+
+    group('rate limiting', () {
+      late SlackApiClient retryClient;
+
+      setUp(() {
+        retryClient = SlackApiClient(
+          token: token,
+          httpClient: httpClient,
+          delay: (_) async {},
+        );
+      });
+
+      test('retries GET on 429 and succeeds', () async {
+        var callCount = 0;
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async {
+          callCount++;
+          if (callCount == 1) {
+            return http.Response(
+              jsonEncode({'ok': false, 'error': 'ratelimited'}),
+              429,
+              headers: {'retry-after': '1'},
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'channel': {
+                'id': 'C1',
+                'name': 'general',
+                'is_private': false,
+              },
+            }),
+            200,
+          );
+        });
+
+        final result =
+            await retryClient.conversationsInfo(channel: 'C1');
+
+        expect(result['channel'], isNotNull);
+        expect(callCount, equals(2));
+      });
+
+      test('retries POST on 429 and succeeds', () async {
+        var callCount = 0;
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer((_) async {
+          callCount++;
+          if (callCount == 1) {
+            return http.Response(
+              jsonEncode({'ok': false, 'error': 'ratelimited'}),
+              429,
+              headers: {'retry-after': '2'},
+            );
+          }
+          return http.Response(
+            jsonEncode({'ok': true, 'ts': '1234.5678'}),
+            200,
+          );
+        });
+
+        await retryClient.postMessage(channel: 'C1', text: 'hi');
+
+        expect(callCount, equals(2));
+      });
+
+      test('throws after max retry attempts', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': false, 'error': 'ratelimited'}),
+            429,
+            headers: {'retry-after': '1'},
+          ),
+        );
+
+        expect(
+          () => retryClient.conversationsInfo(channel: 'C1'),
+          throwsA(
+            isA<SlackApiException>().having(
+              (e) => e.error,
+              'error',
+              'ratelimited',
+            ),
+          ),
+        );
+      });
+
+      test('does not retry non-429 errors', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': false, 'error': 'invalid_auth'}),
+            401,
+          ),
+        );
+
+        expect(
+          () => retryClient.conversationsInfo(channel: 'C1'),
+          throwsA(
+            isA<SlackApiException>().having(
+              (e) => e.error,
+              'error',
+              'invalid_auth',
+            ),
+          ),
+        );
+
+        verify(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).called(1);
+      });
+    });
   });
 }

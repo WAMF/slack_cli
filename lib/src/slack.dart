@@ -65,6 +65,26 @@ class Slack {
     return channels.map(SlackChannel.fromJson).toList();
   }
 
+  /// Updates an existing message.
+  Future<SlackMessage> updateMessage({
+    required String channel,
+    required String ts,
+    required String text,
+  }) async {
+    final json = await _client.updateMessage(
+      channel: channel,
+      ts: ts,
+      text: text,
+    );
+    return SlackMessage.fromJson(json);
+  }
+
+  /// Deletes a message.
+  Future<void> deleteMessage({
+    required String channel,
+    required String ts,
+  }) => _client.deleteMessage(channel: channel, ts: ts);
+
   /// Joins a public channel by [channelId].
   Future<void> joinChannel(String channelId) =>
       _client.joinChannel(channelId);
