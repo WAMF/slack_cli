@@ -176,6 +176,341 @@ void main() {
       verify(() => httpClient.close()).called(1);
     });
 
+    group('listChannels', () {
+      test('sends GET with correct query params', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'channels': [
+                {'id': 'C1', 'name': 'general', 'is_private': false},
+              ],
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.listChannels();
+
+        expect(result, hasLength(1));
+        expect(result[0]['id'], equals('C1'));
+
+        final uri = verify(
+          () => httpClient.get(
+            captureAny(),
+            headers: any(named: 'headers'),
+          ),
+        ).captured.first as Uri;
+
+        expect(uri.queryParameters['exclude_archived'], equals('true'));
+        expect(
+          uri.queryParameters['types'],
+          equals('public_channel,private_channel'),
+        );
+      });
+    });
+
+    group('conversationsHistory', () {
+      test('sends GET with channel and limit', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'messages': [
+                {'ts': '1.0', 'text': 'hi', 'user': 'U1'},
+              ],
+              'has_more': false,
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.conversationsHistory(
+          channel: 'C1',
+          limit: 20,
+        );
+
+        expect(result['messages'], hasLength(1));
+
+        final uri = verify(
+          () => httpClient.get(
+            captureAny(),
+            headers: any(named: 'headers'),
+          ),
+        ).captured.first as Uri;
+
+        expect(uri.queryParameters['channel'], equals('C1'));
+        expect(uri.queryParameters['limit'], equals('20'));
+      });
+    });
+
+    group('conversationsReplies', () {
+      test('sends GET with channel and ts', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'messages': [
+                {'ts': '1.0', 'text': 'parent', 'user': 'U1'},
+              ],
+              'has_more': false,
+            }),
+            200,
+          ),
+        );
+
+        await slackClient.conversationsReplies(channel: 'C1', ts: '1.0');
+
+        final uri = verify(
+          () => httpClient.get(
+            captureAny(),
+            headers: any(named: 'headers'),
+          ),
+        ).captured.first as Uri;
+
+        expect(uri.queryParameters['channel'], equals('C1'));
+        expect(uri.queryParameters['ts'], equals('1.0'));
+      });
+    });
+
+    group('conversationsInfo', () {
+      test('sends GET with channel', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'channel': {
+                'id': 'C1',
+                'name': 'general',
+                'is_private': false,
+              },
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.conversationsInfo(channel: 'C1');
+
+        expect(result['channel'], isNotNull);
+      });
+
+      test('throws on error', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': false, 'error': 'channel_not_found'}),
+            200,
+          ),
+        );
+
+        expect(
+          () => slackClient.conversationsInfo(channel: 'C_BAD'),
+          throwsA(
+            isA<SlackApiException>().having(
+              (e) => e.error,
+              'error',
+              'channel_not_found',
+            ),
+          ),
+        );
+      });
+    });
+
+    group('conversationsMembers', () {
+      test('returns member IDs', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'members': ['U1', 'U2'],
+              'response_metadata': {'next_cursor': ''},
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.conversationsMembers(channel: 'C1');
+
+        expect(result['members'], equals(['U1', 'U2']));
+      });
+    });
+
+    group('usersList', () {
+      test('returns user objects', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'members': [
+                {
+                  'id': 'U1',
+                  'name': 'jane',
+                  'real_name': 'Jane',
+                  'is_bot': false,
+                  'deleted': false,
+                  'profile': {'display_name': 'Jane'},
+                },
+              ],
+              'response_metadata': {'next_cursor': ''},
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.usersList();
+
+        expect(result['members'], hasLength(1));
+      });
+    });
+
+    group('usersInfo', () {
+      test('returns user object', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'user': {
+                'id': 'U1',
+                'name': 'jane',
+                'real_name': 'Jane',
+                'is_bot': false,
+                'deleted': false,
+                'profile': {'display_name': 'Jane'},
+              },
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.usersInfo(user: 'U1');
+
+        expect(result['user'], isNotNull);
+      });
+    });
+
+    group('updateMessage', () {
+      test('sends POST to chat.update', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'channel': 'C1',
+              'ts': '1.0',
+              'message': {'text': 'updated'},
+            }),
+            200,
+          ),
+        );
+
+        await slackClient.updateMessage(
+          channel: 'C1',
+          ts: '1.0',
+          text: 'updated',
+        );
+
+        final captured = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured;
+
+        final uri = captured[0] as Uri;
+        final body =
+            jsonDecode(captured[1] as String) as Map<String, dynamic>;
+
+        expect(uri, equals(SlackUrls.chatUpdate));
+        expect(body['channel'], equals('C1'));
+        expect(body['ts'], equals('1.0'));
+        expect(body['text'], equals('updated'));
+      });
+    });
+
+    group('deleteMessage', () {
+      test('sends POST to chat.delete', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': true, 'channel': 'C1', 'ts': '1.0'}),
+            200,
+          ),
+        );
+
+        await slackClient.deleteMessage(channel: 'C1', ts: '1.0');
+
+        final uri = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).captured.first as Uri;
+
+        expect(uri, equals(SlackUrls.chatDelete));
+      });
+    });
+
+    group('joinChannel', () {
+      test('sends POST to conversations.join', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': true}),
+            200,
+          ),
+        );
+
+        await slackClient.joinChannel('C1');
+
+        final captured = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured;
+
+        final uri = captured[0] as Uri;
+        final body =
+            jsonDecode(captured[1] as String) as Map<String, dynamic>;
+
+        expect(uri, equals(SlackUrls.conversationsJoin));
+        expect(body['channel'], equals('C1'));
+      });
+    });
+
     group('rate limiting', () {
       late SlackApiClient retryClient;
 
