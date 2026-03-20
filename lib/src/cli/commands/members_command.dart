@@ -29,18 +29,25 @@ class MembersCommand extends AuthenticatedCommand {
   @override
   Future<int> runAuthenticated(Slack slack) async {
     final channel = argResults!['channel'] as String;
+    String? cursor;
+    var foundMembers = false;
 
-    final page = await slack.conversationsMembers(channel: channel);
+    do {
+      final page = await slack.conversationsMembers(
+        channel: channel,
+        cursor: cursor,
+      );
 
-    if (page.items.isEmpty) {
+      for (final member in page.items) {
+        foundMembers = true;
+        logger.info(member);
+      }
+
+      cursor = page.nextCursor;
+    } while (cursor != null);
+
+    if (!foundMembers) {
       logger.info('No members found.');
-      return ExitCode.success.code;
-    }
-
-    page.items.forEach(logger.info);
-
-    if (page.hasMore) {
-      logger.info('(more members available)');
     }
 
     return ExitCode.success.code;

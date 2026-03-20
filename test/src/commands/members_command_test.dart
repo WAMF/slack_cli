@@ -79,6 +79,47 @@ void main() {
       verify(() => logger.info('U3')).called(1);
     });
 
+    test('paginates through all channel members', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((invocation) async {
+        final uri = invocation.positionalArguments.first as Uri;
+        final cursor = uri.queryParameters['cursor'];
+
+        if (cursor == null) {
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'members': ['U1', 'U2'],
+              'response_metadata': {'next_cursor': 'page-2'},
+            }),
+            200,
+          );
+        }
+
+        expect(cursor, equals('page-2'));
+        return http.Response(
+          jsonEncode({
+            'ok': true,
+            'members': ['U3'],
+            'response_metadata': {'next_cursor': ''},
+          }),
+          200,
+        );
+      });
+
+      await runner.run(['members', '-c', 'C1']);
+
+      verify(() => logger.info('U1')).called(1);
+      verify(() => logger.info('U2')).called(1);
+      verify(() => logger.info('U3')).called(1);
+      verify(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).called(2);
+      verifyNever(() => logger.info('(more members available)'));
+    });
+
     test('shows empty state message', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
       when(
