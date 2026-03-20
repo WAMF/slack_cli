@@ -11,7 +11,11 @@
 - `Slack.fromStore()` factory for creating an instance from saved credentials.
 - CSRF protection via OAuth `state` parameter.
 - HTML escaping in OAuth callback server responses.
-- Tests for `OAuthFlow`, `SlackApp`, `AuthenticatedCommand`, and `ChannelsCommand`.
+- CLI commands: `history`, `thread`, `info`, `members`, `users`, `whois`, `edit`, `delete`.
+- `watch` command for poll-based channel monitoring using a user token.
+- `stream` command for real-time channel streaming via Socket Mode (`xapp-*` token).
+- `SocketModeClient` library for WebSocket-based Socket Mode connections with automatic reconnection.
+- Tests for `OAuthFlow`, `SlackApp`, `AuthenticatedCommand`, `ChannelsCommand`, `SocketModeClient`, `SocketModeEvent`, and `StreamCommand`.
 
 ### Fixed
 

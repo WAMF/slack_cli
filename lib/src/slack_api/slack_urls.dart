@@ -10,9 +10,19 @@ abstract final class SlackUrls {
     'https://slack.com/api/oauth.v2.access',
   );
 
+  /// Delete a message.
+  static final Uri chatDelete = Uri.parse(
+    'https://slack.com/api/chat.delete',
+  );
+
   /// Post a message to a channel, thread, or DM.
   static final Uri postMessage = Uri.parse(
     'https://slack.com/api/chat.postMessage',
+  );
+
+  /// Update the text of an existing message.
+  static final Uri chatUpdate = Uri.parse(
+    'https://slack.com/api/chat.update',
   );
 
   /// Join a public channel.
@@ -23,5 +33,35 @@ abstract final class SlackUrls {
   /// List conversations the caller has access to.
   static final Uri conversationsList = Uri.parse(
     'https://slack.com/api/conversations.list',
+  );
+
+  /// Fetch message history for a conversation.
+  static final Uri conversationsHistory = Uri.parse(
+    'https://slack.com/api/conversations.history',
+  );
+
+  /// Fetch replies to a thread.
+  static final Uri conversationsReplies = Uri.parse(
+    'https://slack.com/api/conversations.replies',
+  );
+
+  /// Get information about a conversation.
+  static final Uri conversationsInfo = Uri.parse(
+    'https://slack.com/api/conversations.info',
+  );
+
+  /// List members of a conversation.
+  static final Uri conversationsMembers = Uri.parse(
+    'https://slack.com/api/conversations.members',
+  );
+
+  /// List all users in the workspace.
+  static final Uri usersList = Uri.parse(
+    'https://slack.com/api/users.list',
+  );
+
+  /// Get information about a user.
+  static final Uri usersInfo = Uri.parse(
+    'https://slack.com/api/users.info',
   );
 }

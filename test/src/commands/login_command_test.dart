@@ -42,8 +42,7 @@ void main() {
       expect(command.description, isNotEmpty);
     });
 
-    test('successful login stores credentials and logs success',
-        () async {
+    test('successful login stores credentials and logs success', () async {
       when(() => credentialsStore.hasCredentials).thenReturn(false);
       when(() => oauthFlow.execute()).thenAnswer(
         (_) async => credentials,

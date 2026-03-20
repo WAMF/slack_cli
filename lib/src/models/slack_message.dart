@@ -1,3 +1,6 @@
+import 'package:dart_slack/src/models/slack_file.dart';
+import 'package:dart_slack/src/models/slack_reaction.dart';
+
 /// A posted Slack message.
 class SlackMessage {
   /// Creates a [SlackMessage].
@@ -5,6 +8,11 @@ class SlackMessage {
     required this.channel,
     required this.ts,
     required this.text,
+    this.user,
+    this.threadTs,
+    this.replyCount,
+    this.reactions,
+    this.files,
   });
 
   /// Deserializes from a `chat.postMessage` response.
@@ -17,6 +25,30 @@ class SlackMessage {
     );
   }
 
+  /// Deserializes from a `conversations.history` or `conversations.replies`
+  /// message object.
+  factory SlackMessage.fromHistory({
+    required String channel,
+    required Map<String, dynamic> json,
+  }) {
+    return SlackMessage(
+      channel: channel,
+      ts: json['ts'] as String,
+      text: json['text'] as String? ?? '',
+      user: json['user'] as String?,
+      threadTs: json['thread_ts'] as String?,
+      replyCount: json['reply_count'] as int?,
+      reactions: (json['reactions'] as List<dynamic>?)
+          ?.cast<Map<String, dynamic>>()
+          .map(SlackReaction.fromJson)
+          .toList(),
+      files: (json['files'] as List<dynamic>?)
+          ?.cast<Map<String, dynamic>>()
+          .map(SlackFile.fromJson)
+          .toList(),
+    );
+  }
+
   /// The channel the message was posted to.
   final String channel;
 
@@ -25,4 +57,19 @@ class SlackMessage {
 
   /// The message text content.
   final String text;
+
+  /// The user ID who posted the message.
+  final String? user;
+
+  /// The thread parent timestamp, if this message is in a thread.
+  final String? threadTs;
+
+  /// The number of replies, if this is a thread parent.
+  final int? replyCount;
+
+  /// Emoji reactions on the message.
+  final List<SlackReaction>? reactions;
+
+  /// Files attached to the message.
+  final List<SlackFile>? files;
 }

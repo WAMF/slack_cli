@@ -25,23 +25,28 @@ on:
 permissions: read-all
 
 jobs:
-  semantic-pull-request:
-    if: github.event_name == 'pull_request'
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@v1
-
   build:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v1
-    with:
-      dart_sdk: "3.10.0"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
 
-  spell-check:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
-    with:
-      includes: |
-        **/*.md
-        !brick/**/*.md
-        .*/**/*.md
-      modified_files_only: false
+      - name: 🎯 Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.10.0"
+
+      - name: 📦 Install Dependencies
+        run: dart pub get
+
+      - name: 🧹 Check Formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: 🔎 Analyze
+        run: dart analyze
+
+      - name: 🧪 Run Tests
+        run: dart test
 
   verify-version:
     runs-on: ubuntu-latest

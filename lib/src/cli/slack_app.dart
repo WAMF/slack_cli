@@ -39,6 +39,17 @@ abstract final class SlackApp {
         'Provide it as an env var or in a .env file.',
       ));
 
+  /// App-level token for Socket Mode connections (xapp-*).
+  static String get appToken =>
+      _env['SLACK_APP_TOKEN'] ??
+      (throw StateError(
+        'SLACK_APP_TOKEN not set. '
+        'Provide it as an env var or in a .env file.',
+      ));
+
+  /// App-level token, or `null` if not configured.
+  static String? get appTokenOrNull => _env['SLACK_APP_TOKEN'];
+
   static Map<String, String> _loadEnv() {
     final env = Map<String, String>.of(Platform.environment);
 

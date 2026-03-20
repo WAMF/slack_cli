@@ -34,8 +34,7 @@ class ReplyCommand extends AuthenticatedCommand {
   }
 
   @override
-  String get description =>
-      'Reply to a message thread in a Slack channel.';
+  String get description => 'Reply to a message thread in a Slack channel.';
 
   @override
   String get name => 'reply';
