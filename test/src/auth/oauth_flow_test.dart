@@ -76,6 +76,15 @@ void main() {
 
     OAuthFlow createFlow({
       required Future<Process> Function(String, List<String>) processStarter,
+      Future<HttpServer> Function(
+        Object address,
+        int port,
+        SecurityContext context, {
+        int backlog,
+        bool shared,
+        bool v6Only,
+      })?
+      bindServer,
     }) {
       return OAuthFlow(
         clientId: 'test-id',
@@ -83,6 +92,7 @@ void main() {
         logger: logger,
         httpClient: httpClient,
         processStarter: processStarter,
+        bindServer: bindServer,
         configDirectory: tempDir,
         port: 0,
       );
@@ -132,6 +142,117 @@ void main() {
       expect(
         capturedUrl.queryParameters,
         containsPair('state', isNotEmpty),
+      );
+    });
+
+    test('prefers an IPv6 callback server with dual-stack enabled', () async {
+      Object? boundAddress;
+      bool? boundV6Only;
+
+      when(
+        () => httpClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer(
+        (_) async => http.Response(jsonEncode(tokenResponse), 200),
+      );
+
+      final flow = createFlow(
+        processStarter: (command, args) async {
+          final url = Uri.parse(args.first);
+          final cbPort = callbackPortFrom(url);
+          fireCallback(
+            'code=c&state=${stateFrom(url)}',
+            callbackPort: cbPort,
+          );
+          return process;
+        },
+        bindServer:
+            (
+              address,
+              port,
+              context, {
+              backlog = 0,
+              shared = false,
+              v6Only = false,
+            }) {
+              boundAddress = address;
+              boundV6Only = v6Only;
+              return HttpServer.bindSecure(
+                address,
+                port,
+                context,
+                backlog: backlog,
+                shared: shared,
+                v6Only: v6Only,
+              );
+            },
+      );
+
+      await flow.execute();
+
+      expect(boundAddress, equals(InternetAddress.loopbackIPv6));
+      expect(boundV6Only, isFalse);
+    });
+
+    test('falls back to IPv4 when IPv6 callback binding fails', () async {
+      final bindAttempts = <Object>[];
+
+      when(
+        () => httpClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer(
+        (_) async => http.Response(jsonEncode(tokenResponse), 200),
+      );
+
+      final flow = createFlow(
+        processStarter: (command, args) async {
+          final url = Uri.parse(args.first);
+          final cbPort = callbackPortFrom(url);
+          fireCallback(
+            'code=c&state=${stateFrom(url)}',
+            callbackPort: cbPort,
+          );
+          return process;
+        },
+        bindServer:
+            (
+              address,
+              port,
+              context, {
+              backlog = 0,
+              shared = false,
+              v6Only = false,
+            }) {
+              bindAttempts.add(address);
+              if (address == InternetAddress.loopbackIPv6) {
+                throw const SocketException('IPv6 unsupported');
+              }
+
+              return HttpServer.bindSecure(
+                address,
+                port,
+                context,
+                backlog: backlog,
+                shared: shared,
+                v6Only: v6Only,
+              );
+            },
+      );
+
+      await flow.execute();
+
+      expect(
+        bindAttempts,
+        equals([
+          InternetAddress.loopbackIPv6,
+          InternetAddress.loopbackIPv4,
+        ]),
       );
     });
 
