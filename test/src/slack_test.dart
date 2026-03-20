@@ -82,6 +82,41 @@ void main() {
         expect(channels[1].id, equals('G2'));
         expect(channels[1].isPrivate, isTrue);
       });
+
+      test('aggregates paginated channel responses', () async {
+        var callCount = 0;
+        when(
+          () => httpClient.get(
+            any(),
+            headers: any(named: 'headers'),
+          ),
+        ).thenAnswer(
+          (_) async {
+            callCount++;
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'channels': [
+                  if (callCount == 1)
+                    {'id': 'C1', 'name': 'general', 'is_private': false}
+                  else
+                    {'id': 'G2', 'name': 'secret', 'is_private': true},
+                ],
+                'response_metadata': {
+                  'next_cursor': callCount == 1 ? 'cursor-1' : '',
+                },
+              }),
+              200,
+            );
+          },
+        );
+
+        final channels = await slack.listChannels();
+
+        expect(channels, hasLength(2));
+        expect(channels[0].id, equals('C1'));
+        expect(channels[1].id, equals('G2'));
+      });
     });
 
     group('joinChannel', () {

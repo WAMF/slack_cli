@@ -210,6 +210,49 @@ void main() {
           equals('public_channel,private_channel'),
         );
       });
+
+      test('fetches all pages until cursor is exhausted', () async {
+        var callCount = 0;
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async {
+            callCount++;
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'channels': [
+                  if (callCount == 1)
+                    {'id': 'C1', 'name': 'general', 'is_private': false}
+                  else
+                    {'id': 'G2', 'name': 'secret', 'is_private': true},
+                ],
+                'response_metadata': {
+                  'next_cursor': callCount == 1 ? 'cursor-1' : '',
+                },
+              }),
+              200,
+            );
+          },
+        );
+
+        final result = await slackClient.listChannels();
+
+        expect(result, hasLength(2));
+        expect(result[0]['id'], equals('C1'));
+        expect(result[1]['id'], equals('G2'));
+
+        final calls = verify(
+          () => httpClient.get(
+            captureAny(),
+            headers: any(named: 'headers'),
+          ),
+        ).captured.cast<Uri>();
+
+        expect(calls, hasLength(2));
+        expect(calls[0].queryParameters.containsKey('cursor'), isFalse);
+        expect(calls[1].queryParameters['cursor'], equals('cursor-1'));
+      });
     });
 
     group('conversationsHistory', () {

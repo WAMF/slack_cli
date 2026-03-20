@@ -82,17 +82,27 @@ class SlackApiClient {
   Future<List<Map<String, dynamic>>> listChannels({
     bool excludeArchived = true,
   }) async {
-    final uri = SlackUrls.conversationsList.replace(
-      queryParameters: {
-        'exclude_archived': '$excludeArchived',
-        'types': 'public_channel,private_channel',
-        'limit': '200',
-      },
-    );
+    final channels = <Map<String, dynamic>>[];
+    String? cursor;
 
-    final json = await _get(uri);
-    return (json['channels'] as List<dynamic>)
-        .cast<Map<String, dynamic>>();
+    do {
+      final uri = SlackUrls.conversationsList.replace(
+        queryParameters: {
+          'exclude_archived': '$excludeArchived',
+          'types': 'public_channel,private_channel',
+          'limit': '200',
+          'cursor': ?cursor,
+        },
+      );
+
+      final json = await _get(uri);
+      channels.addAll(
+        (json['channels'] as List<dynamic>).cast<Map<String, dynamic>>(),
+      );
+      cursor = _nextCursor(json);
+    } while (cursor != null);
+
+    return channels;
   }
 
   /// Fetches message history for [channel].
@@ -281,5 +291,11 @@ class SlackApiClient {
       );
     }
     return json;
+  }
+
+  String? _nextCursor(Map<String, dynamic> json) {
+    final metadata = json['response_metadata'] as Map<String, dynamic>?;
+    final cursor = metadata?['next_cursor'] as String?;
+    return (cursor != null && cursor.isNotEmpty) ? cursor : null;
   }
 }

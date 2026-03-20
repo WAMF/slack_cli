@@ -95,5 +95,38 @@ void main() {
       expect(result, equals(ExitCode.success.code));
       verify(() => logger.info('No channels found.')).called(1);
     });
+
+    test('lists channels from later pages too', () async {
+      var callCount = 0;
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer(
+        (_) async {
+          callCount++;
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'channels': [
+                if (callCount == 1)
+                  {'id': 'C1', 'name': 'general', 'is_private': false}
+                else
+                  {'id': 'G2', 'name': 'secret', 'is_private': true},
+              ],
+              'response_metadata': {
+                'next_cursor': callCount == 1 ? 'cursor-1' : '',
+              },
+            }),
+            200,
+          );
+        },
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.success.code));
+      verify(() => logger.info('# general  (C1)')).called(1);
+      verify(() => logger.info('🔒 secret  (G2)')).called(1);
+    });
   });
 }
