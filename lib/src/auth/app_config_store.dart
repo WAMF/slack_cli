@@ -23,12 +23,21 @@ class AppConfigStore {
 
   File get _configFile => File('${_configDirectory.path}/config.json');
 
-  /// Returns stored [AppConfig], or `null` if no config file exists.
+  /// Returns stored [AppConfig], or `null` if no usable config file exists.
   AppConfig? load() {
     if (!_configFile.existsSync()) return null;
-    final json =
-        jsonDecode(_configFile.readAsStringSync()) as Map<String, dynamic>;
-    return AppConfig.fromJson(json);
+    try {
+      final decoded = jsonDecode(_configFile.readAsStringSync());
+      if (decoded is! Map<String, dynamic>) return null;
+      if (decoded['app_token'] is! String) return null;
+
+      final json = decoded;
+      return AppConfig.fromJson(json);
+    } on FileSystemException {
+      return null;
+    } on FormatException {
+      return null;
+    }
   }
 
   /// Persists [config] to disk, creating the config directory if needed.

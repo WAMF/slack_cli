@@ -36,21 +36,29 @@ class ThreadCommand extends AuthenticatedCommand {
   Future<int> runAuthenticated(Slack slack) async {
     final channel = argResults!['channel'] as String;
     final ts = argResults!['ts'] as String;
+    String? cursor;
+    var foundReply = false;
 
-    final page = await slack.conversationsReplies(
-      channel: channel,
-      ts: ts,
-    );
-    final replies = page.items.where((message) => message.ts != ts).toList();
+    do {
+      final page = await slack.conversationsReplies(
+        channel: channel,
+        ts: ts,
+        cursor: cursor,
+      );
 
-    if (replies.isEmpty) {
+      for (final message in page.items) {
+        if (message.ts == ts) continue;
+
+        foundReply = true;
+        final user = message.user ?? 'unknown';
+        logger.info('<$user> ${message.text}');
+      }
+
+      cursor = page.nextCursor;
+    } while (cursor != null);
+
+    if (!foundReply) {
       logger.info('No replies found.');
-      return ExitCode.success.code;
-    }
-
-    for (final message in replies) {
-      final user = message.user ?? 'unknown';
-      logger.info('<$user> ${message.text}');
     }
 
     return ExitCode.success.code;

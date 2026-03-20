@@ -82,6 +82,58 @@ void main() {
     });
 
     test(
+      'paginates replies and omits the parent message on each page',
+      () async {
+        when(() => credentialsStore.load()).thenReturn(credentials);
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((invocation) async {
+          final uri = invocation.positionalArguments.first as Uri;
+          final cursor = uri.queryParameters['cursor'];
+
+          if (cursor == null) {
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'messages': [
+                  {'ts': '1.0', 'text': 'Parent', 'user': 'U1'},
+                  {'ts': '1.1', 'text': 'First reply', 'user': 'U2'},
+                ],
+                'has_more': true,
+                'response_metadata': {'next_cursor': 'page-2'},
+              }),
+              200,
+            );
+          }
+
+          expect(cursor, equals('page-2'));
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'messages': [
+                {'ts': '1.0', 'text': 'Parent duplicate', 'user': 'U1'},
+                {'ts': '1.2', 'text': 'Second reply', 'user': 'U3'},
+              ],
+              'has_more': false,
+              'response_metadata': {'next_cursor': ''},
+            }),
+            200,
+          );
+        });
+
+        await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
+
+        verify(() => logger.info('<U2> First reply')).called(1);
+        verify(() => logger.info('<U3> Second reply')).called(1);
+        verifyNever(() => logger.info('<U1> Parent'));
+        verifyNever(() => logger.info('<U1> Parent duplicate'));
+        verify(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).called(2);
+      },
+    );
+
+    test(
       'shows empty state when thread only contains parent message',
       () async {
         when(() => credentialsStore.load()).thenReturn(credentials);

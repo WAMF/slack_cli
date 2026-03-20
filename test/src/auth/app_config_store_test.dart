@@ -30,6 +30,20 @@ void main() {
       expect(store.hasConfig, isFalse);
     });
 
+    test('load returns null when config file contains invalid JSON', () {
+      File('${tempDir.path}/config.json').writeAsStringSync('{invalid json');
+
+      expect(store.load(), isNull);
+    });
+
+    test('load returns null when config file has unexpected shape', () {
+      File(
+        '${tempDir.path}/config.json',
+      ).writeAsStringSync('{"app_token": 123}');
+
+      expect(store.load(), isNull);
+    });
+
     test('save creates file with correct content', () {
       store.save(config);
 
