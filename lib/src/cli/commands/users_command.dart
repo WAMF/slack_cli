@@ -21,21 +21,24 @@ class UsersCommand extends AuthenticatedCommand {
 
   @override
   Future<int> runAuthenticated(Slack slack) async {
-    final page = await slack.usersList();
+    String? cursor;
+    var foundUsers = false;
 
-    if (page.items.isEmpty) {
+    do {
+      final page = await slack.usersList(cursor: cursor);
+
+      for (final user in page.items) {
+        foundUsers = true;
+        final bot = user.isBot ? ' (bot)' : '';
+        final deleted = user.isDeleted ? ' [deactivated]' : '';
+        logger.info('${user.realName} @${user.name}$bot$deleted  (${user.id})');
+      }
+
+      cursor = page.nextCursor;
+    } while (cursor != null);
+
+    if (!foundUsers) {
       logger.info('No users found.');
-      return ExitCode.success.code;
-    }
-
-    for (final user in page.items) {
-      final bot = user.isBot ? ' (bot)' : '';
-      final deleted = user.isDeleted ? ' [deactivated]' : '';
-      logger.info('${user.realName} @${user.name}$bot$deleted  (${user.id})');
-    }
-
-    if (page.hasMore) {
-      logger.info('(more users available)');
     }
 
     return ExitCode.success.code;

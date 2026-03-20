@@ -95,6 +95,65 @@ void main() {
       ).called(1);
     });
 
+    test('paginates through all users', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((invocation) async {
+        final uri = invocation.positionalArguments.first as Uri;
+        final cursor = uri.queryParameters['cursor'];
+
+        if (cursor == null) {
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'members': [
+                {
+                  'id': 'U1',
+                  'name': 'jane',
+                  'real_name': 'Jane Doe',
+                  'is_bot': false,
+                  'deleted': false,
+                  'profile': {'display_name': 'Jane'},
+                },
+              ],
+              'response_metadata': {'next_cursor': 'page-2'},
+            }),
+            200,
+          );
+        }
+
+        expect(cursor, equals('page-2'));
+        return http.Response(
+          jsonEncode({
+            'ok': true,
+            'members': [
+              {
+                'id': 'U2',
+                'name': 'bot',
+                'real_name': 'Bot User',
+                'is_bot': true,
+                'deleted': false,
+                'profile': {'display_name': 'Bot'},
+              },
+            ],
+            'response_metadata': {'next_cursor': ''},
+          }),
+          200,
+        );
+      });
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.success.code));
+      verify(() => logger.info('Jane Doe @jane  (U1)')).called(1);
+      verify(() => logger.info('Bot User @bot (bot)  (U2)')).called(1);
+      verify(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).called(2);
+      verifyNever(() => logger.info('(more users available)'));
+    });
+
     test('shows empty state message', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
       when(
