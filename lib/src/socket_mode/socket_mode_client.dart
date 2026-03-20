@@ -27,10 +27,10 @@ class SocketModeClient {
     http.Client? httpClient,
     WebSocketChannelFactory? channelFactory,
     Future<void> Function(Duration)? delay,
-  })  : _appToken = appToken,
-        _httpClient = httpClient ?? http.Client(),
-        _channelFactory = channelFactory ?? _defaultChannelFactory,
-        _delay = delay ?? Future.delayed;
+  }) : _appToken = appToken,
+       _httpClient = httpClient ?? http.Client(),
+       _channelFactory = channelFactory ?? _defaultChannelFactory,
+       _delay = delay ?? Future.delayed;
 
   final String _appToken;
   final http.Client _httpClient;
@@ -146,9 +146,8 @@ class SocketModeClient {
           return;
         } on Exception {
           _backoffDelay = Duration(
-            milliseconds:
-                (_backoffDelay.inMilliseconds * _Backoff.multiplier)
-                    .clamp(0, _Backoff.maxDelay.inMilliseconds),
+            milliseconds: (_backoffDelay.inMilliseconds * _Backoff.multiplier)
+                .clamp(0, _Backoff.maxDelay.inMilliseconds),
           );
         }
       }

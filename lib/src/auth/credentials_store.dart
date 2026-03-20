@@ -26,8 +26,7 @@ class CredentialsStore {
   Credentials? load() {
     if (!_credentialsFile.existsSync()) return null;
     final json =
-        jsonDecode(_credentialsFile.readAsStringSync())
-            as Map<String, dynamic>;
+        jsonDecode(_credentialsFile.readAsStringSync()) as Map<String, dynamic>;
     return Credentials.fromJson(json);
   }
 

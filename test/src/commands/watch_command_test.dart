@@ -52,16 +52,15 @@ void main() {
     CommandRunner<int> buildRunner({
       Future<void> Function(Duration)? delay,
     }) {
-      return CommandRunner<int>('test', 'test')
-        ..addCommand(
-          WatchCommand(
-            logger: logger,
-            credentialsStore: credentialsStore,
-            httpClient: httpClient,
-            delay: delay ?? (_) async {},
-            signalStream: signalController.stream,
-          ),
-        );
+      return CommandRunner<int>('test', 'test')..addCommand(
+        WatchCommand(
+          logger: logger,
+          credentialsStore: credentialsStore,
+          httpClient: httpClient,
+          delay: delay ?? (_) async {},
+          signalStream: signalController.stream,
+        ),
+      );
     }
 
     http.Response historyResponse(
@@ -176,10 +175,10 @@ void main() {
 
       await runner.run(['watch', '-c', 'C1']);
 
-      final logged =
-          verify(() => logger.info(captureAny())).captured.cast<String>();
-      final messageLines =
-          logged.where((l) => l.startsWith('<')).toList();
+      final logged = verify(
+        () => logger.info(captureAny()),
+      ).captured.cast<String>();
+      final messageLines = logged.where((l) => l.startsWith('<')).toList();
       expect(messageLines, hasLength(1));
       expect(messageLines.first, equals('<U1> Initial'));
     });
@@ -218,8 +217,9 @@ void main() {
 
       await runner.run(['watch', '-c', 'C1']);
 
-      final logged =
-          verify(() => logger.info(captureAny())).captured.cast<String>();
+      final logged = verify(
+        () => logger.info(captureAny()),
+      ).captured.cast<String>();
       expect(logged, contains('Watching C1 (Ctrl+C to stop)...'));
       expect(logged.where((l) => l.startsWith('<')), isEmpty);
     });
@@ -261,9 +261,14 @@ void main() {
 
       await runner.run(['watch', '-c', 'C1', '-n', '5']);
 
-      final uri = verify(
-        () => httpClient.get(captureAny(), headers: any(named: 'headers')),
-      ).captured.first as Uri;
+      final uri =
+          verify(
+                () => httpClient.get(
+                  captureAny(),
+                  headers: any(named: 'headers'),
+                ),
+              ).captured.first
+              as Uri;
 
       expect(uri.queryParameters['limit'], equals('5'));
     });

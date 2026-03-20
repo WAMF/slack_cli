@@ -233,13 +233,12 @@ class SlackApiClient {
   Future<http.Response> _sendWithRetry(
     Future<http.Response> Function() send,
   ) async {
-    for (var attempt = 1;; attempt++) {
+    for (var attempt = 1; ; attempt++) {
       final response = await send();
       if (response.statusCode != 429 || attempt >= _Retry.maxAttempts) {
         return response;
       }
-      final seconds =
-          int.tryParse(response.headers['retry-after'] ?? '') ?? 1;
+      final seconds = int.tryParse(response.headers['retry-after'] ?? '') ?? 1;
       await _delay(Duration(seconds: seconds));
     }
   }

@@ -103,8 +103,7 @@ class OAuthFlow {
       _port,
       context,
     );
-    final redirectUri =
-        'https://localhost:${server.port}$_callbackPath';
+    final redirectUri = 'https://localhost:${server.port}$_callbackPath';
 
     try {
       final state = _generateState();
@@ -282,8 +281,7 @@ class OAuthFlow {
     }
 
     final team = json['team'] as Map<String, dynamic>;
-    final authedUser =
-        json['authed_user'] as Map<String, dynamic>;
+    final authedUser = json['authed_user'] as Map<String, dynamic>;
 
     return Credentials(
       accessToken: authedUser['access_token'] as String,

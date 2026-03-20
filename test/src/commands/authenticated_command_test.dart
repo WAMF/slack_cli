@@ -97,8 +97,7 @@ void main() {
       expect(wasInvoked, isTrue);
     });
 
-    test('catches SlackApiException and returns software exit code',
-        () async {
+    test('catches SlackApiException and returns software exit code', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
 
       final command = _TestCommand(
@@ -116,8 +115,7 @@ void main() {
       ).called(1);
     });
 
-    test('catches SocketException and returns software exit code',
-        () async {
+    test('catches SocketException and returns software exit code', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
 
       final command = _TestCommand(

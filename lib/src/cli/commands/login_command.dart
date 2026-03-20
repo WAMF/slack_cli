@@ -41,7 +41,8 @@ class LoginCommand extends Command<int> {
       if (!reauth) return ExitCode.success.code;
     }
 
-    final flow = _oauthFlow ??
+    final flow =
+        _oauthFlow ??
         OAuthFlow(
           clientId: SlackApp.clientId,
           clientSecret: SlackApp.clientSecret,

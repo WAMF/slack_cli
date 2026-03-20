@@ -23,10 +23,10 @@ class ConfigureCommand extends Command<int> {
     AppConfigStore? configStore,
     @visibleForTesting Stdin? stdin,
     @visibleForTesting Stdout? stdout,
-  })  : _logger = logger,
-        _configStore = configStore ?? AppConfigStore(),
-        _stdin = stdin ?? io.stdin,
-        _stdout = stdout ?? io.stdout {
+  }) : _logger = logger,
+       _configStore = configStore ?? AppConfigStore(),
+       _stdin = stdin ?? io.stdin,
+       _stdout = stdout ?? io.stdout {
     argParser.addFlag(
       'clear',
       help: 'Remove stored app configuration.',

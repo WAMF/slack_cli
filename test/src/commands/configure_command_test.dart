@@ -34,8 +34,7 @@ class _FakeStdin extends Fake implements Stdin {
   String? readLineSync({
     Encoding encoding = systemEncoding,
     bool retainNewlines = false,
-  }) =>
-      lineToReturn;
+  }) => lineToReturn;
 }
 
 void main() {
@@ -64,15 +63,14 @@ void main() {
     });
 
     CommandRunner<int> buildRunner() {
-      return CommandRunner<int>('test', 'test')
-        ..addCommand(
-          ConfigureCommand(
-            logger: logger,
-            configStore: configStore,
-            stdin: fakeStdin,
-            stdout: mockStdout,
-          ),
-        );
+      return CommandRunner<int>('test', 'test')..addCommand(
+        ConfigureCommand(
+          logger: logger,
+          configStore: configStore,
+          stdin: fakeStdin,
+          stdout: mockStdout,
+        ),
+      );
     }
 
     test('has correct name and description', () {
@@ -96,8 +94,9 @@ void main() {
               as AppConfig;
       expect(captured.appToken, equals('xapp-1-A0123-token'));
 
-      verify(() => logger.success(any(that: contains('App token saved'))))
-          .called(1);
+      verify(
+        () => logger.success(any(that: contains('App token saved'))),
+      ).called(1);
     });
 
     test('disables echo during token input', () async {

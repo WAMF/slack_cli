@@ -52,8 +52,9 @@ void main() {
 
     /// Extracts the callback port from the authorize URL's redirect_uri.
     int callbackPortFrom(Uri authorizeUrl) {
-      final redirectUri =
-          Uri.parse(authorizeUrl.queryParameters['redirect_uri']!);
+      final redirectUri = Uri.parse(
+        authorizeUrl.queryParameters['redirect_uri']!,
+      );
       return redirectUri.port;
     }
 
@@ -63,8 +64,7 @@ void main() {
       String queryString, {
       required int callbackPort,
     }) async {
-      final client = HttpClient()
-        ..badCertificateCallback = (_, _, _) => true;
+      final client = HttpClient()..badCertificateCallback = (_, _, _) => true;
       final request = await client.getUrl(
         Uri.parse('https://localhost:$callbackPort/callback?$queryString'),
       );
@@ -92,8 +92,10 @@ void main() {
     /// when the server closes before the response is fully read.
     void fireCallback(String queryString, {required int callbackPort}) {
       unawaited(
-        sendCallback(queryString, callbackPort: callbackPort)
-            .onError((_, _) => ''),
+        sendCallback(
+          queryString,
+          callbackPort: callbackPort,
+        ).onError((_, _) => ''),
       );
     }
 
@@ -377,10 +379,8 @@ void main() {
       );
       await flow.execute();
 
-      final certModified =
-          File('${tempDir.path}/cert.pem').lastModifiedSync();
-      final keyModified =
-          File('${tempDir.path}/key.pem').lastModifiedSync();
+      final certModified = File('${tempDir.path}/cert.pem').lastModifiedSync();
+      final keyModified = File('${tempDir.path}/key.pem').lastModifiedSync();
 
       // Second run — certs should not be regenerated.
       flow = createFlow(

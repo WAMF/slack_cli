@@ -24,8 +24,8 @@ class WatchCommand extends AuthenticatedCommand {
     super.httpClient,
     @visibleForTesting Future<void> Function(Duration)? delay,
     @visibleForTesting Stream<ProcessSignal>? signalStream,
-  })  : _delay = delay ?? Future.delayed,
-        _signalStream = signalStream {
+  }) : _delay = delay ?? Future.delayed,
+       _signalStream = signalStream {
     argParser
       ..addOption(
         'channel',
@@ -63,8 +63,9 @@ class WatchCommand extends AuthenticatedCommand {
     final initialCount = int.parse(argResults!['count'] as String);
 
     final stopCompleter = Completer<void>();
-    final signalSub =
-        (_signalStream ?? ProcessSignal.sigint.watch()).listen((_) {
+    final signalSub = (_signalStream ?? ProcessSignal.sigint.watch()).listen((
+      _,
+    ) {
       if (!stopCompleter.isCompleted) stopCompleter.complete();
     });
 
@@ -119,8 +120,9 @@ class WatchCommand extends AuthenticatedCommand {
 
   void _printMessage(SlackMessage message) {
     final user = message.user ?? 'unknown';
-    final thread =
-        message.replyCount != null ? ' [${message.replyCount} replies]' : '';
+    final thread = message.replyCount != null
+        ? ' [${message.replyCount} replies]'
+        : '';
     logger.info('<$user> ${message.text}$thread');
   }
 }

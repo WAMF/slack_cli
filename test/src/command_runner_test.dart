@@ -94,8 +94,7 @@ void main() {
             versionConstraint: any(named: 'versionConstraint'),
           ),
         ).thenAnswer(
-          (_) async =>
-              ProcessResult(0, ExitCode.success.code, null, null),
+          (_) async => ProcessResult(0, ExitCode.success.code, null, null),
         );
         when(
           () => pubUpdater.isUpToDate(
@@ -107,8 +106,7 @@ void main() {
         final progress = _MockProgress();
         final progressLogs = <String>[];
         when(() => progress.complete(any())).thenAnswer((answer) {
-          final message =
-              answer.positionalArguments.elementAt(0) as String?;
+          final message = answer.positionalArguments.elementAt(0) as String?;
           if (message != null) progressLogs.add(message);
         });
         when(() => logger.progress(any())).thenReturn(progress);

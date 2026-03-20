@@ -77,8 +77,7 @@ void main() {
 
       await runner.run(['history', '-c', 'C1']);
 
-      final logged =
-          verify(() => logger.info(captureAny())).captured;
+      final logged = verify(() => logger.info(captureAny())).captured;
       expect(logged, contains('<U1> First'));
       expect(logged, contains('<U2> Second'));
       expect(

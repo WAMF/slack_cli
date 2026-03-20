@@ -84,16 +84,18 @@ void main() {
       final client = buildClient();
       await client.connect();
 
-      final headers = verify(
-        () => httpClient.post(
-          any(
-            that: predicate<Uri>(
-              (u) => u.path.contains('apps.connections.open'),
-            ),
-          ),
-          headers: captureAny(named: 'headers'),
-        ),
-      ).captured.first as Map<String, String>;
+      final headers =
+          verify(
+                () => httpClient.post(
+                  any(
+                    that: predicate<Uri>(
+                      (u) => u.path.contains('apps.connections.open'),
+                    ),
+                  ),
+                  headers: captureAny(named: 'headers'),
+                ),
+              ).captured.first
+              as Map<String, String>;
 
       expect(headers['Authorization'], equals('Bearer $appToken'));
 

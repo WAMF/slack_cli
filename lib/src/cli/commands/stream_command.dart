@@ -25,13 +25,13 @@ class StreamCommand extends Command<int> {
     @visibleForTesting Future<void> Function(Duration)? delay,
     @visibleForTesting Stream<ProcessSignal>? signalStream,
     @visibleForTesting String? appToken,
-  })  : _logger = logger,
-        _httpClient = httpClient,
-        _configStore = configStore ?? AppConfigStore(),
-        _channelFactory = channelFactory,
-        _delay = delay,
-        _signalStream = signalStream,
-        _appTokenOverride = appToken {
+  }) : _logger = logger,
+       _httpClient = httpClient,
+       _configStore = configStore ?? AppConfigStore(),
+       _channelFactory = channelFactory,
+       _delay = delay,
+       _signalStream = signalStream,
+       _appTokenOverride = appToken {
     argParser.addOption(
       'channel',
       abbr: 'c',
@@ -49,8 +49,7 @@ class StreamCommand extends Command<int> {
   final String? _appTokenOverride;
 
   @override
-  String get description =>
-      'Stream messages from a channel via Socket Mode.';
+  String get description => 'Stream messages from a channel via Socket Mode.';
 
   @override
   String get name => 'stream';
@@ -59,7 +58,8 @@ class StreamCommand extends Command<int> {
   Future<int> run() async {
     final channel = argResults!['channel'] as String;
 
-    final appToken = _appTokenOverride ??
+    final appToken =
+        _appTokenOverride ??
         _configStore.load()?.appToken ??
         SlackApp.appTokenOrNull;
     if (appToken == null) {
@@ -78,8 +78,9 @@ class StreamCommand extends Command<int> {
     );
 
     final stopCompleter = Completer<void>();
-    final signalSub =
-        (_signalStream ?? ProcessSignal.sigint.watch()).listen((_) {
+    final signalSub = (_signalStream ?? ProcessSignal.sigint.watch()).listen((
+      _,
+    ) {
       if (!stopCompleter.isCompleted) stopCompleter.complete();
     });
 
@@ -90,10 +91,11 @@ class StreamCommand extends Command<int> {
       final eventSub = client.events
           .where((event) => event.channel == channel)
           .listen((event) {
-        final thread =
-            event.replyCount != null ? ' [${event.replyCount} replies]' : '';
-        _logger.info('<${event.user}> ${event.text}$thread');
-      });
+            final thread = event.replyCount != null
+                ? ' [${event.replyCount} replies]'
+                : '';
+            _logger.info('<${event.user}> ${event.text}$thread');
+          });
 
       await stopCompleter.future;
       await eventSub.cancel();

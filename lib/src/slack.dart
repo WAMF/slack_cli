@@ -16,7 +16,7 @@ import 'package:http/http.dart' as http;
 class Slack {
   /// Creates a [Slack] instance authenticated with [token].
   Slack({required String token, http.Client? httpClient})
-      : _client = SlackApiClient(token: token, httpClient: httpClient);
+    : _client = SlackApiClient(token: token, httpClient: httpClient);
 
   /// Creates a [Slack] instance from a [SlackApiClient].
   ///
@@ -86,8 +86,7 @@ class Slack {
   }) => _client.deleteMessage(channel: channel, ts: ts);
 
   /// Joins a public channel by [channelId].
-  Future<void> joinChannel(String channelId) =>
-      _client.joinChannel(channelId);
+  Future<void> joinChannel(String channelId) => _client.joinChannel(channelId);
 
   /// Fetches message history for [channel].
   Future<CursorPage<SlackMessage>> conversationsHistory({

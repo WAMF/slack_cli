@@ -56,8 +56,7 @@ void main() {
 
         final uri = captured[0] as Uri;
         final headers = captured[1] as Map<String, String>;
-        final body =
-            jsonDecode(captured[2] as String) as Map<String, dynamic>;
+        final body = jsonDecode(captured[2] as String) as Map<String, dynamic>;
 
         expect(uri, equals(SlackUrls.postMessage));
         expect(headers['Authorization'], equals('Bearer $token'));
@@ -98,13 +97,11 @@ void main() {
           ),
         ).captured;
 
-        final body =
-            jsonDecode(captured[0] as String) as Map<String, dynamic>;
+        final body = jsonDecode(captured[0] as String) as Map<String, dynamic>;
         expect(body['thread_ts'], equals('1111.2222'));
       });
 
-      test('throws SlackApiException when API returns ok: false',
-          () async {
+      test('throws SlackApiException when API returns ok: false', () async {
         when(
           () => httpClient.post(
             any(),
@@ -197,12 +194,14 @@ void main() {
         expect(result, hasLength(1));
         expect(result[0]['id'], equals('C1'));
 
-        final uri = verify(
-          () => httpClient.get(
-            captureAny(),
-            headers: any(named: 'headers'),
-          ),
-        ).captured.first as Uri;
+        final uri =
+            verify(
+                  () => httpClient.get(
+                    captureAny(),
+                    headers: any(named: 'headers'),
+                  ),
+                ).captured.first
+                as Uri;
 
         expect(uri.queryParameters['exclude_archived'], equals('true'));
         expect(
@@ -279,12 +278,14 @@ void main() {
 
         expect(result['messages'], hasLength(1));
 
-        final uri = verify(
-          () => httpClient.get(
-            captureAny(),
-            headers: any(named: 'headers'),
-          ),
-        ).captured.first as Uri;
+        final uri =
+            verify(
+                  () => httpClient.get(
+                    captureAny(),
+                    headers: any(named: 'headers'),
+                  ),
+                ).captured.first
+                as Uri;
 
         expect(uri.queryParameters['channel'], equals('C1'));
         expect(uri.queryParameters['limit'], equals('20'));
@@ -310,12 +311,14 @@ void main() {
 
         await slackClient.conversationsReplies(channel: 'C1', ts: '1.0');
 
-        final uri = verify(
-          () => httpClient.get(
-            captureAny(),
-            headers: any(named: 'headers'),
-          ),
-        ).captured.first as Uri;
+        final uri =
+            verify(
+                  () => httpClient.get(
+                    captureAny(),
+                    headers: any(named: 'headers'),
+                  ),
+                ).captured.first
+                as Uri;
 
         expect(uri.queryParameters['channel'], equals('C1'));
         expect(uri.queryParameters['ts'], equals('1.0'));
@@ -481,8 +484,7 @@ void main() {
         ).captured;
 
         final uri = captured[0] as Uri;
-        final body =
-            jsonDecode(captured[1] as String) as Map<String, dynamic>;
+        final body = jsonDecode(captured[1] as String) as Map<String, dynamic>;
 
         expect(uri, equals(SlackUrls.chatUpdate));
         expect(body['channel'], equals('C1'));
@@ -508,13 +510,15 @@ void main() {
 
         await slackClient.deleteMessage(channel: 'C1', ts: '1.0');
 
-        final uri = verify(
-          () => httpClient.post(
-            captureAny(),
-            headers: any(named: 'headers'),
-            body: any(named: 'body'),
-          ),
-        ).captured.first as Uri;
+        final uri =
+            verify(
+                  () => httpClient.post(
+                    captureAny(),
+                    headers: any(named: 'headers'),
+                    body: any(named: 'body'),
+                  ),
+                ).captured.first
+                as Uri;
 
         expect(uri, equals(SlackUrls.chatDelete));
       });
@@ -546,8 +550,7 @@ void main() {
         ).captured;
 
         final uri = captured[0] as Uri;
-        final body =
-            jsonDecode(captured[1] as String) as Map<String, dynamic>;
+        final body = jsonDecode(captured[1] as String) as Map<String, dynamic>;
 
         expect(uri, equals(SlackUrls.conversationsJoin));
         expect(body['channel'], equals('C1'));
@@ -591,8 +594,7 @@ void main() {
           );
         });
 
-        final result =
-            await retryClient.conversationsInfo(channel: 'C1');
+        final result = await retryClient.conversationsInfo(channel: 'C1');
 
         expect(result['channel'], isNotNull);
         expect(callCount, equals(2));

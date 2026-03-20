@@ -68,17 +68,16 @@ void main() {
     });
 
     CommandRunner<int> buildRunner() {
-      return CommandRunner<int>('test', 'test')
-        ..addCommand(
-          StreamCommand(
-            logger: logger,
-            httpClient: httpClient,
-            channelFactory: (_) => wsChannel,
-            delay: (_) async {},
-            signalStream: signalController.stream,
-            appToken: appToken,
-          ),
-        );
+      return CommandRunner<int>('test', 'test')..addCommand(
+        StreamCommand(
+          logger: logger,
+          httpClient: httpClient,
+          channelFactory: (_) => wsChannel,
+          delay: (_) async {},
+          signalStream: signalController.stream,
+          appToken: appToken,
+        ),
+      );
     }
 
     test('has correct name and description', () {

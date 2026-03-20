@@ -14,8 +14,7 @@ class ChannelsCommand extends AuthenticatedCommand {
   });
 
   @override
-  String get description =>
-      'List channels you have access to.';
+  String get description => 'List channels you have access to.';
 
   @override
   String get name => 'channels';
