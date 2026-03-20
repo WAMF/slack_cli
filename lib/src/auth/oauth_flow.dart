@@ -21,6 +21,16 @@ const Duration _authTimeout = Duration(minutes: 5);
 /// Number of random bytes used to generate the OAuth state token.
 const int _stateLength = 32;
 
+typedef BindServer =
+    Future<HttpServer> Function(
+      Object address,
+      int port,
+      SecurityContext context, {
+      int backlog,
+      bool shared,
+      bool v6Only,
+    });
+
 String _generateState() {
   final random = Random.secure();
   final bytes = List<int>.generate(_stateLength, (_) => random.nextInt(256));
@@ -67,6 +77,7 @@ class OAuthFlow {
     required Logger logger,
     http.Client? httpClient,
     Future<Process> Function(String, List<String>)? processStarter,
+    BindServer? bindServer,
     Directory? configDirectory,
     int? port,
   }) : _clientId = clientId,
@@ -74,6 +85,7 @@ class OAuthFlow {
        _logger = logger,
        _httpClient = httpClient ?? http.Client(),
        _processStarter = processStarter ?? Process.start,
+       _bindServer = bindServer ?? HttpServer.bindSecure,
        _configDirectory =
            configDirectory ??
            Directory('${Platform.environment['HOME']}/.dart_slack'),
@@ -84,6 +96,7 @@ class OAuthFlow {
   final Logger _logger;
   final http.Client _httpClient;
   final Future<Process> Function(String, List<String>) _processStarter;
+  final BindServer _bindServer;
   final Directory _configDirectory;
   final int _port;
 
@@ -98,11 +111,7 @@ class OAuthFlow {
       ..useCertificateChain(_certFile.path)
       ..usePrivateKey(_keyFile.path);
 
-    final server = await HttpServer.bindSecure(
-      InternetAddress.loopbackIPv4,
-      _port,
-      context,
-    );
+    final server = await _bindCallbackServer(context);
     final redirectUri = 'https://localhost:${server.port}$_callbackPath';
 
     try {
@@ -131,6 +140,19 @@ class OAuthFlow {
       );
     } finally {
       await server.close();
+    }
+  }
+
+  Future<HttpServer> _bindCallbackServer(SecurityContext context) async {
+    try {
+      return await _bindServer(
+        InternetAddress.loopbackIPv6,
+        _port,
+        context,
+        v6Only: false,
+      );
+    } on SocketException {
+      return _bindServer(InternetAddress.loopbackIPv4, _port, context);
     }
   }
 
