@@ -21,6 +21,7 @@ class StreamCommand extends Command<int> {
     required Logger logger,
     http.Client? httpClient,
     @visibleForTesting AppConfigStore? configStore,
+    @visibleForTesting String? Function()? appTokenProvider,
     @visibleForTesting WebSocketChannelFactory? channelFactory,
     @visibleForTesting Future<void> Function(Duration)? delay,
     @visibleForTesting Stream<ProcessSignal>? signalStream,
@@ -28,6 +29,7 @@ class StreamCommand extends Command<int> {
   }) : _logger = logger,
        _httpClient = httpClient,
        _configStore = configStore ?? AppConfigStore(),
+       _appTokenProvider = appTokenProvider ?? (() => SlackApp.appTokenOrNull),
        _channelFactory = channelFactory,
        _delay = delay,
        _signalStream = signalStream,
@@ -43,6 +45,7 @@ class StreamCommand extends Command<int> {
   final Logger _logger;
   final http.Client? _httpClient;
   final AppConfigStore _configStore;
+  final String? Function() _appTokenProvider;
   final WebSocketChannelFactory? _channelFactory;
   final Future<void> Function(Duration)? _delay;
   final Stream<ProcessSignal>? _signalStream;
@@ -61,7 +64,7 @@ class StreamCommand extends Command<int> {
     final appToken =
         _appTokenOverride ??
         _configStore.load()?.appToken ??
-        SlackApp.appTokenOrNull;
+        _appTokenProvider();
     if (appToken == null) {
       _logger.err(
         'App token not configured. '
@@ -83,26 +86,32 @@ class StreamCommand extends Command<int> {
     ) {
       if (!stopCompleter.isCompleted) stopCompleter.complete();
     });
+    StreamSubscription<SocketModeEvent>? eventSub;
 
     try {
-      await client.connect();
-      _logger.info('Streaming $channel (Ctrl+C to stop)...');
-
-      final eventSub = client.events
+      eventSub = client.events
           .where((event) => event.channel == channel)
-          .listen((event) {
+          .listen((
+            event,
+          ) {
             final thread = event.replyCount != null
                 ? ' [${event.replyCount} replies]'
                 : '';
             _logger.info('<${event.user}> ${event.text}$thread');
           });
 
+      await client.connect();
+      _logger.info('Streaming $channel (Ctrl+C to stop)...');
+
       await stopCompleter.future;
-      await eventSub.cancel();
     } on SocketModeException catch (e) {
       _logger.err('Socket Mode error: ${e.message}');
       return ExitCode.software.code;
+    } on Exception catch (e) {
+      _logger.err('Unexpected stream error: $e');
+      return ExitCode.software.code;
     } finally {
+      await eventSub?.cancel();
       await signalSub.cancel();
       await client.close();
     }

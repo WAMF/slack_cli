@@ -194,10 +194,15 @@ void main() {
     });
 
     test('returns config exit code when app token missing', () async {
+      final configStore = _MockAppConfigStore();
+      when(configStore.load).thenReturn(null);
+
       final runner = CommandRunner<int>('test', 'test')
         ..addCommand(
           StreamCommand(
             logger: logger,
+            configStore: configStore,
+            appTokenProvider: () => null,
             signalStream: signalController.stream,
           ),
         );
@@ -208,6 +213,7 @@ void main() {
       verify(
         () => logger.err(any(that: contains('SLACK_APP_TOKEN'))),
       ).called(1);
+      verify(configStore.load).called(1);
     });
 
     test('uses token from AppConfigStore when available', () async {
@@ -248,6 +254,7 @@ void main() {
           StreamCommand(
             logger: logger,
             configStore: configStore,
+            appTokenProvider: () => null,
             signalStream: signalController.stream,
           ),
         );
@@ -278,6 +285,20 @@ void main() {
 
       verify(
         () => logger.err(any(that: contains('Socket Mode error'))),
+      ).called(1);
+    });
+
+    test('returns software exit code on unexpected exception', () async {
+      when(
+        () => httpClient.post(any(), headers: any(named: 'headers')),
+      ).thenThrow(const SocketException('boom'));
+
+      final runner = buildRunner();
+      final exitCode = await runner.run(['stream', '-c', 'C123']);
+
+      expect(exitCode, equals(ExitCode.software.code));
+      verify(
+        () => logger.err(any(that: contains('Unexpected stream error'))),
       ).called(1);
     });
   });
