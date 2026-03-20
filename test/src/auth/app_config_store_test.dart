@@ -53,6 +53,26 @@ void main() {
       expect(store.delete(), isFalse);
     });
 
+    test('uses USERPROFILE when HOME is unavailable', () {
+      final homeDir = Directory.systemTemp.createTempSync(
+        'slackcli_config_home_test_',
+      );
+      addTearDown(() {
+        if (homeDir.existsSync()) {
+          homeDir.deleteSync(recursive: true);
+        }
+      });
+
+      final store = AppConfigStore(
+        environment: {'USERPROFILE': homeDir.path},
+      );
+      final configFile = File('${homeDir.path}/.dart_slack/config.json');
+
+      store.save(config);
+
+      expect(configFile.existsSync(), isTrue);
+    });
+
     test(
       'save sets file permissions to 600 on POSIX',
       () {

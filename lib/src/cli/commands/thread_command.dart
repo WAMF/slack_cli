@@ -41,13 +41,14 @@ class ThreadCommand extends AuthenticatedCommand {
       channel: channel,
       ts: ts,
     );
+    final replies = page.items.where((message) => message.ts != ts).toList();
 
-    if (page.items.isEmpty) {
+    if (replies.isEmpty) {
       logger.info('No replies found.');
       return ExitCode.success.code;
     }
 
-    for (final message in page.items) {
+    for (final message in replies) {
       final user = message.user ?? 'unknown';
       logger.info('<$user> ${message.text}');
     }

@@ -59,8 +59,29 @@ class WatchCommand extends AuthenticatedCommand {
   @override
   Future<int> runAuthenticated(Slack slack) async {
     final channel = argResults!['channel'] as String;
-    final interval = int.parse(argResults!['interval'] as String);
-    final initialCount = int.parse(argResults!['count'] as String);
+    final rawInterval = argResults!['interval'] as String;
+    final rawCount = argResults!['count'] as String;
+    final interval = int.tryParse(rawInterval);
+    final initialCount = int.tryParse(rawCount);
+    if (interval == null || interval <= 0) {
+      logger
+        ..err(
+          'Invalid --interval value: "$rawInterval". '
+          'Use a positive integer.',
+        )
+        ..info('')
+        ..info(usage);
+      return ExitCode.usage.code;
+    }
+    if (initialCount == null || initialCount <= 0) {
+      logger
+        ..err(
+          'Invalid --count value: "$rawCount". Use a positive integer.',
+        )
+        ..info('')
+        ..info(usage);
+      return ExitCode.usage.code;
+    }
 
     final stopCompleter = Completer<void>();
     final signalSub = (_signalStream ?? ProcessSignal.sigint.watch()).listen((

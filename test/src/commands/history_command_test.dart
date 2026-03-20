@@ -134,5 +134,22 @@ void main() {
 
       verify(() => logger.info('No messages found.')).called(1);
     });
+
+    test('rejects invalid limit values', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(() => logger.err(any())).thenReturn(null);
+
+      final exitCode = await runner.run(['history', '-c', 'C1', '-l', '0']);
+
+      expect(exitCode, equals(ExitCode.usage.code));
+      verify(
+        () => logger.err(
+          'Invalid --limit value: "0". Use a positive integer.',
+        ),
+      ).called(1);
+      verifyNever(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      );
+    });
   });
 }

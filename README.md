@@ -196,7 +196,7 @@ Returned by `Slack.listChannels`.
 1. Under **Socket Mode**, toggle it on and generate an **App-Level Token** with the `connections:write` scope.
 2. Under **Event Subscriptions**, enable events and subscribe to `message.channels`.
 3. Add the token to your `.env` file:
-   ```
+   ```env
    SLACK_APP_TOKEN=xapp-...
    ```
 

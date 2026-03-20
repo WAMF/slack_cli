@@ -36,7 +36,15 @@ class HistoryCommand extends AuthenticatedCommand {
   @override
   Future<int> runAuthenticated(Slack slack) async {
     final channel = argResults!['channel'] as String;
-    final limit = int.parse(argResults!['limit'] as String);
+    final rawLimit = argResults!['limit'] as String;
+    final limit = int.tryParse(rawLimit);
+    if (limit == null || limit <= 0) {
+      logger
+        ..err('Invalid --limit value: "$rawLimit". Use a positive integer.')
+        ..info('')
+        ..info(usage);
+      return ExitCode.usage.code;
+    }
 
     final page = await slack.conversationsHistory(
       channel: channel,

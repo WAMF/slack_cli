@@ -198,5 +198,22 @@ void main() {
               as AppConfig;
       expect(captured.appToken, equals('xapp-1-new-token'));
     });
+
+    test('handles unreadable existing config gracefully', () async {
+      when(() => configStore.hasConfig).thenReturn(true);
+      when(() => configStore.load()).thenReturn(null);
+
+      final runner = buildRunner();
+      final exitCode = await runner.run(['configure']);
+
+      expect(exitCode, equals(ExitCode.software.code));
+      verify(
+        () => logger.err(
+          any(that: contains('Existing app configuration is unreadable')),
+        ),
+      ).called(1);
+      verifyNever(() => logger.confirm(any()));
+      verifyNever(() => configStore.save(any()));
+    });
   });
 }

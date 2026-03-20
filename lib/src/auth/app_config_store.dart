@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_slack/src/auth/app_config.dart';
+import 'package:meta/meta.dart';
 
 /// Manages persistence of app-level configuration to disk.
 ///
@@ -11,10 +12,12 @@ class AppConfigStore {
   /// Creates an [AppConfigStore] that writes to [configDirectory].
   ///
   /// Defaults to `~/.dart_slack` when [configDirectory] is omitted.
-  AppConfigStore({Directory? configDirectory})
-    : _configDirectory =
-          configDirectory ??
-          Directory('${Platform.environment['HOME']}/.dart_slack');
+  AppConfigStore({
+    Directory? configDirectory,
+    @visibleForTesting Map<String, String>? environment,
+  }) : _configDirectory =
+           configDirectory ??
+           Directory(_defaultConfigPath(environment ?? Platform.environment));
 
   final Directory _configDirectory;
 
@@ -44,6 +47,14 @@ class AppConfigStore {
 
   /// Whether a config file exists on disk.
   bool get hasConfig => _configFile.existsSync();
+
+  static String _defaultConfigPath(Map<String, String> environment) {
+    final home =
+        environment['HOME'] ??
+        environment['USERPROFILE'] ??
+        Directory.current.path;
+    return '$home/.dart_slack';
+  }
 
   void _setFilePermissions() {
     if (Platform.isMacOS || Platform.isLinux) {

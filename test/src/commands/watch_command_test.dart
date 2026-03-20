@@ -42,6 +42,7 @@ void main() {
       signalController = StreamController<ProcessSignal>.broadcast();
 
       when(() => logger.info(any())).thenReturn(null);
+      when(() => logger.err(any())).thenReturn(null);
       when(() => httpClient.close()).thenReturn(null);
     });
 
@@ -271,6 +272,39 @@ void main() {
               as Uri;
 
       expect(uri.queryParameters['limit'], equals('5'));
+    });
+
+    test('rejects invalid interval values', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+
+      final runner = buildRunner();
+      final exitCode = await runner.run(['watch', '-c', 'C1', '-i', '0']);
+
+      expect(exitCode, equals(ExitCode.usage.code));
+      verify(
+        () => logger.err(
+          'Invalid --interval value: "0". Use a positive integer.',
+        ),
+      ).called(1);
+      verifyNever(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      );
+    });
+
+    test('rejects invalid count values', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+
+      final runner = buildRunner();
+      final exitCode = await runner.run(['watch', '-c', 'C1', '-n', '-1']);
+
+      expect(exitCode, equals(ExitCode.usage.code));
+      verify(
+        () =>
+            logger.err('Invalid --count value: "-1". Use a positive integer.'),
+      ).called(1);
+      verifyNever(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      );
     });
   });
 }

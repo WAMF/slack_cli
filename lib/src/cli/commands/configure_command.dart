@@ -52,7 +52,14 @@ class ConfigureCommand extends Command<int> {
     }
 
     if (_configStore.hasConfig) {
-      final existing = _configStore.load()!;
+      final existing = _configStore.load();
+      if (existing == null) {
+        _logger.err(
+          'Existing app configuration is unreadable. '
+          'Clear it with "dart_slack configure --clear" and try again.',
+        );
+        return ExitCode.software.code;
+      }
       final masked = _maskToken(existing.appToken);
       final overwrite = _logger.confirm(
         'App token already configured ($masked). Reconfigure?',

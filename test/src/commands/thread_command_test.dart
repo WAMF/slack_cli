@@ -77,9 +77,35 @@ void main() {
 
       await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
 
-      verify(() => logger.info('<U1> Parent')).called(1);
       verify(() => logger.info('<U2> Reply')).called(1);
+      verifyNever(() => logger.info('<U1> Parent'));
     });
+
+    test(
+      'shows empty state when thread only contains parent message',
+      () async {
+        when(() => credentialsStore.load()).thenReturn(credentials);
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'messages': [
+                {'ts': '1.0', 'text': 'Parent', 'user': 'U1'},
+              ],
+              'has_more': false,
+            }),
+            200,
+          ),
+        );
+
+        await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
+
+        verify(() => logger.info('No replies found.')).called(1);
+        verifyNever(() => logger.info('<U1> Parent'));
+      },
+    );
 
     test('shows empty state message', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
