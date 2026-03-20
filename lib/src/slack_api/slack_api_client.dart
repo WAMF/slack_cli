@@ -68,7 +68,10 @@ class SlackApiClient {
       return _post(SlackUrls.postMessage, body);
     }
 
-    throw SlackApiException(error);
+    throw SlackApiException(
+      error,
+      needed: json['needed'] as String?,
+    );
   }
 
   /// Joins a public channel by [channelId].

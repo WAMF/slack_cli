@@ -133,6 +133,37 @@ void main() {
         );
       });
 
+      test('preserves needed scope metadata on missing_scope errors', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': false,
+              'error': 'missing_scope',
+              'needed': 'chat:write',
+            }),
+            200,
+          ),
+        );
+
+        expect(
+          () => slackClient.postMessage(
+            channel: 'C123',
+            text: 'Hello',
+          ),
+          throwsA(
+            isA<SlackApiException>()
+                .having((e) => e.error, 'error', 'missing_scope')
+                .having((e) => e.needed, 'needed', 'chat:write'),
+          ),
+        );
+      });
+
       test(
         'throws SlackApiException with unknown_error '
         'when error field is missing',
