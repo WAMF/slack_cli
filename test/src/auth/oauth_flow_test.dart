@@ -284,8 +284,6 @@ void main() {
         final credentials = await flow.execute();
 
         expect(credentials.accessToken, equals('xoxp-test'));
-        expect(credentials.teamId, equals('T123'));
-        expect(credentials.teamName, equals('Test Team'));
         expect(credentials.userId, equals('U123'));
       },
     );

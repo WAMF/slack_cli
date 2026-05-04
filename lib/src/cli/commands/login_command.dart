@@ -34,9 +34,8 @@ class LoginCommand extends Command<int> {
   @override
   Future<int> run() async {
     if (_credentialsStore.hasCredentials) {
-      final credentials = _credentialsStore.load()!;
       final reauth = _logger.confirm(
-        'Already logged in to ${credentials.teamName}. Re-authenticate?',
+        'Already logged in. Re-authenticate?',
       );
       if (!reauth) return ExitCode.success.code;
     }
@@ -53,7 +52,7 @@ class LoginCommand extends Command<int> {
     try {
       final credentials = await flow.execute();
       _credentialsStore.save(credentials);
-      _logger.success('Logged in to ${credentials.teamName}.');
+      _logger.success('Logged in to Slack.');
       return ExitCode.success.code;
     } on OAuthException catch (e) {
       _logger.err('Authentication failed: ${e.message}');

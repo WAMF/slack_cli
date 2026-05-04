@@ -11,8 +11,6 @@ void main() {
 
     const credentials = Credentials(
       accessToken: 'xoxp-test-token',
-      teamId: 'T12345',
-      teamName: 'Test Team',
       userId: 'U12345',
     );
 
@@ -48,8 +46,6 @@ void main() {
 
       expect(loaded, isNotNull);
       expect(loaded!.accessToken, equals(credentials.accessToken));
-      expect(loaded.teamId, equals(credentials.teamId));
-      expect(loaded.teamName, equals(credentials.teamName));
       expect(loaded.userId, equals(credentials.userId));
     });
 
