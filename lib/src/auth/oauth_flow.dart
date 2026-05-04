@@ -302,13 +302,10 @@ class OAuthFlow {
       );
     }
 
-    final team = json['team'] as Map<String, dynamic>;
     final authedUser = json['authed_user'] as Map<String, dynamic>;
 
     return Credentials(
       accessToken: authedUser['access_token'] as String,
-      teamId: team['id'] as String,
-      teamName: team['name'] as String,
       userId: authedUser['id'] as String?,
     );
   }

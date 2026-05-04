@@ -24,8 +24,6 @@ void main() {
 
     const credentials = Credentials(
       accessToken: 'xoxp-test',
-      teamId: 'T123',
-      teamName: 'Test Team',
       userId: 'U123',
     );
 

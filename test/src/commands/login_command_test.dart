@@ -21,8 +21,6 @@ void main() {
 
     const credentials = Credentials(
       accessToken: 'xoxp-test',
-      teamId: 'T123',
-      teamName: 'Test Team',
       userId: 'U123',
     );
 
@@ -54,7 +52,7 @@ void main() {
       expect(result, equals(ExitCode.success.code));
       verify(() => credentialsStore.save(credentials)).called(1);
       verify(
-        () => logger.success('Logged in to Test Team.'),
+        () => logger.success('Logged in to Slack.'),
       ).called(1);
     });
 
