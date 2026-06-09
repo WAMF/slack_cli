@@ -165,6 +165,38 @@ void main() {
       expect(result, equals(ExitCode.noUser.code));
     });
 
+    test('ignores a whitespace-only token environment variable', () async {
+      when(() => credentialsStore.load()).thenReturn(null);
+
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+        environment: const {'SLACK_TOKEN': '   '},
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.noUser.code));
+    });
+
+    test('trims surrounding whitespace from the token', () async {
+      when(() => credentialsStore.load()).thenReturn(null);
+
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+        environment: const {'SLACK_TOKEN': '  xoxp-padded\n'},
+        onRun: _probeToken,
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.success.code));
+      expect(_capturedBearerToken(httpClient), equals('xoxp-padded'));
+    });
+
     test('calls runAuthenticated when credentials exist', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:dart_slack/src/auth/credentials.dart';
 import 'package:dart_slack/src/auth/credentials_store.dart';
+import 'package:dart_slack/src/cli/slack_app.dart';
 import 'package:dart_slack/src/slack.dart';
 import 'package:dart_slack/src/slack_api/slack_api_client.dart';
 import 'package:http/http.dart' as http;
@@ -18,7 +19,9 @@ const String _slackTokenEnvVar = 'SLACK_TOKEN';
 /// `dart_slack login`) and then the `SLACK_TOKEN` environment variable.
 /// The environment fallback lets the CLI run in non-interactive contexts —
 /// CI, containers, agent workspaces — where a token is injected rather
-/// than obtained through an interactive login.
+/// than obtained through an interactive login. As with the OAuth secrets,
+/// `SLACK_TOKEN` may be supplied via the process environment or a `.env`
+/// file in the current directory (see [SlackApp]).
 ///
 /// Creates a [Slack] facade and delegates to [runAuthenticated]. Handles
 /// missing credentials and [SlackApiException] errors centrally.
@@ -30,7 +33,7 @@ abstract class AuthenticatedCommand extends Command<int> {
     this.httpClient,
     Map<String, String>? environment,
   }) : credentialsStore = credentialsStore ?? CredentialsStore(),
-       environment = environment ?? Platform.environment;
+       environment = environment ?? SlackApp.environment;
 
   /// Logger for user-facing output.
   final Logger logger;
@@ -41,8 +44,8 @@ abstract class AuthenticatedCommand extends Command<int> {
   /// Optional HTTP client override for testing.
   final http.Client? httpClient;
 
-  /// Environment used for the token fallback. Defaults to the process
-  /// environment; injectable for testing.
+  /// Environment used for the token fallback. Defaults to [SlackApp]'s
+  /// merged process-plus-`.env` environment; injectable for testing.
   final Map<String, String> environment;
 
   @override
@@ -85,7 +88,7 @@ abstract class AuthenticatedCommand extends Command<int> {
   Future<int> runAuthenticated(Slack slack);
 
   Credentials? _credentialsFromEnvironment() {
-    final token = environment[_slackTokenEnvVar];
+    final token = environment[_slackTokenEnvVar]?.trim();
     if (token != null && token.isNotEmpty) {
       return Credentials(accessToken: token);
     }

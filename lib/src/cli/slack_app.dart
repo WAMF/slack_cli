@@ -50,6 +50,11 @@ abstract final class SlackApp {
   /// App-level token, or `null` if not configured.
   static String? get appTokenOrNull => _env['SLACK_APP_TOKEN'];
 
+  /// The merged environment used to resolve Slack secrets: the process
+  /// environment overlaid with a `.env` file in the current directory.
+  /// Exposed so other commands resolve secrets the same way OAuth does.
+  static Map<String, String> get environment => _env;
+
   static Map<String, String> _loadEnv() {
     final env = Map<String, String>.of(Platform.environment);
 
