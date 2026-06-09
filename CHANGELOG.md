@@ -7,6 +7,7 @@
 
 ### Added
 
+- Authenticated commands fall back to the `SLACK_TOKEN` environment variable (read from the process environment or a `.env` file, like the OAuth secrets) when no `~/.dart_slack/credentials.json` is present, so the CLI works in non-interactive contexts (CI, containers, agent workspaces) without an interactive `login`.
 - `Slack` facade with typed return values (`SlackMessage`, `SlackChannel`).
 - `Slack.fromStore()` factory for creating an instance from saved credentials.
 - CSRF protection via OAuth `state` parameter.
