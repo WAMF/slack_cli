@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_slack/src/auth/credentials.dart';
@@ -16,11 +17,31 @@ class _MockCredentialsStore extends Mock implements CredentialsStore {}
 
 class _MockHttpClient extends Mock implements http.Client {}
 
+/// Issues one Slack request so the token reaches the mock HTTP client,
+/// where [_capturedBearerToken] can read it from the `Authorization`
+/// header.
+Future<int> _probeToken(Slack slack) async {
+  await slack.listChannels();
+  return ExitCode.success.code;
+}
+
+/// Pulls the bearer token out of the `Authorization` header captured by
+/// the mock HTTP client's most recent `get` call.
+String _capturedBearerToken(_MockHttpClient httpClient) {
+  final headers =
+      verify(
+            () => httpClient.get(any(), headers: captureAny(named: 'headers')),
+          ).captured.last
+          as Map<String, String>;
+  return headers['Authorization']!.replaceFirst('Bearer ', '');
+}
+
 class _TestCommand extends AuthenticatedCommand {
   _TestCommand({
     required super.logger,
     super.credentialsStore,
     super.httpClient,
+    super.environment,
     this.onRun,
   });
 
@@ -49,6 +70,10 @@ void main() {
       userId: 'U123',
     );
 
+    setUpAll(() {
+      registerFallbackValue(Uri.parse('https://example.com'));
+    });
+
     setUp(() {
       logger = _MockLogger();
       credentialsStore = _MockCredentialsStore();
@@ -56,6 +81,18 @@ void main() {
 
       when(() => logger.err(any())).thenReturn(null);
       when(() => httpClient.close()).thenReturn(null);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer(
+        (_) async => http.Response(
+          jsonEncode({
+            'ok': true,
+            'channels': <dynamic>[],
+            'response_metadata': {'next_cursor': ''},
+          }),
+          200,
+        ),
+      );
     });
 
     test('returns noUser exit code when no credentials exist', () async {
@@ -65,14 +102,67 @@ void main() {
         logger: logger,
         credentialsStore: credentialsStore,
         httpClient: httpClient,
+        environment: const {},
       );
 
       final result = await command.run();
 
       expect(result, equals(ExitCode.noUser.code));
       verify(
-        () => logger.err("Not logged in. Run 'dart_slack login' first."),
+        () => logger.err(
+          "Not logged in. Run 'dart_slack login' first, "
+          'or set the SLACK_TOKEN environment variable.',
+        ),
       ).called(1);
+    });
+
+    test('falls back to SLACK_TOKEN when no credentials file exists', () async {
+      when(() => credentialsStore.load()).thenReturn(null);
+
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+        environment: const {'SLACK_TOKEN': 'xoxp-from-env'},
+        onRun: _probeToken,
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.success.code));
+      expect(_capturedBearerToken(httpClient), equals('xoxp-from-env'));
+    });
+
+    test('credentials file takes precedence over the environment', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+        environment: const {'SLACK_TOKEN': 'xoxp-from-env'},
+        onRun: _probeToken,
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.success.code));
+      expect(_capturedBearerToken(httpClient), equals('xoxp-test'));
+    });
+
+    test('ignores an empty token environment variable', () async {
+      when(() => credentialsStore.load()).thenReturn(null);
+
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+        environment: const {'SLACK_TOKEN': ''},
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.noUser.code));
     });
 
     test('calls runAuthenticated when credentials exist', () async {

@@ -206,6 +206,23 @@ Returned by `Slack.listChannels`.
 dart pub get
 ```
 
+### Authentication
+
+Authenticated commands resolve a token in this order:
+
+1. `~/.dart_slack/credentials.json`, written by `dart_slack login`.
+2. The `SLACK_TOKEN` environment variable.
+
+The environment fallback lets the CLI run non-interactively — in CI,
+containers, or agent workspaces — where a token is injected rather than
+obtained through an interactive login. A token from the credentials file
+always wins over the environment.
+
+```sh
+export SLACK_TOKEN=xoxp-…
+dart run bin/dart_slack.dart channels   # no `login` step required
+```
+
 ### Commands
 
 ```sh
