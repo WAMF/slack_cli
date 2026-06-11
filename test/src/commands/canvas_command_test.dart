@@ -202,6 +202,13 @@ void main() {
         verify(
           () => logger.err(any(that: startsWith('Failed to read file:'))),
         ).called(1);
+        verifyNever(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        );
       });
     });
 
