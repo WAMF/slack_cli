@@ -13,6 +13,7 @@
 - CSRF protection via OAuth `state` parameter.
 - HTML escaping in OAuth callback server responses.
 - CLI commands: `history`, `thread`, `info`, `members`, `users`, `whois`, `edit`, `delete`.
+- `canvas` command group (`create`, `edit`, `delete`) for Slack canvases, backed by `Slack.createCanvas`/`editCanvas`/`deleteCanvas` and the `canvases.create`/`canvases.edit`/`canvases.delete` API methods. `create` accepts inline `--content` or a `--file`, an optional `--title`, and an optional `--channel` to tab the canvas into a channel; `edit` supports `replace`/`append`/`prepend` modes. Adds the `canvases:write` OAuth scope.
 - `watch` command for poll-based channel monitoring using a user token.
 - `stream` command for real-time channel streaming via Socket Mode (`xapp-*` token).
 - `SocketModeClient` library for WebSocket-based Socket Mode connections with automatic reconnection.

@@ -3,6 +3,32 @@ import 'package:dart_slack/src/models/models.dart';
 import 'package:dart_slack/src/slack_api/slack_api_client.dart';
 import 'package:http/http.dart' as http;
 
+/// How [Slack.editCanvas] applies new content to an existing canvas.
+enum CanvasEditMode {
+  /// Replace the entire canvas body.
+  replace('replace'),
+
+  /// Append the content after the existing body.
+  append('insert_at_end'),
+
+  /// Insert the content before the existing body.
+  prepend('insert_at_start')
+  ;
+
+  const CanvasEditMode(this.operation);
+
+  /// The Slack `canvases.edit` operation name.
+  final String operation;
+
+  /// Resolves a CLI `--mode` value, defaulting to [replace] for any unknown
+  /// value.
+  static CanvasEditMode fromName(String? name) => switch (name) {
+    'append' => CanvasEditMode.append,
+    'prepend' => CanvasEditMode.prepend,
+    _ => CanvasEditMode.replace,
+  };
+}
+
 /// High-level facade for the Slack Web API.
 ///
 /// Wraps [SlackApiClient] with typed return values for common operations.
@@ -189,6 +215,45 @@ class Slack {
     final json = await _client.usersInfo(user: user);
     return SlackUser.fromJson(json['user'] as Map<String, dynamic>);
   }
+
+  /// Creates a canvas containing [markdown] and returns its ID.
+  ///
+  /// Pass [title] to name the canvas, and [channel] to tab the canvas into
+  /// that channel instead of creating a standalone one.
+  Future<String> createCanvas({
+    required String markdown,
+    String? title,
+    String? channel,
+  }) async {
+    final json = await _client.createCanvas(
+      content: markdown,
+      title: title,
+      channel: channel,
+    );
+    return json['canvas_id'] as String;
+  }
+
+  /// Updates the canvas [canvasId] with [markdown].
+  ///
+  /// [mode] selects whether the content replaces the body or is appended /
+  /// prepended.
+  Future<void> editCanvas({
+    required String canvasId,
+    required String markdown,
+    CanvasEditMode mode = CanvasEditMode.replace,
+  }) => _client.editCanvas(
+    canvasId: canvasId,
+    changes: [
+      {
+        'operation': mode.operation,
+        'document_content': {'type': 'markdown', 'markdown': markdown},
+      },
+    ],
+  );
+
+  /// Deletes the canvas [canvasId].
+  Future<void> deleteCanvas({required String canvasId}) =>
+      _client.deleteCanvas(canvasId: canvasId);
 
   /// Releases the underlying HTTP client resources.
   void close() => _client.close();

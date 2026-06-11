@@ -258,6 +258,18 @@ dart run bin/dart_slack.dart edit -c <channel-id> --ts <message_ts> -t "Updated 
 # Delete a message
 dart run bin/dart_slack.dart delete -c <channel-id> --ts <message_ts>
 
+# Create a canvas from markdown (standalone)
+dart run bin/dart_slack.dart canvas create --title "Plan" -m "# Heading\n- item"
+
+# Create a canvas tabbed into a channel, reading content from a file
+dart run bin/dart_slack.dart canvas create -c <channel-id> -f ./plan.md
+
+# Edit a canvas (replace | append | prepend)
+dart run bin/dart_slack.dart canvas edit --canvas <canvas-id> --mode append -m "More notes"
+
+# Delete a canvas
+dart run bin/dart_slack.dart canvas delete --canvas <canvas-id>
+
 # Send a DM
 dart run bin/dart_slack.dart dm -u <user-id> -t "Hey there"
 

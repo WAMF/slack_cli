@@ -1,4 +1,5 @@
 export 'authenticated_command.dart';
+export 'canvas_command.dart';
 export 'channels_command.dart';
 export 'configure_command.dart';
 export 'delete_command.dart';

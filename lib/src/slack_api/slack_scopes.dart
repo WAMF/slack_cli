@@ -4,6 +4,7 @@ abstract final class SlackScopes {
   static const _channelsRead = 'channels:read';
   static const _channelsWrite = 'channels:write';
   static const _chatWrite = 'chat:write';
+  static const _canvasesWrite = 'canvases:write';
   static const _groupsHistory = 'groups:history';
   static const _groupsRead = 'groups:read';
   static const _imWrite = 'im:write';
@@ -16,6 +17,7 @@ abstract final class SlackScopes {
     _channelsRead,
     _channelsWrite,
     _chatWrite,
+    _canvasesWrite,
     _groupsHistory,
     _groupsRead,
     _imWrite,

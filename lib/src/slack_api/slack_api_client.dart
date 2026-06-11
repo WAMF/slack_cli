@@ -225,6 +225,37 @@ class SlackApiClient {
     'ts': ts,
   });
 
+  /// Creates a canvas whose body is the given markdown [content].
+  ///
+  /// Pass [title] to name the canvas, and [channel] to tab the canvas into
+  /// that channel rather than creating a standalone canvas. Returns the raw
+  /// Slack API response map, which contains `canvas_id` on success.
+  Future<Map<String, dynamic>> createCanvas({
+    required String content,
+    String? title,
+    String? channel,
+  }) => _post(SlackUrls.canvasesCreate, {
+    'title': ?title,
+    'channel_id': ?channel,
+    'document_content': {'type': 'markdown', 'markdown': content},
+  });
+
+  /// Applies [changes] to the canvas identified by [canvasId].
+  ///
+  /// Each change is a Slack `canvases.edit` change object (e.g.
+  /// `{'operation': 'replace', 'document_content': {...}}`).
+  Future<void> editCanvas({
+    required String canvasId,
+    required List<Map<String, dynamic>> changes,
+  }) => _post(SlackUrls.canvasesEdit, {
+    'canvas_id': canvasId,
+    'changes': changes,
+  });
+
+  /// Deletes the canvas identified by [canvasId].
+  Future<void> deleteCanvas({required String canvasId}) =>
+      _post(SlackUrls.canvasesDelete, {'canvas_id': canvasId});
+
   /// Releases the underlying HTTP client resources.
   void close() => _httpClient.close();
 
