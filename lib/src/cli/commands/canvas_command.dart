@@ -207,10 +207,10 @@ String? _resolveCanvasContent(ArgResults args, Logger logger) {
 
   if (inline != null) return inline;
 
-  final file = File(filePath!);
-  if (!file.existsSync()) {
-    logger.err('File not found: $filePath');
+  try {
+    return File(filePath!).readAsStringSync();
+  } on FileSystemException catch (e) {
+    logger.err('Failed to read file: $filePath (${e.message})');
     return null;
   }
-  return file.readAsStringSync();
 }

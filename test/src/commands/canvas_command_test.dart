@@ -178,7 +178,30 @@ void main() {
         ]);
 
         expect(code, equals(ExitCode.usage.code));
-        verify(() => logger.err('File not found: /no/such/file.md')).called(1);
+        verify(
+          () => logger.err(any(that: startsWith('Failed to read file:'))),
+        ).called(1);
+        verifyNever(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        );
+      });
+
+      test('errors when the --file path is not a regular file', () async {
+        // A directory cannot be read as a string, exercising the
+        // FileSystemException path without depending on file permissions.
+        final dir = Directory.systemTemp.createTempSync('canvas_test');
+        addTearDown(() => dir.deleteSync(recursive: true));
+
+        final code = await runner.run(['canvas', 'create', '-f', dir.path]);
+
+        expect(code, equals(ExitCode.usage.code));
+        verify(
+          () => logger.err(any(that: startsWith('Failed to read file:'))),
+        ).called(1);
       });
     });
 
