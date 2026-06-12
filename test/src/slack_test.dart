@@ -508,6 +508,72 @@ void main() {
       });
     });
 
+    group('setStatus', () {
+      test('posts the status profile to users.profile.set', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode({'ok': true}), 200),
+        );
+
+        await slack.setStatus(
+          text: 'On a task',
+          emoji: ':gear:',
+          expiration: 1750000000,
+        );
+
+        final captured = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured;
+
+        expect(captured[0], equals(SlackUrls.usersProfileSet));
+        final body = jsonDecode(captured[1] as String) as Map<String, dynamic>;
+        final profile = body['profile'] as Map<String, dynamic>;
+        expect(profile['status_text'], equals('On a task'));
+        expect(profile['status_emoji'], equals(':gear:'));
+        expect(profile['status_expiration'], equals(1750000000));
+      });
+    });
+
+    group('clearStatus', () {
+      test('posts an empty status profile', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode({'ok': true}), 200),
+        );
+
+        await slack.clearStatus();
+
+        final captured = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured;
+
+        expect(captured[0], equals(SlackUrls.usersProfileSet));
+        final body = jsonDecode(captured[1] as String) as Map<String, dynamic>;
+        final profile = body['profile'] as Map<String, dynamic>;
+        expect(profile['status_text'], isEmpty);
+        expect(profile['status_emoji'], isEmpty);
+        expect(profile['status_expiration'], equals(0));
+      });
+    });
+
     test('close delegates to the underlying client', () {
       when(() => httpClient.close()).thenReturn(null);
       slack.close();

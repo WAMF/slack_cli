@@ -7,6 +7,13 @@
 
 ### Added
 
+- `status` command (`status set` / `status clear`) wrapping `users.profile.set`:
+  set or clear the authenticated user's custom status with `--text`, `--emoji`,
+  and `--expires-in` (a stale-status safety net mapped to `status_expiration`).
+  Requires a user token with the `users.profile:write` scope (now requested by
+  `login`); bot tokens get a descriptive `not_allowed_token_type` error.
+- `Slack.setStatus()` / `Slack.clearStatus()` facade methods and
+  `SlackApiClient.usersProfileSet()`.
 - Authenticated commands fall back to the `SLACK_TOKEN` environment variable (read from the process environment or a `.env` file, like the OAuth secrets) when no `~/.dart_slack/credentials.json` is present, so the CLI works in non-interactive contexts (CI, containers, agent workspaces) without an interactive `login`.
 - `Slack` facade with typed return values (`SlackMessage`, `SlackChannel`).
 - `Slack.fromStore()` factory for creating an instance from saved credentials.

@@ -43,6 +43,10 @@ for (final channel in channels) {
 // Join a public channel
 await slack.joinChannel('C0123ABCDEF');
 
+// Set your custom status (user token only; expiration is a Unix timestamp)
+await slack.setStatus(text: 'Working on a task', emoji: ':gear:');
+await slack.clearStatus();
+
 // Release resources when done
 slack.close();
 ```
@@ -278,6 +282,12 @@ dart run bin/dart_slack.dart users
 
 # Look up a user profile
 dart run bin/dart_slack.dart whois -u <user-id>
+
+# Set your custom status (expires automatically after 6 hours)
+dart run bin/dart_slack.dart status set -t "Working on a task" -e ":gear:" -x 6h
+
+# Clear your custom status
+dart run bin/dart_slack.dart status clear
 
 # Watch a channel (poll-based, uses user token)
 dart run bin/dart_slack.dart watch -c <channel-id> -i 5 -n 10

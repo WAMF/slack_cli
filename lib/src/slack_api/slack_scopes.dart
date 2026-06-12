@@ -10,6 +10,7 @@ abstract final class SlackScopes {
   static const _imWrite = 'im:write';
   static const _usersRead = 'users:read';
   static const _usersReadEmail = 'users:read.email';
+  static const _usersProfileWrite = 'users.profile:write';
 
   /// All scopes required by the CLI.
   static const List<String> values = [
@@ -23,6 +24,7 @@ abstract final class SlackScopes {
     _imWrite,
     _usersRead,
     _usersReadEmail,
+    _usersProfileWrite,
   ];
 
   /// Comma-separated scope string for the OAuth authorize URL.

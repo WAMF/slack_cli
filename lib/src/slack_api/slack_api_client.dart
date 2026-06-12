@@ -205,6 +205,26 @@ class SlackApiClient {
     return _get(SlackUrls.usersInfo.replace(queryParameters: params));
   }
 
+  /// Sets the authenticated user's custom status via `users.profile.set`.
+  ///
+  /// Pass empty strings (and `0` for [statusExpiration]) to clear the
+  /// status. [statusExpiration] is a Unix timestamp (seconds) after which
+  /// Slack clears the status automatically; `0` keeps it until cleared.
+  ///
+  /// Requires a user token (`xoxp-...`) with the `users.profile:write`
+  /// scope — bot tokens fail with `not_allowed_token_type`.
+  Future<Map<String, dynamic>> usersProfileSet({
+    required String statusText,
+    required String statusEmoji,
+    int statusExpiration = 0,
+  }) => _post(SlackUrls.usersProfileSet, {
+    'profile': {
+      'status_text': statusText,
+      'status_emoji': statusEmoji,
+      'status_expiration': statusExpiration,
+    },
+  });
+
   /// Updates the text of an existing message.
   Future<Map<String, dynamic>> updateMessage({
     required String channel,
