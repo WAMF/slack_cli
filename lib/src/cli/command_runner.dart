@@ -52,6 +52,7 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
     addCommand(MembersCommand(logger: _logger));
     addCommand(ReplyCommand(logger: _logger));
     addCommand(SendCommand(logger: _logger));
+    addCommand(StatusCommand(logger: _logger));
     addCommand(StreamCommand(logger: _logger));
     addCommand(ThreadCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, pubUpdater: _pubUpdater));

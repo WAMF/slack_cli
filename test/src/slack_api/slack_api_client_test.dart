@@ -524,6 +524,110 @@ void main() {
       });
     });
 
+    group('usersProfileSet', () {
+      test('sends POST to users.profile.set with profile payload', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'profile': {'status_text': 'On a task'},
+            }),
+            200,
+          ),
+        );
+
+        await slackClient.usersProfileSet(
+          statusText: 'On a task',
+          statusEmoji: ':gear:',
+          statusExpiration: 1750000000,
+        );
+
+        final captured = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured;
+
+        final uri = captured[0] as Uri;
+        final body = jsonDecode(captured[1] as String) as Map<String, dynamic>;
+        final profile = body['profile'] as Map<String, dynamic>;
+
+        expect(uri, equals(SlackUrls.usersProfileSet));
+        expect(profile['status_text'], equals('On a task'));
+        expect(profile['status_emoji'], equals(':gear:'));
+        expect(profile['status_expiration'], equals(1750000000));
+      });
+
+      test('defaults status_expiration to 0', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode({'ok': true}), 200),
+        );
+
+        await slackClient.usersProfileSet(statusText: '', statusEmoji: '');
+
+        final body =
+            jsonDecode(
+                  verify(
+                        () => httpClient.post(
+                          any(),
+                          headers: any(named: 'headers'),
+                          body: captureAny(named: 'body'),
+                        ),
+                      ).captured.first
+                      as String,
+                )
+                as Map<String, dynamic>;
+        final profile = body['profile'] as Map<String, dynamic>;
+
+        expect(profile['status_text'], isEmpty);
+        expect(profile['status_emoji'], isEmpty);
+        expect(profile['status_expiration'], equals(0));
+      });
+
+      test('throws SlackApiException on error', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': false, 'error': 'not_allowed_token_type'}),
+            200,
+          ),
+        );
+
+        expect(
+          () => slackClient.usersProfileSet(
+            statusText: 'On a task',
+            statusEmoji: '',
+          ),
+          throwsA(
+            isA<SlackApiException>().having(
+              (e) => e.error,
+              'error',
+              'not_allowed_token_type',
+            ),
+          ),
+        );
+      });
+    });
+
     group('deleteMessage', () {
       test('sends POST to chat.delete', () async {
         when(

@@ -255,6 +255,27 @@ class Slack {
   Future<void> deleteCanvas({required String canvasId}) =>
       _client.deleteCanvas(canvasId: canvasId);
 
+  /// Sets the authenticated user's custom status.
+  ///
+  /// [expiration] is a Unix timestamp (seconds) after which Slack clears
+  /// the status automatically; `0` keeps it until cleared. Requires a user
+  /// token (`xoxp-...`) with the `users.profile:write` scope.
+  Future<void> setStatus({
+    required String text,
+    String emoji = '',
+    int expiration = 0,
+  }) => _client.usersProfileSet(
+    statusText: text,
+    statusEmoji: emoji,
+    statusExpiration: expiration,
+  );
+
+  /// Clears the authenticated user's custom status.
+  Future<void> clearStatus() => _client.usersProfileSet(
+    statusText: '',
+    statusEmoji: '',
+  );
+
   /// Releases the underlying HTTP client resources.
   void close() => _client.close();
 

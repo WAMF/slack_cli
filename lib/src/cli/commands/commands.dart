@@ -12,6 +12,7 @@ export 'logout_command.dart';
 export 'members_command.dart';
 export 'reply_command.dart';
 export 'send_command.dart';
+export 'status_command.dart';
 export 'stream_command.dart';
 export 'thread_command.dart';
 export 'update_command.dart';

@@ -79,4 +79,9 @@ abstract final class SlackUrls {
   static final Uri canvasesDelete = Uri.parse(
     'https://slack.com/api/canvases.delete',
   );
+
+  /// Set the authenticated user's profile, including custom status.
+  static final Uri usersProfileSet = Uri.parse(
+    'https://slack.com/api/users.profile.set',
+  );
 }
