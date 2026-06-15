@@ -64,4 +64,19 @@ abstract final class SlackUrls {
   static final Uri usersInfo = Uri.parse(
     'https://slack.com/api/users.info',
   );
+
+  /// Create a canvas (optionally tabbed into a channel).
+  static final Uri canvasesCreate = Uri.parse(
+    'https://slack.com/api/canvases.create',
+  );
+
+  /// Apply changes to an existing canvas.
+  static final Uri canvasesEdit = Uri.parse(
+    'https://slack.com/api/canvases.edit',
+  );
+
+  /// Delete a canvas.
+  static final Uri canvasesDelete = Uri.parse(
+    'https://slack.com/api/canvases.delete',
+  );
 }

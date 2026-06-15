@@ -404,6 +404,110 @@ void main() {
       });
     });
 
+    group('createCanvas', () {
+      test('returns the new canvas ID', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': true, 'canvas_id': 'F123'}),
+            200,
+          ),
+        );
+
+        final id = await slack.createCanvas(markdown: '# Hi', title: 'Doc');
+
+        expect(id, equals('F123'));
+      });
+    });
+
+    group('editCanvas', () {
+      test('maps the append mode to insert_at_end', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode({'ok': true}), 200),
+        );
+
+        await slack.editCanvas(
+          canvasId: 'F1',
+          markdown: 'more',
+          mode: CanvasEditMode.append,
+        );
+
+        final body =
+            jsonDecode(
+                  verify(
+                        () => httpClient.post(
+                          any(),
+                          headers: any(named: 'headers'),
+                          body: captureAny(named: 'body'),
+                        ),
+                      ).captured.first
+                      as String,
+                )
+                as Map<String, dynamic>;
+        final change =
+            (body['changes'] as List<dynamic>).first as Map<String, dynamic>;
+
+        expect(body['canvas_id'], equals('F1'));
+        expect(change['operation'], equals('insert_at_end'));
+        expect(
+          (change['document_content'] as Map<String, dynamic>)['markdown'],
+          equals('more'),
+        );
+      });
+    });
+
+    group('deleteCanvas', () {
+      test('posts the canvas ID', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode({'ok': true}), 200),
+        );
+
+        await slack.deleteCanvas(canvasId: 'F1');
+
+        final body =
+            jsonDecode(
+                  verify(
+                        () => httpClient.post(
+                          any(),
+                          headers: any(named: 'headers'),
+                          body: captureAny(named: 'body'),
+                        ),
+                      ).captured.first
+                      as String,
+                )
+                as Map<String, dynamic>;
+
+        expect(body['canvas_id'], equals('F1'));
+      });
+    });
+
+    group('CanvasEditMode', () {
+      test('fromName maps known values and defaults to replace', () {
+        expect(CanvasEditMode.fromName('append'), CanvasEditMode.append);
+        expect(CanvasEditMode.fromName('prepend'), CanvasEditMode.prepend);
+        expect(CanvasEditMode.fromName('replace'), CanvasEditMode.replace);
+        expect(CanvasEditMode.fromName(null), CanvasEditMode.replace);
+        expect(CanvasEditMode.fromName('bogus'), CanvasEditMode.replace);
+      });
+    });
+
     test('close delegates to the underlying client', () {
       when(() => httpClient.close()).thenReturn(null);
       slack.close();
