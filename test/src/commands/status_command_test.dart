@@ -23,10 +23,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     final fixedNow = DateTime.utc(2026, 6, 12, 10);
 
@@ -75,19 +72,14 @@ void main() {
           headers: any(named: 'headers'),
           body: any(named: 'body'),
         ),
-      ).thenAnswer(
-        (_) async => http.Response(jsonEncode({'ok': true}), 200),
-      );
+      ).thenAnswer((_) async => http.Response(jsonEncode({'ok': true}), 200));
     }
 
     test('has correct name and description', () {
       final command = StatusCommand(logger: logger);
       expect(command.name, equals('status'));
       expect(command.description, isNotEmpty);
-      expect(
-        command.subcommands.keys,
-        containsAll(<String>['set', 'clear']),
-      );
+      expect(command.subcommands.keys, containsAll(<String>['set', 'clear']));
     });
 
     group('set', () {
@@ -165,6 +157,46 @@ void main() {
         );
       });
 
+      test('rejects blank status text', () async {
+        await expectLater(
+          runner.run(['status', 'set', '-t', '   ']),
+          throwsA(
+            isA<UsageException>().having(
+              (e) => e.message,
+              'message',
+              contains('non-empty --text'),
+            ),
+          ),
+        );
+        verifyNever(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        );
+      });
+
+      test('rejects blank status emoji when provided', () async {
+        await expectLater(
+          runner.run(['status', 'set', '-t', 'Working', '-e', '   ']),
+          throwsA(
+            isA<UsageException>().having(
+              (e) => e.message,
+              'message',
+              contains('non-empty --emoji'),
+            ),
+          ),
+        );
+        verifyNever(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        );
+      });
+
       test('explains not_allowed_token_type for bot tokens', () async {
         when(
           () => httpClient.post(
@@ -179,18 +211,11 @@ void main() {
           ),
         );
 
-        final exitCode = await runner.run([
-          'status',
-          'set',
-          '-t',
-          'Working',
-        ]);
+        final exitCode = await runner.run(['status', 'set', '-t', 'Working']);
 
         expect(exitCode, equals(ExitCode.software.code));
         verify(
-          () => logger.err(
-            any(that: contains('requires a user token')),
-          ),
+          () => logger.err(any(that: contains('requires a user token'))),
         ).called(1);
       });
 
@@ -208,17 +233,10 @@ void main() {
           ),
         );
 
-        final exitCode = await runner.run([
-          'status',
-          'set',
-          '-t',
-          'Working',
-        ]);
+        final exitCode = await runner.run(['status', 'set', '-t', 'Working']);
 
         expect(exitCode, equals(ExitCode.software.code));
-        verify(
-          () => logger.err('Slack API error: fatal_error'),
-        ).called(1);
+        verify(() => logger.err('Slack API error: fatal_error')).called(1);
       });
     });
 
@@ -252,6 +270,7 @@ void main() {
         expect(StatusSetCommand.parseDuration('6 h'), isNull);
         expect(StatusSetCommand.parseDuration('-5m'), isNull);
         expect(StatusSetCommand.parseDuration('1.5h'), isNull);
+        expect(StatusSetCommand.parseDuration('1 2h'), isNull);
         expect(StatusSetCommand.parseDuration('tomorrow'), isNull);
       });
     });

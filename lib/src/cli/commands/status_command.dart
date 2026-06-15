@@ -91,9 +91,16 @@ class StatusSetCommand extends AuthenticatedCommand {
 
   @override
   Future<int> runAuthenticated(Slack slack) async {
-    final text = argResults!['text'] as String;
-    final emoji = argResults!['emoji'] as String? ?? '';
+    final text = (argResults!['text'] as String).trim();
+    final emoji = (argResults!['emoji'] as String?)?.trim() ?? '';
     final expiresInRaw = argResults!['expires-in'] as String?;
+
+    if (text.isEmpty) {
+      usageException('Provide a non-empty --text value.');
+    }
+    if (argResults!.wasParsed('emoji') && emoji.isEmpty) {
+      usageException('Provide a non-empty --emoji value.');
+    }
 
     var expiration = 0;
     if (expiresInRaw != null) {
