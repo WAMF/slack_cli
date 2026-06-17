@@ -956,5 +956,118 @@ void main() {
         expect(body['canvas_id'], equals('F1'));
       });
     });
+
+    group('filesInfo', () {
+      test('sends GET to files.info with the file id', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'file': {'id': 'F1', 'filetype': 'canvas'},
+            }),
+            200,
+          ),
+        );
+
+        final json = await slackClient.filesInfo(file: 'F1');
+
+        expect((json['file'] as Map<String, dynamic>)['id'], equals('F1'));
+        final uri =
+            verify(
+                  () => httpClient.get(
+                    captureAny(),
+                    headers: any(named: 'headers'),
+                  ),
+                ).captured.first
+                as Uri;
+        expect(uri.path, equals(SlackUrls.filesInfo.path));
+        expect(uri.queryParameters['file'], equals('F1'));
+      });
+    });
+
+    group('downloadFile', () {
+      test('returns the raw body for a 2xx response', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async => http.Response('# Canvas body', 200));
+
+        final body = await slackClient.downloadFile(
+          Uri.parse('https://files.slack.com/c-F1'),
+        );
+
+        expect(body, equals('# Canvas body'));
+      });
+
+      test('throws SlackApiException on a non-2xx response', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async => http.Response('nope', 403));
+
+        expect(
+          () => slackClient.downloadFile(
+            Uri.parse('https://files.slack.com/c-F1'),
+          ),
+          throwsA(isA<SlackApiException>()),
+        );
+      });
+
+      test(
+        'throws not_authorized for a 200 HTML response (text/html header)',
+        () async {
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer(
+            (_) async => http.Response(
+              '<!doctype html><html><body>Sign in to Slack</body></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            ),
+          );
+
+          expect(
+            () => slackClient.downloadFile(
+              Uri.parse('https://files.slack.com/c-F1'),
+            ),
+            throwsA(
+              isA<SlackApiException>().having(
+                (e) => e.error,
+                'error',
+                'not_authorized',
+              ),
+            ),
+          );
+        },
+      );
+
+      test(
+        'throws not_authorized when the body sniffs as HTML without a '
+        'content-type header',
+        () async {
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer(
+            (_) async => http.Response(
+              '  <!DOCTYPE HTML>\n<html><head><title>Slack</title></head>',
+              200,
+            ),
+          );
+
+          expect(
+            () => slackClient.downloadFile(
+              Uri.parse('https://files.slack.com/c-F1'),
+            ),
+            throwsA(
+              isA<SlackApiException>().having(
+                (e) => e.error,
+                'error',
+                'not_authorized',
+              ),
+            ),
+          );
+        },
+      );
+    });
   });
 }

@@ -82,12 +82,126 @@ void main() {
       expect(command.description, isNotEmpty);
     });
 
-    test('registers create, edit, and delete subcommands', () {
+    test('registers create, read, edit, and delete subcommands', () {
       final command = CanvasCommand(logger: logger);
       expect(
         command.subcommands.keys,
-        containsAll(<String>['create', 'edit', 'delete']),
+        containsAll(<String>['create', 'read', 'edit', 'delete']),
       );
+    });
+
+    /// Stubs the two GETs a canvas read makes: `files.info` (returns the
+    /// canvas file with a download URL) and the download of that URL
+    /// (returns the canvas body).
+    void stubCanvasRead({
+      String? downloadUrl = 'https://files.slack.com/canvas-F1',
+      String body = '# Huddle notes',
+    }) {
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((invocation) async {
+        final uri = invocation.positionalArguments.first as Uri;
+        if (uri.host == 'slack.com' && uri.path.contains('files.info')) {
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'file': {
+                'id': 'F1',
+                'filetype': 'canvas',
+                'url_private_download': ?downloadUrl,
+              },
+            }),
+            200,
+          );
+        }
+        return http.Response(body, 200);
+      });
+    }
+
+    group('read', () {
+      test('prints the canvas body fetched from its download URL', () async {
+        when(() => logger.info(any())).thenReturn(null);
+        stubCanvasRead(body: '# Huddle notes\n- point');
+
+        final code = await runner.run(['canvas', 'read', '--canvas', 'F1']);
+
+        expect(code, equals(ExitCode.success.code));
+        verify(() => logger.info('# Huddle notes\n- point')).called(1);
+      });
+
+      test('looks the canvas up by id via files.info', () async {
+        when(() => logger.info(any())).thenReturn(null);
+        stubCanvasRead();
+
+        await runner.run(['canvas', 'read', '--canvas', 'F1']);
+
+        final uris = verify(
+          () => httpClient.get(
+            captureAny(),
+            headers: any(named: 'headers'),
+          ),
+        ).captured.cast<Uri>();
+        final infoUri = uris.firstWhere((u) => u.path.contains('files.info'));
+        expect(infoUri.queryParameters['file'], equals('F1'));
+      });
+
+      test('writes to --output instead of stdout', () async {
+        stubCanvasRead(body: '# Saved');
+        final dir = Directory.systemTemp.createTempSync('canvas_read');
+        addTearDown(() => dir.deleteSync(recursive: true));
+        final out = '${dir.path}/canvas.md';
+
+        final code = await runner.run([
+          'canvas',
+          'read',
+          '--canvas',
+          'F1',
+          '-o',
+          out,
+        ]);
+
+        expect(code, equals(ExitCode.success.code));
+        expect(File(out).readAsStringSync(), equals('# Saved'));
+        verify(() => logger.success('Canvas F1 written to $out')).called(1);
+      });
+
+      test('errors when the file has no downloadable content', () async {
+        stubCanvasRead(downloadUrl: null);
+
+        final code = await runner.run(['canvas', 'read', '--canvas', 'F1']);
+
+        expect(code, equals(ExitCode.unavailable.code));
+        verify(
+          () => logger.err(any(that: contains('No readable content'))),
+        ).called(1);
+      });
+
+      test('errors when the --output file cannot be written', () async {
+        stubCanvasRead(body: '# Saved');
+        // Writing to a directory path throws FileSystemException, exercising
+        // the cantCreate path without depending on file permissions.
+        final dir = Directory.systemTemp.createTempSync('canvas_read_fail');
+        addTearDown(() => dir.deleteSync(recursive: true));
+
+        final code = await runner.run([
+          'canvas',
+          'read',
+          '--canvas',
+          'F1',
+          '-o',
+          dir.path,
+        ]);
+
+        expect(code, equals(ExitCode.cantCreate.code));
+        verify(
+          () => logger.err(any(that: startsWith('Failed to write file:'))),
+        ).called(1);
+      });
+
+      test('requires the canvas option', () {
+        final command = CanvasReadCommand(logger: logger);
+        expect(command.argParser.options['canvas']?.mandatory, isTrue);
+      });
     });
 
     group('create', () {

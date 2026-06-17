@@ -65,6 +65,11 @@ abstract final class SlackUrls {
     'https://slack.com/api/users.info',
   );
 
+  /// Get information about a file, including a canvas's download URL.
+  static final Uri filesInfo = Uri.parse(
+    'https://slack.com/api/files.info',
+  );
+
   /// Create a canvas (optionally tabbed into a channel).
   static final Uri canvasesCreate = Uri.parse(
     'https://slack.com/api/canvases.create',

@@ -251,6 +251,74 @@ class Slack {
     ],
   );
 
+  /// Reads the markdown body of the canvas [canvasId].
+  ///
+  /// Slack has no `canvases.get` method, so a canvas is read by looking up
+  /// its backing file with `files.info` and downloading the body from the
+  /// file's `url_private_download` URL. Returns the canvas content as served
+  /// by Slack (markdown).
+  ///
+  /// Returns `null` when the looked-up file is not a canvas, or carries no
+  /// downloadable URL — e.g. the ID is not a canvas — so the caller can report
+  /// it cleanly.
+  Future<String?> readCanvas({required String canvasId}) async {
+    final json = await _client.filesInfo(file: canvasId);
+    final file = json['file'] as Map<String, dynamic>?;
+    if (file == null || !_isCanvasFile(file)) return null;
+    final rawUrl =
+        (file['url_private_download'] ?? file['url_private']) as String?;
+    if (rawUrl == null || rawUrl.isEmpty) return null;
+    // Never send the bearer token to a host Slack didn't vouch for. The URL
+    // comes from the `files.info` response, but a malformed or unexpected
+    // value must not leak the token off-platform, so require HTTPS and a
+    // Slack-owned download host before authenticating the GET.
+    final url = Uri.tryParse(rawUrl);
+    if (url == null ||
+        url.scheme != 'https' ||
+        !_isSlackDownloadHost(url.host)) {
+      return null;
+    }
+    try {
+      return await _client.downloadFile(url);
+    } on SlackApiException catch (e) {
+      // A non-authorized download answers 200 with an HTML sign-in page;
+      // [SlackApiClient.downloadFile] surfaces that as `not_authorized`.
+      // Treat it as unreadable so the caller reports the clean scope hint
+      // rather than emitting a login page as canvas content.
+      if (e.error == 'not_authorized') return null;
+      rethrow;
+    }
+  }
+
+  /// Whether [host] is a Slack-owned host that serves authenticated file
+  /// downloads. Used to gate the bearer-authenticated canvas download so the
+  /// token is never sent to an unexpected host.
+  static bool _isSlackDownloadHost(String host) {
+    final normalized = host.toLowerCase();
+    return normalized == 'slack.com' ||
+        normalized.endsWith('.slack.com') ||
+        normalized == 'slack-files.com' ||
+        normalized.endsWith('.slack-files.com');
+  }
+
+  /// Whether the `files.info` [file] object describes a Slack canvas.
+  ///
+  /// Canvases are served as ordinary files, so `files.info` will happily
+  /// return any file id — including non-canvas attachments that also carry a
+  /// `url_private_download` URL. Guarding on the canvas markers keeps
+  /// [readCanvas] from downloading an arbitrary non-canvas file. Slack tags a
+  /// canvas with `filetype: "canvas"` (legacy: `"quip"`), `pretty_type:
+  /// "Canvas"`, and, for channel canvases, `mode: "canvas"`.
+  static bool _isCanvasFile(Map<String, dynamic> file) {
+    final filetype = (file['filetype'] as String?)?.toLowerCase();
+    final prettyType = (file['pretty_type'] as String?)?.toLowerCase();
+    final mode = (file['mode'] as String?)?.toLowerCase();
+    return filetype == 'canvas' ||
+        filetype == 'quip' ||
+        prettyType == 'canvas' ||
+        mode == 'canvas';
+  }
+
   /// Deletes the canvas [canvasId].
   Future<void> deleteCanvas({required String canvasId}) =>
       _client.deleteCanvas(canvasId: canvasId);
