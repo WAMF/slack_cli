@@ -1012,6 +1012,62 @@ void main() {
           throwsA(isA<SlackApiException>()),
         );
       });
+
+      test(
+        'throws not_authorized for a 200 HTML response (text/html header)',
+        () async {
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer(
+            (_) async => http.Response(
+              '<!doctype html><html><body>Sign in to Slack</body></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            ),
+          );
+
+          expect(
+            () => slackClient.downloadFile(
+              Uri.parse('https://files.slack.com/c-F1'),
+            ),
+            throwsA(
+              isA<SlackApiException>().having(
+                (e) => e.error,
+                'error',
+                'not_authorized',
+              ),
+            ),
+          );
+        },
+      );
+
+      test(
+        'throws not_authorized when the body sniffs as HTML without a '
+        'content-type header',
+        () async {
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer(
+            (_) async => http.Response(
+              '  <!DOCTYPE HTML>\n<html><head><title>Slack</title></head>',
+              200,
+            ),
+          );
+
+          expect(
+            () => slackClient.downloadFile(
+              Uri.parse('https://files.slack.com/c-F1'),
+            ),
+            throwsA(
+              isA<SlackApiException>().having(
+                (e) => e.error,
+                'error',
+                'not_authorized',
+              ),
+            ),
+          );
+        },
+      );
     });
   });
 }

@@ -224,6 +224,13 @@ class SlackApiClient {
   /// it inline, so reading a canvas means fetching its `url_private_download`
   /// URL. Unlike the JSON API helpers this returns the response body verbatim
   /// (markdown/HTML), and throws [SlackApiException] on a non-2xx response.
+  ///
+  /// Slack's `url_private(_download)` endpoints have a well-known quirk: when
+  /// the token is not authorized for the file they answer **200 with an HTML
+  /// sign-in page** instead of a 4xx. Returning that login shell verbatim
+  /// would be a silent wrong-content failure, so a 200 response whose
+  /// `content-type` is HTML (or whose body opens with an HTML document) is
+  /// rejected with [SlackApiException]`('not_authorized')`.
   Future<String> downloadFile(Uri url) async {
     final response = await _sendWithRetry(
       () => _httpClient.get(
@@ -234,7 +241,26 @@ class SlackApiClient {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw SlackApiException('download_failed_${response.statusCode}');
     }
+    if (_isHtmlResponse(response)) {
+      throw const SlackApiException('not_authorized');
+    }
     return response.body;
+  }
+
+  /// Whether [response] looks like Slack's HTML sign-in/error shell rather
+  /// than a downloadable file body.
+  ///
+  /// Prefers the authoritative `content-type` header and falls back to
+  /// sniffing the start of the body for an HTML document marker, so a missing
+  /// or generic content type is still caught.
+  static bool _isHtmlResponse(http.Response response) {
+    final contentType = (response.headers['content-type'] ?? '').toLowerCase();
+    if (contentType.contains('text/html') ||
+        contentType.contains('application/xhtml')) {
+      return true;
+    }
+    final head = response.body.trimLeft().toLowerCase();
+    return head.startsWith('<!doctype html') || head.startsWith('<html');
   }
 
   /// Sets the authenticated user's custom status via `users.profile.set`.

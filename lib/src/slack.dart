@@ -265,10 +265,40 @@ class Slack {
     final json = await _client.filesInfo(file: canvasId);
     final file = json['file'] as Map<String, dynamic>?;
     if (file == null || !_isCanvasFile(file)) return null;
-    final url =
+    final rawUrl =
         (file['url_private_download'] ?? file['url_private']) as String?;
-    if (url == null || url.isEmpty) return null;
-    return _client.downloadFile(Uri.parse(url));
+    if (rawUrl == null || rawUrl.isEmpty) return null;
+    // Never send the bearer token to a host Slack didn't vouch for. The URL
+    // comes from the `files.info` response, but a malformed or unexpected
+    // value must not leak the token off-platform, so require HTTPS and a
+    // Slack-owned download host before authenticating the GET.
+    final url = Uri.tryParse(rawUrl);
+    if (url == null ||
+        url.scheme != 'https' ||
+        !_isSlackDownloadHost(url.host)) {
+      return null;
+    }
+    try {
+      return await _client.downloadFile(url);
+    } on SlackApiException catch (e) {
+      // A non-authorized download answers 200 with an HTML sign-in page;
+      // [SlackApiClient.downloadFile] surfaces that as `not_authorized`.
+      // Treat it as unreadable so the caller reports the clean scope hint
+      // rather than emitting a login page as canvas content.
+      if (e.error == 'not_authorized') return null;
+      rethrow;
+    }
+  }
+
+  /// Whether [host] is a Slack-owned host that serves authenticated file
+  /// downloads. Used to gate the bearer-authenticated canvas download so the
+  /// token is never sent to an unexpected host.
+  static bool _isSlackDownloadHost(String host) {
+    final normalized = host.toLowerCase();
+    return normalized == 'slack.com' ||
+        normalized.endsWith('.slack.com') ||
+        normalized == 'slack-files.com' ||
+        normalized.endsWith('.slack-files.com');
   }
 
   /// Whether the `files.info` [file] object describes a Slack canvas.

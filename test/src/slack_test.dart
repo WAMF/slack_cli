@@ -533,6 +533,202 @@ void main() {
 
         expect(content, equals('# Notes'));
       });
+
+      test(
+        'falls back to url_private when no download URL is present',
+        () async {
+          Uri? downloadUri;
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer((invocation) async {
+            final uri = invocation.positionalArguments.first as Uri;
+            if (uri.path.contains('files.info')) {
+              return http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'file': {
+                    'id': 'F1',
+                    'filetype': 'canvas',
+                    'url_private': 'https://files.slack.com/p-F1',
+                  },
+                }),
+                200,
+              );
+            }
+            downloadUri = uri;
+            return http.Response('# Notes', 200);
+          });
+
+          final content = await slack.readCanvas(canvasId: 'F1');
+
+          expect(content, equals('# Notes'));
+          expect(
+            downloadUri,
+            equals(Uri.parse('https://files.slack.com/p-F1')),
+          );
+        },
+      );
+
+      test('reads a canvas identified by pretty_type', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((invocation) async {
+          final uri = invocation.positionalArguments.first as Uri;
+          if (uri.path.contains('files.info')) {
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'file': {
+                  'id': 'F1',
+                  'pretty_type': 'Canvas',
+                  'url_private_download': 'https://files.slack.com/c-F1',
+                },
+              }),
+              200,
+            );
+          }
+          return http.Response('# Notes', 200);
+        });
+
+        final content = await slack.readCanvas(canvasId: 'F1');
+
+        expect(content, equals('# Notes'));
+      });
+
+      test('reads a channel canvas identified by mode', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((invocation) async {
+          final uri = invocation.positionalArguments.first as Uri;
+          if (uri.path.contains('files.info')) {
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'file': {
+                  'id': 'F1',
+                  'mode': 'canvas',
+                  'url_private_download': 'https://files.slack.com/c-F1',
+                },
+              }),
+              200,
+            );
+          }
+          return http.Response('# Notes', 200);
+        });
+
+        final content = await slack.readCanvas(canvasId: 'F1');
+
+        expect(content, equals('# Notes'));
+      });
+
+      test(
+        'returns null without downloading when the URL host is not Slack',
+        () async {
+          var downloadAttempted = false;
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer((invocation) async {
+            final uri = invocation.positionalArguments.first as Uri;
+            if (uri.path.contains('files.info')) {
+              return http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'file': {
+                    'id': 'F1',
+                    'filetype': 'canvas',
+                    'url_private_download': 'https://evil.example.com/c-F1',
+                  },
+                }),
+                200,
+              );
+            }
+            downloadAttempted = true;
+            return http.Response('# Notes', 200);
+          });
+
+          final content = await slack.readCanvas(canvasId: 'F1');
+
+          expect(content, isNull);
+          expect(
+            downloadAttempted,
+            isFalse,
+            reason: 'the bearer token must not be sent to a non-Slack host',
+          );
+        },
+      );
+
+      test(
+        'returns null without downloading when the URL is not HTTPS',
+        () async {
+          var downloadAttempted = false;
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer((invocation) async {
+            final uri = invocation.positionalArguments.first as Uri;
+            if (uri.path.contains('files.info')) {
+              return http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'file': {
+                    'id': 'F1',
+                    'filetype': 'canvas',
+                    'url_private_download': 'http://files.slack.com/c-F1',
+                  },
+                }),
+                200,
+              );
+            }
+            downloadAttempted = true;
+            return http.Response('# Notes', 200);
+          });
+
+          final content = await slack.readCanvas(canvasId: 'F1');
+
+          expect(content, isNull);
+          expect(
+            downloadAttempted,
+            isFalse,
+            reason: 'the bearer token must not be sent over plaintext HTTP',
+          );
+        },
+      );
+
+      test(
+        'returns null when the download answers a 200 HTML login page',
+        () async {
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer((invocation) async {
+            final uri = invocation.positionalArguments.first as Uri;
+            if (uri.path.contains('files.info')) {
+              return http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'file': {
+                    'id': 'F1',
+                    'filetype': 'canvas',
+                    'url_private_download': 'https://files.slack.com/c-F1',
+                  },
+                }),
+                200,
+              );
+            }
+            return http.Response(
+              '<!doctype html><html><body>Sign in to Slack</body></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          });
+
+          final content = await slack.readCanvas(canvasId: 'F1');
+
+          expect(
+            content,
+            isNull,
+            reason: 'an HTML sign-in page is not canvas content',
+          );
+        },
+      );
     });
 
     group('editCanvas', () {
