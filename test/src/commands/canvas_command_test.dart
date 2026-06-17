@@ -176,6 +176,28 @@ void main() {
         ).called(1);
       });
 
+      test('errors when the --output file cannot be written', () async {
+        stubCanvasRead(body: '# Saved');
+        // Writing to a directory path throws FileSystemException, exercising
+        // the cantCreate path without depending on file permissions.
+        final dir = Directory.systemTemp.createTempSync('canvas_read_fail');
+        addTearDown(() => dir.deleteSync(recursive: true));
+
+        final code = await runner.run([
+          'canvas',
+          'read',
+          '--canvas',
+          'F1',
+          '-o',
+          dir.path,
+        ]);
+
+        expect(code, equals(ExitCode.cantCreate.code));
+        verify(
+          () => logger.err(any(that: startsWith('Failed to write file:'))),
+        ).called(1);
+      });
+
       test('requires the canvas option', () {
         final command = CanvasReadCommand(logger: logger);
         expect(command.argParser.options['canvas']?.mandatory, isTrue);
