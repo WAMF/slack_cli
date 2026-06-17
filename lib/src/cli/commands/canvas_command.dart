@@ -8,11 +8,11 @@ import 'package:dart_slack/src/slack.dart';
 import 'package:http/http.dart' as http;
 import 'package:mason_logger/mason_logger.dart';
 
-/// `dart_slack canvas <create|edit|delete>`
+/// `dart_slack canvas <create|read|edit|delete>`
 ///
 /// Groups the canvas operations under a single parent command so the
-/// `create` / `edit` / `delete` verbs do not collide with the message-level
-/// `edit` and `delete` commands.
+/// `create` / `read` / `edit` / `delete` verbs do not collide with the
+/// message-level `edit` and `delete` commands.
 class CanvasCommand extends Command<int> {
   /// Creates a [CanvasCommand] and registers its subcommands.
   CanvasCommand({
@@ -51,7 +51,7 @@ class CanvasCommand extends Command<int> {
   }
 
   @override
-  String get description => 'Create, edit, and delete Slack canvases.';
+  String get description => 'Create, read, edit, and delete Slack canvases.';
 
   @override
   String get name => 'canvas';

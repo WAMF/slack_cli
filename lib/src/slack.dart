@@ -258,15 +258,35 @@ class Slack {
   /// file's `url_private_download` URL. Returns the canvas content as served
   /// by Slack (markdown).
   ///
-  /// Returns `null` when the file lookup succeeds but carries no downloadable
-  /// URL — e.g. the ID is not a canvas — so the caller can report it cleanly.
+  /// Returns `null` when the looked-up file is not a canvas, or carries no
+  /// downloadable URL — e.g. the ID is not a canvas — so the caller can report
+  /// it cleanly.
   Future<String?> readCanvas({required String canvasId}) async {
     final json = await _client.filesInfo(file: canvasId);
     final file = json['file'] as Map<String, dynamic>?;
+    if (file == null || !_isCanvasFile(file)) return null;
     final url =
-        (file?['url_private_download'] ?? file?['url_private']) as String?;
+        (file['url_private_download'] ?? file['url_private']) as String?;
     if (url == null || url.isEmpty) return null;
     return _client.downloadFile(Uri.parse(url));
+  }
+
+  /// Whether the `files.info` [file] object describes a Slack canvas.
+  ///
+  /// Canvases are served as ordinary files, so `files.info` will happily
+  /// return any file id — including non-canvas attachments that also carry a
+  /// `url_private_download` URL. Guarding on the canvas markers keeps
+  /// [readCanvas] from downloading an arbitrary non-canvas file. Slack tags a
+  /// canvas with `filetype: "canvas"` (legacy: `"quip"`), `pretty_type:
+  /// "Canvas"`, and, for channel canvases, `mode: "canvas"`.
+  static bool _isCanvasFile(Map<String, dynamic> file) {
+    final filetype = (file['filetype'] as String?)?.toLowerCase();
+    final prettyType = (file['pretty_type'] as String?)?.toLowerCase();
+    final mode = (file['mode'] as String?)?.toLowerCase();
+    return filetype == 'canvas' ||
+        filetype == 'quip' ||
+        prettyType == 'canvas' ||
+        mode == 'canvas';
   }
 
   /// Deletes the canvas [canvasId].

@@ -469,6 +469,70 @@ void main() {
 
         expect(content, isNull);
       });
+
+      test(
+        'returns null without downloading a non-canvas file that has a URL',
+        () async {
+          var downloadAttempted = false;
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer((invocation) async {
+            final uri = invocation.positionalArguments.first as Uri;
+            if (uri.path.contains('files.info')) {
+              return http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'file': {
+                    'id': 'F1',
+                    'filetype': 'png',
+                    'pretty_type': 'PNG',
+                    'url_private_download': 'https://files.slack.com/c-F1',
+                    'url_private': 'https://files.slack.com/p-F1',
+                  },
+                }),
+                200,
+              );
+            }
+            downloadAttempted = true;
+            return http.Response('binary', 200);
+          });
+
+          final content = await slack.readCanvas(canvasId: 'F1');
+
+          expect(content, isNull);
+          expect(
+            downloadAttempted,
+            isFalse,
+            reason: 'a non-canvas file must not be downloaded',
+          );
+        },
+      );
+
+      test('reads a legacy quip-filetype canvas', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((invocation) async {
+          final uri = invocation.positionalArguments.first as Uri;
+          if (uri.path.contains('files.info')) {
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'file': {
+                  'id': 'F1',
+                  'filetype': 'quip',
+                  'url_private_download': 'https://files.slack.com/c-F1',
+                },
+              }),
+              200,
+            );
+          }
+          return http.Response('# Notes', 200);
+        });
+
+        final content = await slack.readCanvas(canvasId: 'F1');
+
+        expect(content, equals('# Notes'));
+      });
     });
 
     group('editCanvas', () {
