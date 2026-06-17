@@ -956,5 +956,62 @@ void main() {
         expect(body['canvas_id'], equals('F1'));
       });
     });
+
+    group('filesInfo', () {
+      test('sends GET to files.info with the file id', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'file': {'id': 'F1', 'filetype': 'canvas'},
+            }),
+            200,
+          ),
+        );
+
+        final json = await slackClient.filesInfo(file: 'F1');
+
+        expect((json['file'] as Map<String, dynamic>)['id'], equals('F1'));
+        final uri =
+            verify(
+                  () => httpClient.get(
+                    captureAny(),
+                    headers: any(named: 'headers'),
+                  ),
+                ).captured.first
+                as Uri;
+        expect(uri.path, equals(SlackUrls.filesInfo.path));
+        expect(uri.queryParameters['file'], equals('F1'));
+      });
+    });
+
+    group('downloadFile', () {
+      test('returns the raw body for a 2xx response', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async => http.Response('# Canvas body', 200));
+
+        final body = await slackClient.downloadFile(
+          Uri.parse('https://files.slack.com/c-F1'),
+        );
+
+        expect(body, equals('# Canvas body'));
+      });
+
+      test('throws SlackApiException on a non-2xx response', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async => http.Response('nope', 403));
+
+        expect(
+          () => slackClient.downloadFile(
+            Uri.parse('https://files.slack.com/c-F1'),
+          ),
+          throwsA(isA<SlackApiException>()),
+        );
+      });
+    });
   });
 }

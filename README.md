@@ -43,6 +43,10 @@ for (final channel in channels) {
 // Join a public channel
 await slack.joinChannel('C0123ABCDEF');
 
+// Read a canvas's markdown body (returns null if the id is not a canvas)
+final body = await slack.readCanvas(canvasId: 'F0123ABCDEF');
+print(body);
+
 // Set your custom status (user token only; expiration is a Unix timestamp)
 await slack.setStatus(text: 'Working on a task', emoji: ':gear:');
 await slack.clearStatus();
@@ -180,9 +184,18 @@ Returned by `Slack.listChannels`.
    - `channels:read`
    - `channels:write`
    - `chat:write`
+   - `canvases:read` (read canvas content with `canvas read`)
+   - `canvases:write` (create/edit/delete canvases)
+   - `files:read` (look up a canvas's downloadable file)
    - `groups:read`
    - `im:write`
    - `users:read`
+
+   > **Reading huddle transcripts:** Slack provides no API for huddle *audio*
+   > recordings or spoken transcripts — once a huddle ends, the spoken content
+   > is permanently inaccessible. What *is* retrievable is the huddle **notes
+   > canvas** (notes and links captured during a huddle are saved to a canvas),
+   > which `canvas read` fetches, plus the huddle thread messages via `thread`.
 3. Under **OAuth & Permissions** > **Redirect URLs**, add:
    ```
    https://localhost:8585/callback
@@ -267,6 +280,12 @@ dart run bin/dart_slack.dart canvas create --title "Plan" -m "# Heading\n- item"
 
 # Create a canvas tabbed into a channel, reading content from a file
 dart run bin/dart_slack.dart canvas create -c <channel-id> -f ./plan.md
+
+# Read a canvas's markdown body to stdout (e.g. a huddle's notes canvas)
+dart run bin/dart_slack.dart canvas read --canvas <canvas-id>
+
+# Read a canvas and save it to a file
+dart run bin/dart_slack.dart canvas read --canvas <canvas-id> -o ./notes.md
 
 # Edit a canvas (replace | append | prepend)
 dart run bin/dart_slack.dart canvas edit --canvas <canvas-id> --mode append -m "More notes"

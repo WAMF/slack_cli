@@ -205,6 +205,38 @@ class SlackApiClient {
     return _get(SlackUrls.usersInfo.replace(queryParameters: params));
   }
 
+  /// Gets metadata about the file identified by [file].
+  ///
+  /// For a canvas (`filetype: canvas`/`quip`), the returned `file` object
+  /// carries a `url_private_download` URL from which the canvas body can be
+  /// fetched with [downloadFile]. Requires the `files:read` scope.
+  Future<Map<String, dynamic>> filesInfo({
+    required String file,
+  }) {
+    final params = <String, String>{'file': file};
+    return _get(SlackUrls.filesInfo.replace(queryParameters: params));
+  }
+
+  /// Downloads the raw body served at [url], authenticated with the bearer
+  /// token, and returns it as a string.
+  ///
+  /// Slack stores canvas content as a downloadable file rather than exposing
+  /// it inline, so reading a canvas means fetching its `url_private_download`
+  /// URL. Unlike the JSON API helpers this returns the response body verbatim
+  /// (markdown/HTML), and throws [SlackApiException] on a non-2xx response.
+  Future<String> downloadFile(Uri url) async {
+    final response = await _sendWithRetry(
+      () => _httpClient.get(
+        url,
+        headers: {'Authorization': 'Bearer $_token'},
+      ),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SlackApiException('download_failed_${response.statusCode}');
+    }
+    return response.body;
+  }
+
   /// Sets the authenticated user's custom status via `users.profile.set`.
   ///
   /// Pass empty strings (and `0` for [statusExpiration]) to clear the

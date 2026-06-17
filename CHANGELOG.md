@@ -7,6 +7,14 @@
 
 ### Added
 
+- `canvas read` command to fetch a canvas's markdown body. Slack has no
+  `canvases.get` method, so the content is read by looking up the canvas's
+  backing file with `files.info` and downloading its `url_private_download`
+  body. Prints to stdout or writes to a file with `--output`. Backed by
+  `Slack.readCanvas()`, `SlackApiClient.filesInfo()`, and
+  `SlackApiClient.downloadFile()`. Adds the `canvases:read` and `files:read`
+  OAuth scopes. Enables reading a huddle's notes canvas; note that Slack
+  exposes no API for huddle *audio* transcripts.
 - `status` command (`status set` / `status clear`) wrapping `users.profile.set`:
   set or clear the authenticated user's custom status with `--text`, `--emoji`,
   and `--expires-in` (a stale-status safety net mapped to `status_expiration`).

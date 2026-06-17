@@ -425,6 +425,52 @@ void main() {
       });
     });
 
+    group('readCanvas', () {
+      test('downloads the body from the file url_private_download', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((invocation) async {
+          final uri = invocation.positionalArguments.first as Uri;
+          if (uri.path.contains('files.info')) {
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'file': {
+                  'id': 'F1',
+                  'filetype': 'canvas',
+                  'url_private_download': 'https://files.slack.com/c-F1',
+                },
+              }),
+              200,
+            );
+          }
+          return http.Response('# Notes', 200);
+        });
+
+        final content = await slack.readCanvas(canvasId: 'F1');
+
+        expect(content, equals('# Notes'));
+      });
+
+      test('returns null when the file has no download URL', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'file': {'id': 'F1', 'filetype': 'png'},
+            }),
+            200,
+          ),
+        );
+
+        final content = await slack.readCanvas(canvasId: 'F1');
+
+        expect(content, isNull);
+      });
+    });
+
     group('editCanvas', () {
       test('maps the append mode to insert_at_end', () async {
         when(

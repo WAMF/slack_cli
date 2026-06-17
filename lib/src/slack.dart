@@ -251,6 +251,24 @@ class Slack {
     ],
   );
 
+  /// Reads the markdown body of the canvas [canvasId].
+  ///
+  /// Slack has no `canvases.get` method, so a canvas is read by looking up
+  /// its backing file with `files.info` and downloading the body from the
+  /// file's `url_private_download` URL. Returns the canvas content as served
+  /// by Slack (markdown).
+  ///
+  /// Returns `null` when the file lookup succeeds but carries no downloadable
+  /// URL — e.g. the ID is not a canvas — so the caller can report it cleanly.
+  Future<String?> readCanvas({required String canvasId}) async {
+    final json = await _client.filesInfo(file: canvasId);
+    final file = json['file'] as Map<String, dynamic>?;
+    final url =
+        (file?['url_private_download'] ?? file?['url_private']) as String?;
+    if (url == null || url.isEmpty) return null;
+    return _client.downloadFile(Uri.parse(url));
+  }
+
   /// Deletes the canvas [canvasId].
   Future<void> deleteCanvas({required String canvasId}) =>
       _client.deleteCanvas(canvasId: canvasId);

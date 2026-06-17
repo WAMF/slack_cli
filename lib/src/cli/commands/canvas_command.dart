@@ -28,6 +28,13 @@ class CanvasCommand extends Command<int> {
       ),
     );
     addSubcommand(
+      CanvasReadCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+      ),
+    );
+    addSubcommand(
       CanvasEditCommand(
         logger: logger,
         credentialsStore: credentialsStore,
@@ -99,6 +106,72 @@ class CanvasCreateCommand extends AuthenticatedCommand {
       channel: argResults!['channel'] as String?,
     );
     logger.success('Canvas created: $canvasId');
+    return ExitCode.success.code;
+  }
+}
+
+/// `dart_slack canvas read --canvas ID [--output FILE]`
+///
+/// Fetches a canvas's markdown body. Slack has no `canvases.get` method, so
+/// the content is read by looking up the canvas's backing file and
+/// downloading it. This reads any canvas the token can see, including the
+/// notes canvas attached to a huddle.
+///
+/// Note: Slack exposes no API for huddle *audio* recordings or spoken
+/// transcripts — only the textual notes canvas (and the huddle thread) is
+/// retrievable.
+class CanvasReadCommand extends AuthenticatedCommand {
+  /// Creates a [CanvasReadCommand].
+  CanvasReadCommand({
+    required super.logger,
+    super.credentialsStore,
+    super.httpClient,
+  }) {
+    argParser
+      ..addOption(
+        'canvas',
+        help: 'The canvas ID to read.',
+        mandatory: true,
+      )
+      ..addOption(
+        'output',
+        abbr: 'o',
+        help: 'Write the canvas body to this file instead of stdout.',
+      );
+  }
+
+  @override
+  String get description => 'Read the markdown content of a Slack canvas.';
+
+  @override
+  String get name => 'read';
+
+  @override
+  Future<int> runAuthenticated(Slack slack) async {
+    final canvasId = argResults!['canvas'] as String;
+    final content = await slack.readCanvas(canvasId: canvasId);
+    if (content == null) {
+      logger.err(
+        'No readable content for canvas $canvasId. '
+        'Check that the ID is a canvas and the token has the '
+        "'files:read' and 'canvases:read' scopes.",
+      );
+      return ExitCode.unavailable.code;
+    }
+
+    final outputPath = argResults!['output'] as String?;
+    if (outputPath != null) {
+      try {
+        File(outputPath).writeAsStringSync(content);
+      } on FileSystemException catch (e) {
+        logger.err('Failed to write file: $outputPath (${e.message})');
+        return ExitCode.cantCreate.code;
+      }
+      logger.success('Canvas $canvasId written to $outputPath');
+      return ExitCode.success.code;
+    }
+
+    logger.info(content);
     return ExitCode.success.code;
   }
 }
