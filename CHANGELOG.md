@@ -43,6 +43,16 @@
 - GitHub Actions: upgraded `actions/checkout` to v4, pinned Dart SDK to `3.10.0`, added `permissions: read-all`, gated `semantic-pull-request` on PR events only, added `bin/**` to path triggers.
 - Removed deprecated `enable-beta-ecosystems` from Dependabot config.
 
+### Removed
+
+- Removed the pub.dev update check and the `update` command. `dart_slack` is
+  not published to pub.dev (it is distributed via GitHub + tool provisioning),
+  so `pub_updater.getLatestVersion('dart_slack')` always 404'd: the
+  post-command auto-check logged `Failed to check for updates.` to stderr on
+  every invocation, and `dart_slack update` could never succeed. Dropped the
+  `_checkForUpdates()` call, the `update` command, and the `pub_updater`
+  dependency.
+
 ## 0.1.0
 
 - Initial release.
