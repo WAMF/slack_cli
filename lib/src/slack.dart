@@ -265,19 +265,8 @@ class Slack {
     final json = await _client.filesInfo(file: canvasId);
     final file = json['file'] as Map<String, dynamic>?;
     if (file == null || !_isCanvasFile(file)) return null;
-    final rawUrl =
-        (file['url_private_download'] ?? file['url_private']) as String?;
-    if (rawUrl == null || rawUrl.isEmpty) return null;
-    // Never send the bearer token to a host Slack didn't vouch for. The URL
-    // comes from the `files.info` response, but a malformed or unexpected
-    // value must not leak the token off-platform, so require HTTPS and a
-    // Slack-owned download host before authenticating the GET.
-    final url = Uri.tryParse(rawUrl);
-    if (url == null ||
-        url.scheme != 'https' ||
-        !_isSlackDownloadHost(url.host)) {
-      return null;
-    }
+    final url = _canvasDownloadUrl(file);
+    if (url == null) return null;
     try {
       return await _client.downloadFile(url);
     } on SlackApiException catch (e) {
@@ -288,6 +277,26 @@ class Slack {
       if (e.error == 'not_authorized') return null;
       rethrow;
     }
+  }
+
+  /// Resolves the authenticated download URL for the canvas-backing [file],
+  /// or `null` when it carries no usable URL.
+  ///
+  /// Never send the bearer token to a host Slack didn't vouch for. The URL
+  /// comes from the `files.info` response, but a malformed or unexpected
+  /// value must not leak the token off-platform, so require HTTPS and a
+  /// Slack-owned download host before authenticating the GET.
+  static Uri? _canvasDownloadUrl(Map<String, dynamic> file) {
+    final rawUrl =
+        (file['url_private_download'] ?? file['url_private']) as String?;
+    if (rawUrl == null || rawUrl.isEmpty) return null;
+    final url = Uri.tryParse(rawUrl);
+    if (url == null ||
+        url.scheme != 'https' ||
+        !_isSlackDownloadHost(url.host)) {
+      return null;
+    }
+    return url;
   }
 
   /// Whether [host] is a Slack-owned host that serves authenticated file

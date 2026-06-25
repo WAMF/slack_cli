@@ -14,7 +14,11 @@ abstract final class SlackApp {
 
   static String? _dotEnvPath;
 
-  static Map<String, String> get _env => _envCache ??= _loadEnv();
+  static Map<String, String> get _env {
+    final cached = _envCache;
+    if (cached != null) return cached;
+    return _envCache = _loadEnv();
+  }
 
   /// Resets the cached environment so the next access re-reads values.
   @visibleForTesting
@@ -36,14 +40,6 @@ abstract final class SlackApp {
       _env['SLACK_CLIENT_SECRET'] ??
       (throw StateError(
         'SLACK_CLIENT_SECRET not set. '
-        'Provide it as an env var or in a .env file.',
-      ));
-
-  /// App-level token for Socket Mode connections (xapp-*).
-  static String get appToken =>
-      _env['SLACK_APP_TOKEN'] ??
-      (throw StateError(
-        'SLACK_APP_TOKEN not set. '
         'Provide it as an env var or in a .env file.',
       ));
 
