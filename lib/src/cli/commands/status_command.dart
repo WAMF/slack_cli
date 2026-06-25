@@ -102,19 +102,7 @@ class StatusSetCommand extends AuthenticatedCommand {
       usageException('Provide a non-empty --emoji value.');
     }
 
-    var expiration = 0;
-    if (expiresInRaw != null) {
-      final expiresIn = parseDuration(expiresInRaw);
-      if (expiresIn == null) {
-        usageException(
-          "Invalid --expires-in value '$expiresInRaw'. "
-          'Use a number of seconds or a value like 90s, 45m, 6h, 1d.',
-        );
-      }
-      if (expiresIn > Duration.zero) {
-        expiration = _now().add(expiresIn).millisecondsSinceEpoch ~/ 1000;
-      }
-    }
+    final expiration = _resolveExpiration(expiresInRaw);
 
     try {
       await slack.setStatus(text: text, emoji: emoji, expiration: expiration);
@@ -133,6 +121,23 @@ class StatusSetCommand extends AuthenticatedCommand {
     final suffix = expiration == 0 ? '' : ' (expires in $expiresInRaw)';
     logger.info('Status set: ${emoji.isEmpty ? text : '$emoji $text'}$suffix');
     return ExitCode.success.code;
+  }
+
+  /// Resolves the `status_expiration` Unix timestamp (seconds) from the raw
+  /// `--expires-in` value. Returns `0` when no expiry is requested or the
+  /// parsed duration is non-positive; raises a usage error on an invalid
+  /// value.
+  int _resolveExpiration(String? expiresInRaw) {
+    if (expiresInRaw == null) return 0;
+    final expiresIn = parseDuration(expiresInRaw);
+    if (expiresIn == null) {
+      usageException(
+        "Invalid --expires-in value '$expiresInRaw'. "
+        'Use a number of seconds or a value like 90s, 45m, 6h, 1d.',
+      );
+    }
+    if (expiresIn <= Duration.zero) return 0;
+    return _now().add(expiresIn).millisecondsSinceEpoch ~/ 1000;
   }
 
   /// Parses `90s` / `45m` / `6h` / `1d` / `3600` (seconds) into a
