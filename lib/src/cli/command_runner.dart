@@ -4,10 +4,8 @@ import 'package:cli_completion/cli_completion.dart';
 import 'package:dart_slack/src/cli/commands/commands.dart';
 import 'package:dart_slack/src/cli/version.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:pub_updater/pub_updater.dart';
 
 const executableName = 'dart_slack';
-const packageName = 'dart_slack';
 const description =
     'A CLI for reading and writing messages, browsing channels, '
     'and looking up users in Slack.';
@@ -21,9 +19,8 @@ const description =
 /// {@endtemplate}
 class DartSlackCommandRunner extends CompletionCommandRunner<int> {
   /// {@macro dart_slack_command_runner}
-  DartSlackCommandRunner({Logger? logger, PubUpdater? pubUpdater})
+  DartSlackCommandRunner({Logger? logger})
     : _logger = logger ?? Logger(),
-      _pubUpdater = pubUpdater ?? PubUpdater(),
       super(executableName, description) {
     // Add root options and flags
     argParser
@@ -55,7 +52,6 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
     addCommand(StatusCommand(logger: _logger));
     addCommand(StreamCommand(logger: _logger));
     addCommand(ThreadCommand(logger: _logger));
-    addCommand(UpdateCommand(logger: _logger, pubUpdater: _pubUpdater));
     addCommand(UsersCommand(logger: _logger));
     addCommand(WatchCommand(logger: _logger));
     addCommand(WhoisCommand(logger: _logger));
@@ -65,7 +61,6 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
   void printUsage() => _logger.info(usage);
 
   final Logger _logger;
-  final PubUpdater _pubUpdater;
 
   @override
   Future<int> run(Iterable<String> args) async {
@@ -133,30 +128,6 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
       exitCode = await super.runCommand(topLevelResults);
     }
 
-    // Check for updates
-    if (topLevelResults.command?.name != UpdateCommand.commandName) {
-      await _checkForUpdates();
-    }
-
     return exitCode;
-  }
-
-  /// Checks if the current version (set by the build runner on the
-  /// version.dart file) is the most recent one. If not, show a prompt to the
-  /// user.
-  Future<void> _checkForUpdates() async {
-    try {
-      final latestVersion = await _pubUpdater.getLatestVersion(packageName);
-      final isUpToDate = packageVersion == latestVersion;
-      if (!isUpToDate) {
-        _logger
-          ..info('')
-          ..info('''
-${lightYellow.wrap('Update available!')} ${lightCyan.wrap(packageVersion)} \u2192 ${lightCyan.wrap(latestVersion)}
-Run ${lightCyan.wrap('$executableName update')} to update''');
-      }
-    } on Exception catch (_) {
-      _logger.err('Failed to check for updates.');
-    }
   }
 }

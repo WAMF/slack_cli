@@ -15,7 +15,6 @@ export 'send_command.dart';
 export 'status_command.dart';
 export 'stream_command.dart';
 export 'thread_command.dart';
-export 'update_command.dart';
 export 'users_command.dart';
 export 'watch_command.dart';
 export 'whois_command.dart';
