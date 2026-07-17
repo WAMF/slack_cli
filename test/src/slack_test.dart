@@ -106,6 +106,30 @@ void main() {
       );
     });
 
+    group('openDirectMessage', () {
+      test('returns the resolved DM channel ID', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'channel': {'id': 'D1'},
+            }),
+            200,
+          ),
+        );
+
+        final channel = await slack.openDirectMessage(user: 'U9');
+
+        expect(channel, equals('D1'));
+      });
+    });
+
     group('postMessage', () {
       test('returns a typed SlackMessage', () async {
         when(

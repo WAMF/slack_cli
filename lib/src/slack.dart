@@ -122,6 +122,19 @@ class Slack {
     return filename;
   }
 
+  /// Opens (or looks up) the direct-message conversation with [user] and
+  /// returns its channel ID (`D...`).
+  ///
+  /// `chat.postMessage` accepts a user ID as `channel` and auto-opens the DM,
+  /// but `files.completeUploadExternal` does not — it validates `channel_id`
+  /// against real conversation IDs, so callers attaching a file to a DM must
+  /// resolve this first and pass the result to [uploadFile].
+  Future<String> openDirectMessage({required String user}) async {
+    final json = await _client.conversationsOpen(user: user);
+    final channel = json['channel'] as Map<String, dynamic>;
+    return channel['id'] as String;
+  }
+
   /// The final path segment of [path], tolerating both `/` and `\` as
   /// separators regardless of host platform.
   static String _basename(String path) {

@@ -51,8 +51,9 @@ class DmCommand extends AuthenticatedCommand {
         logger.err('File not found: $filePath');
         return ExitCode.noInput.code;
       }
+      final channel = await slack.openDirectMessage(user: user);
       final filename = await slack.uploadFile(
-        channel: user,
+        channel: channel,
         path: filePath,
         comment: text,
       );

@@ -138,12 +138,22 @@ void main() {
           headers: any(named: 'headers'),
           body: any(named: 'body'),
         ),
-      ).thenAnswer(
-        (_) async => http.Response(
+      ).thenAnswer((invocation) async {
+        final uri = invocation.positionalArguments.first as Uri;
+        if (uri.path.contains('conversations.open')) {
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'channel': {'id': 'D9'},
+            }),
+            200,
+          );
+        }
+        return http.Response(
           jsonEncode({'ok': true, 'files': <Map<String, dynamic>>[]}),
           200,
-        ),
-      );
+        );
+      });
 
       await runner.run([
         'dm',
@@ -158,6 +168,20 @@ void main() {
       verify(
         () => logger.success('File "dart_slack_dm_test.txt" sent to U9.'),
       ).called(1);
+
+      final completeBody =
+          jsonDecode(
+                verify(
+                      () => httpClient.post(
+                        captureAny(),
+                        headers: any(named: 'headers'),
+                        body: captureAny(named: 'body'),
+                      ),
+                    ).captured[3]
+                    as String,
+              )
+              as Map<String, dynamic>;
+      expect(completeBody['channel_id'], equals('D9'));
     });
 
     test('reports a clean error when the file does not exist', () async {

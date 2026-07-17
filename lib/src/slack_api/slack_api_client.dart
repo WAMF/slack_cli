@@ -183,6 +183,16 @@ class SlackApiClient {
     );
   }
 
+  /// Opens (or looks up) the direct-message conversation with [user].
+  ///
+  /// Returns the raw response map, which contains a `channel` object whose
+  /// `id` is the DM conversation ID (`D...`). Unlike `chat.postMessage`,
+  /// which accepts a user ID directly, `files.completeUploadExternal`
+  /// requires this resolved conversation ID as `channel_id`.
+  Future<Map<String, dynamic>> conversationsOpen({
+    required String user,
+  }) => _post(SlackUrls.conversationsOpen, {'users': user});
+
   /// Lists all users in the workspace.
   ///
   /// Returns a map containing `members` (list) and pagination metadata.

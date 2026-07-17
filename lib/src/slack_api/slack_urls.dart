@@ -55,6 +55,11 @@ abstract final class SlackUrls {
     'https://slack.com/api/conversations.members',
   );
 
+  /// Open (or look up) a direct-message conversation with a user.
+  static final Uri conversationsOpen = Uri.parse(
+    'https://slack.com/api/conversations.open',
+  );
+
   /// List all users in the workspace.
   static final Uri usersList = Uri.parse(
     'https://slack.com/api/users.list',
