@@ -55,7 +55,7 @@ void main() {
       expect(command.description, isNotEmpty);
     });
 
-    test('displays thread replies', () async {
+    test('echoes the root message then the replies with ts', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
       when(
         () => httpClient.get(any(), headers: any(named: 'headers')),
@@ -75,12 +75,12 @@ void main() {
 
       await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
 
-      verify(() => logger.info('<U2> Reply')).called(1);
-      verifyNever(() => logger.info('<U1> Parent'));
+      verify(() => logger.info('[1.0] <U1> Parent')).called(1);
+      verify(() => logger.info('[1.1] <U2> Reply')).called(1);
     });
 
     test(
-      'paginates replies and omits the parent message on each page',
+      'paginates replies and echoes the root only once',
       () async {
         when(() => credentialsStore.load()).thenReturn(credentials);
         when(
@@ -109,7 +109,7 @@ void main() {
             jsonEncode({
               'ok': true,
               'messages': [
-                {'ts': '1.0', 'text': 'Parent duplicate', 'user': 'U1'},
+                {'ts': '1.0', 'text': 'Parent', 'user': 'U1'},
                 {'ts': '1.2', 'text': 'Second reply', 'user': 'U3'},
               ],
               'has_more': false,
@@ -121,10 +121,9 @@ void main() {
 
         await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
 
-        verify(() => logger.info('<U2> First reply')).called(1);
-        verify(() => logger.info('<U3> Second reply')).called(1);
-        verifyNever(() => logger.info('<U1> Parent'));
-        verifyNever(() => logger.info('<U1> Parent duplicate'));
+        verify(() => logger.info('[1.0] <U1> Parent')).called(1);
+        verify(() => logger.info('[1.1] <U2> First reply')).called(1);
+        verify(() => logger.info('[1.2] <U3> Second reply')).called(1);
         verify(
           () => httpClient.get(any(), headers: any(named: 'headers')),
         ).called(2);
@@ -132,7 +131,7 @@ void main() {
     );
 
     test(
-      'shows empty state when thread only contains parent message',
+      'echoes root and shows no-replies cue when thread only has the parent',
       () async {
         when(() => credentialsStore.load()).thenReturn(credentials);
         when(
@@ -152,12 +151,18 @@ void main() {
 
         await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
 
-        verify(() => logger.info('No replies found.')).called(1);
-        verifyNever(() => logger.info('<U1> Parent'));
+        verify(() => logger.info('[1.0] <U1> Parent')).called(1);
+        verify(() => logger.info('(no replies yet)')).called(1);
+        verify(
+          () => logger.info(
+            'Context may be in channel history: dart_slack history -c C1',
+          ),
+        ).called(1);
+        verifyNever(() => logger.info('No replies found.'));
       },
     );
 
-    test('shows empty state message', () async {
+    test('shows no-replies cue when thread is empty', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
       when(
         () => httpClient.get(any(), headers: any(named: 'headers')),
@@ -174,7 +179,12 @@ void main() {
 
       await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
 
-      verify(() => logger.info('No replies found.')).called(1);
+      verify(() => logger.info('(no replies yet)')).called(1);
+      verify(
+        () => logger.info(
+          'Context may be in channel history: dart_slack history -c C1',
+        ),
+      ).called(1);
     });
   });
 }

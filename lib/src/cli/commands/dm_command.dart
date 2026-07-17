@@ -38,8 +38,8 @@ class DmCommand extends AuthenticatedCommand {
     final user = argResults!['user'] as String;
     final text = argResults!['text'] as String;
 
-    await slack.postMessage(channel: user, text: text);
-    logger.success('DM sent to $user.');
+    final message = await slack.postMessage(channel: user, text: text);
+    logger.success('DM sent to $user (ts: ${message.ts}).');
     return ExitCode.success.code;
   }
 }

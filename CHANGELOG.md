@@ -34,7 +34,19 @@
 - `SocketModeClient` library for WebSocket-based Socket Mode connections with automatic reconnection.
 - Tests for `OAuthFlow`, `SlackApp`, `AuthenticatedCommand`, `ChannelsCommand`, `SocketModeClient`, `SocketModeEvent`, and `StreamCommand`.
 
-### Fixed
+### Changed
+
+- `send`, `reply`, and `dm` now surface the posted message's `ts` on the
+  success line (e.g. `Reply sent to thread <root> in <channel> (ts: <ts>).`).
+  The `ts` was already fetched and modeled — it was just discarded before
+  printing — so a coworker can now capture the reply's own `ts` for
+  thread-affinity routing (`dw conversation record-reply -m <ts>`).
+- `history` and `thread` now prefix each message line with its `ts`
+  (`[<ts>] <user> text`), giving a machine-parseable timestamp column.
+- `thread` now always echoes the root message first, then prints
+  `(no replies yet)` plus a `dart_slack history -c <channel>` pointer when a
+  thread has no replies (previously it printed a bare `No replies found.` with
+  no root context, leaving thin-wake agents context-less).
 
 - `OAuthFlow.execute()` now uses `return await` so errors from token exchange propagate through `try/finally` correctly.
 
