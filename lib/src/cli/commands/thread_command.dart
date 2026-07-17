@@ -55,13 +55,18 @@ class ThreadCommand extends AuthenticatedCommand {
         if (message.ts == ts) {
           if (!printedRoot) {
             printedRoot = true;
-            logger.info('[${message.ts}] <$user> ${message.text}');
+            logger.info(
+              '[${message.ts}] <$user> ${message.text}'
+              '${message.attachmentSuffix}',
+            );
           }
           continue;
         }
 
         foundReply = true;
-        logger.info('[${message.ts}] <$user> ${message.text}');
+        logger.info(
+          '[${message.ts}] <$user> ${message.text}${message.attachmentSuffix}',
+        );
       }
 
       cursor = page.nextCursor;

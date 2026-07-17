@@ -187,6 +187,7 @@ Returned by `Slack.listChannels`.
    - `canvases:read` (read canvas content with `canvas read`)
    - `canvases:write` (create/edit/delete canvases)
    - `files:read` (look up a canvas's downloadable file)
+   - `files:write` (attach a file with `send`/`reply`/`dm --file`)
    - `groups:read`
    - `im:write`
    - `users:read`
@@ -266,6 +267,9 @@ dart run bin/dart_slack.dart thread -c <channel-id> --ts <thread_ts>
 # Send a message
 dart run bin/dart_slack.dart send -c <channel-id> -t "Hello from the CLI"
 
+# Send a message with a file attached
+dart run bin/dart_slack.dart send -c <channel-id> -t "See attached" -f ./report.pdf
+
 # Reply to a thread
 dart run bin/dart_slack.dart reply -c <channel-id> -r <thread_ts> -t "Thread reply"
 
@@ -295,6 +299,9 @@ dart run bin/dart_slack.dart canvas delete --canvas <canvas-id>
 
 # Send a DM
 dart run bin/dart_slack.dart dm -u <user-id> -t "Hey there"
+
+# Send a DM with a file attached
+dart run bin/dart_slack.dart dm -u <user-id> -t "Here you go" -f ./notes.txt
 
 # List workspace users
 dart run bin/dart_slack.dart users

@@ -79,6 +79,40 @@ void main() {
       verify(() => logger.info('[1.1] <U2> Reply')).called(1);
     });
 
+    test('shows an attachment indicator for messages with files', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer(
+        (_) async => http.Response(
+          jsonEncode({
+            'ok': true,
+            'messages': [
+              {'ts': '1.0', 'text': 'Parent', 'user': 'U1'},
+              {
+                'ts': '1.1',
+                'text': 'See attached',
+                'user': 'U2',
+                'files': [
+                  {'name': 'log.txt'},
+                ],
+              },
+            ],
+            'has_more': false,
+          }),
+          200,
+        ),
+      );
+
+      await runner.run(['thread', '-c', 'C1', '--ts', '1.0']);
+
+      verify(
+        () => logger.info(
+          '[1.1] <U2> See attached [attachment: log.txt]',
+        ),
+      ).called(1);
+    });
+
     test(
       'paginates replies and echoes the root only once',
       () async {

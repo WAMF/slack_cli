@@ -113,6 +113,39 @@ void main() {
       ).called(1);
     });
 
+    test('shows an attachment indicator for messages with files', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer(
+        (_) async => http.Response(
+          jsonEncode({
+            'ok': true,
+            'messages': [
+              {
+                'ts': '1.0',
+                'text': 'Here is the spec',
+                'user': 'U1',
+                'files': [
+                  {'name': 'spec.pdf'},
+                ],
+              },
+            ],
+            'has_more': false,
+          }),
+          200,
+        ),
+      );
+
+      await runner.run(['history', '-c', 'C1']);
+
+      verify(
+        () => logger.info(
+          '[1.0] <U1> Here is the spec [attachment: spec.pdf]',
+        ),
+      ).called(1);
+    });
+
     test('shows empty state message', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
       when(

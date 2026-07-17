@@ -116,5 +116,50 @@ void main() {
       expect(message.reactions, isNull);
       expect(message.files, isNull);
     });
+
+    group('attachmentSuffix', () {
+      test('is empty when there are no files', () {
+        final message = SlackMessage.fromHistory(
+          channel: 'C123',
+          json: const {'ts': '1.0', 'text': 'Plain message'},
+        );
+
+        expect(message.attachmentSuffix, isEmpty);
+      });
+
+      test('names a single attached file', () {
+        final message = SlackMessage.fromHistory(
+          channel: 'C123',
+          json: const {
+            'ts': '1.0',
+            'text': 'Check this out',
+            'files': [
+              {'name': 'design.png'},
+            ],
+          },
+        );
+
+        expect(message.attachmentSuffix, equals(' [attachment: design.png]'));
+      });
+
+      test('joins multiple attached files', () {
+        final message = SlackMessage.fromHistory(
+          channel: 'C123',
+          json: const {
+            'ts': '1.0',
+            'text': 'Two files',
+            'files': [
+              {'name': 'design.png'},
+              {'name': 'notes.txt'},
+            ],
+          },
+        );
+
+        expect(
+          message.attachmentSuffix,
+          equals(' [attachment: design.png, notes.txt]'),
+        );
+      });
+    });
   });
 }

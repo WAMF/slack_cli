@@ -217,6 +217,68 @@ class SlackApiClient {
     return _get(SlackUrls.filesInfo.replace(queryParameters: params));
   }
 
+  /// Requests a pre-signed upload URL for a file named [filename] whose
+  /// content is [length] bytes long.
+  ///
+  /// Returns the raw response map, which contains `upload_url` and `file_id`
+  /// on success. The first step of Slack's external upload flow (the
+  /// `files.upload` method it replaces is deprecated).
+  Future<Map<String, dynamic>> getUploadUrlExternal({
+    required String filename,
+    required int length,
+  }) {
+    final params = <String, String>{
+      'filename': filename,
+      'length': '$length',
+    };
+    return _get(
+      SlackUrls.filesGetUploadURLExternal.replace(queryParameters: params),
+    );
+  }
+
+  /// Uploads [bytes] to the pre-signed [uploadUrl] returned by
+  /// [getUploadUrlExternal].
+  ///
+  /// The second step of Slack's external upload flow. Unlike the other
+  /// `slack.com/api/*` endpoints, this URL does not answer a `{ok: ...}`
+  /// JSON envelope, so a non-2xx status is the only failure signal.
+  Future<void> uploadFileBytes({
+    required Uri uploadUrl,
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final request = http.MultipartRequest('POST', uploadUrl)
+      ..files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
+    final streamedResponse = await _httpClient.send(request);
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SlackApiException('upload_failed_${response.statusCode}');
+    }
+  }
+
+  /// Finalizes an upload for the file identified by [fileId], optionally
+  /// attaching it to [channel] (and [threadTs], to post it in a thread) with
+  /// [initialComment] as the accompanying message text.
+  ///
+  /// The third and final step of Slack's external upload flow. Returns the
+  /// raw response map.
+  Future<Map<String, dynamic>> completeUploadExternal({
+    required String fileId,
+    required String filename,
+    String? channel,
+    String? threadTs,
+    String? initialComment,
+  }) => _post(SlackUrls.filesCompleteUploadExternal, {
+    'files': [
+      {'id': fileId, 'title': filename},
+    ],
+    'channel_id': ?channel,
+    'thread_ts': ?threadTs,
+    'initial_comment': ?initialComment,
+  });
+
   /// Downloads the raw body served at [url], authenticated with the bearer
   /// token, and returns it as a string.
   ///

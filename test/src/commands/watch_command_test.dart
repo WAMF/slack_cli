@@ -110,6 +110,38 @@ void main() {
       );
     });
 
+    test('shows an attachment indicator for messages with files', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer(
+        (_) async => historyResponse([
+          {
+            'ts': '1.0',
+            'text': 'Here is the export',
+            'user': 'U1',
+            'files': [
+              {'name': 'export.csv'},
+            ],
+          },
+        ]),
+      );
+
+      final runner = buildRunner(
+        delay: (_) async {
+          signalController.add(ProcessSignal.sigint);
+        },
+      );
+
+      await runner.run(['watch', '-c', 'C1']);
+
+      verify(
+        () => logger.info(
+          '<U1> Here is the export [attachment: export.csv]',
+        ),
+      ).called(1);
+    });
+
     test('polls for new messages with correct oldest param', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
 

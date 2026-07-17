@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_slack/src/auth/credentials_store.dart';
 import 'package:dart_slack/src/models/models.dart';
 import 'package:dart_slack/src/slack_api/slack_api_client.dart';
@@ -12,8 +14,7 @@ enum CanvasEditMode {
   append('insert_at_end'),
 
   /// Insert the content before the existing body.
-  prepend('insert_at_start')
-  ;
+  prepend('insert_at_start');
 
   const CanvasEditMode(this.operation);
 
@@ -79,6 +80,52 @@ class Slack {
       threadTs: threadTs,
     );
     return SlackMessage.fromJson(json);
+  }
+
+  /// Uploads the local file at [path] and attaches it to [channel].
+  ///
+  /// Pass a user ID as [channel] to send it as a DM, [threadTs] to attach it
+  /// within a thread, and [comment] to include text alongside the upload
+  /// (equivalent to [postMessage]'s `text`). Returns the uploaded file's
+  /// name.
+  ///
+  /// Drives Slack's current (non-deprecated) three-step external upload
+  /// flow: request a pre-signed URL, upload the bytes to it, then finalize
+  /// the upload against [channel].
+  Future<String> uploadFile({
+    required String channel,
+    required String path,
+    String? threadTs,
+    String? comment,
+  }) async {
+    final bytes = await File(path).readAsBytes();
+    final filename = _basename(path);
+
+    final uploadInfo = await _client.getUploadUrlExternal(
+      filename: filename,
+      length: bytes.length,
+    );
+    await _client.uploadFileBytes(
+      uploadUrl: Uri.parse(uploadInfo['upload_url'] as String),
+      bytes: bytes,
+      filename: filename,
+    );
+    await _client.completeUploadExternal(
+      fileId: uploadInfo['file_id'] as String,
+      filename: filename,
+      channel: channel,
+      threadTs: threadTs,
+      initialComment: comment,
+    );
+
+    return filename;
+  }
+
+  /// The final path segment of [path], tolerating both `/` and `\` as
+  /// separators regardless of host platform.
+  static String _basename(String path) {
+    final segments = path.replaceAll(r'\', '/').split('/');
+    return segments.last.isEmpty ? path : segments.last;
   }
 
   /// Lists channels the authenticated user has access to.

@@ -70,6 +70,16 @@ abstract final class SlackUrls {
     'https://slack.com/api/files.info',
   );
 
+  /// Request a pre-signed URL to upload a file's bytes to.
+  static final Uri filesGetUploadURLExternal = Uri.parse(
+    'https://slack.com/api/files.getUploadURLExternal',
+  );
+
+  /// Finalize an external upload, optionally attaching it to a channel.
+  static final Uri filesCompleteUploadExternal = Uri.parse(
+    'https://slack.com/api/files.completeUploadExternal',
+  );
+
   /// Create a canvas (optionally tabbed into a channel).
   static final Uri canvasesCreate = Uri.parse(
     'https://slack.com/api/canvases.create',

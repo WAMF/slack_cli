@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dart_slack/src/slack.dart';
 import 'package:dart_slack/src/slack_api/slack_urls.dart';
@@ -20,6 +21,89 @@ void main() {
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
+      registerFallbackValue(
+        http.Request('GET', Uri.parse('https://example.com')),
+      );
+    });
+
+    group('uploadFile', () {
+      test(
+        'drives the get-upload-url / upload / complete flow and returns '
+        'the filename',
+        () async {
+          final tempFile = File(
+            '${Directory.systemTemp.path}/dart_slack_upload_test.txt',
+          )..writeAsStringSync('hello world');
+          addTearDown(tempFile.deleteSync);
+
+          when(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          ).thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'upload_url': 'https://files.slack.com/upload/v1/abc',
+                'file_id': 'F123',
+              }),
+              200,
+            ),
+          );
+          when(() => httpClient.send(any())).thenAnswer(
+            (_) async => http.StreamedResponse(
+              Stream.value(utf8.encode('OK')),
+              200,
+            ),
+          );
+          when(
+            () => httpClient.post(
+              any(),
+              headers: any(named: 'headers'),
+              body: any(named: 'body'),
+            ),
+          ).thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({'ok': true, 'files': <Map<String, dynamic>>[]}),
+              200,
+            ),
+          );
+
+          final filename = await slack.uploadFile(
+            channel: 'C1',
+            path: tempFile.path,
+            threadTs: '1.0',
+            comment: 'here you go',
+          );
+
+          expect(filename, equals('dart_slack_upload_test.txt'));
+
+          final uploadRequest =
+              verify(() => httpClient.send(captureAny())).captured.single
+                  as http.MultipartRequest;
+          expect(
+            uploadRequest.url,
+            equals(Uri.parse('https://files.slack.com/upload/v1/abc')),
+          );
+
+          final completeBody =
+              jsonDecode(
+                    verify(
+                          () => httpClient.post(
+                            captureAny(),
+                            headers: any(named: 'headers'),
+                            body: captureAny(named: 'body'),
+                          ),
+                        ).captured[1]
+                        as String,
+                  )
+                  as Map<String, dynamic>;
+          final files = (completeBody['files'] as List<dynamic>)
+              .cast<Map<String, dynamic>>();
+          expect(files.single['id'], equals('F123'));
+          expect(completeBody['channel_id'], equals('C1'));
+          expect(completeBody['thread_ts'], equals('1.0'));
+          expect(completeBody['initial_comment'], equals('here you go'));
+        },
+      );
     });
 
     group('postMessage', () {
