@@ -76,11 +76,11 @@ void main() {
       await runner.run(['history', '-c', 'C1']);
 
       final logged = verify(() => logger.info(captureAny())).captured;
-      expect(logged, contains('<U1> First'));
-      expect(logged, contains('<U2> Second'));
+      expect(logged, contains('[1.0] <U1> First'));
+      expect(logged, contains('[2.0] <U2> Second'));
       expect(
-        logged.indexOf('<U1> First'),
-        lessThan(logged.indexOf('<U2> Second')),
+        logged.indexOf('[1.0] <U1> First'),
+        lessThan(logged.indexOf('[2.0] <U2> Second')),
       );
     });
 
@@ -109,7 +109,7 @@ void main() {
       await runner.run(['history', '-c', 'C1']);
 
       verify(
-        () => logger.info('<U1> Thread parent [5 replies]'),
+        () => logger.info('[1.0] <U1> Thread parent [5 replies]'),
       ).called(1);
     });
 

@@ -38,6 +38,7 @@ class ThreadCommand extends AuthenticatedCommand {
     final ts = argResults!['ts'] as String;
     String? cursor;
     var foundReply = false;
+    var printedRoot = false;
 
     do {
       final page = await slack.conversationsReplies(
@@ -47,18 +48,31 @@ class ThreadCommand extends AuthenticatedCommand {
       );
 
       for (final message in page.items) {
-        if (message.ts == ts) continue;
+        final user = message.user ?? 'unknown';
+
+        // The root/parent message is repeated on every page; echo it once,
+        // first, so a thin wake still delivers the root context.
+        if (message.ts == ts) {
+          if (!printedRoot) {
+            printedRoot = true;
+            logger.info('[${message.ts}] <$user> ${message.text}');
+          }
+          continue;
+        }
 
         foundReply = true;
-        final user = message.user ?? 'unknown';
-        logger.info('<$user> ${message.text}');
+        logger.info('[${message.ts}] <$user> ${message.text}');
       }
 
       cursor = page.nextCursor;
     } while (cursor != null);
 
     if (!foundReply) {
-      logger.info('No replies found.');
+      logger
+        ..info('(no replies yet)')
+        ..info(
+          'Context may be in channel history: dart_slack history -c $channel',
+        );
     }
 
     return ExitCode.success.code;

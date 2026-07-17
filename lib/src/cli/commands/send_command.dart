@@ -38,8 +38,8 @@ class SendCommand extends AuthenticatedCommand {
     final channel = argResults!['channel'] as String;
     final text = argResults!['text'] as String;
 
-    await slack.postMessage(channel: channel, text: text);
-    logger.success('Message sent to $channel.');
+    final message = await slack.postMessage(channel: channel, text: text);
+    logger.success('Message sent to $channel (ts: ${message.ts}).');
     return ExitCode.success.code;
   }
 }

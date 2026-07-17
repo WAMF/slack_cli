@@ -45,12 +45,14 @@ class ReplyCommand extends AuthenticatedCommand {
     final thread = argResults!['thread'] as String;
     final text = argResults!['text'] as String;
 
-    await slack.postMessage(
+    final message = await slack.postMessage(
       channel: channel,
       text: text,
       threadTs: thread,
     );
-    logger.success('Reply sent to thread $thread in $channel.');
+    logger.success(
+      'Reply sent to thread $thread in $channel (ts: ${message.ts}).',
+    );
     return ExitCode.success.code;
   }
 }

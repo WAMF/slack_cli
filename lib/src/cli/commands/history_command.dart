@@ -61,7 +61,7 @@ class HistoryCommand extends AuthenticatedCommand {
       final thread = message.replyCount != null
           ? ' [${message.replyCount} replies]'
           : '';
-      logger.info('<$user> ${message.text}$thread');
+      logger.info('[${message.ts}] <$user> ${message.text}$thread');
     }
 
     if (page.hasMore) {
