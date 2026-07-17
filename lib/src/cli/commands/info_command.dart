@@ -57,14 +57,16 @@ class InfoCommand extends AuthenticatedCommand {
     var count = 0;
     String? cursor;
 
-    do {
+    while (true) {
       final page = await slack.conversationsMembers(
         channel: channelId,
+        limit: 1000,
         cursor: cursor,
       );
       count += page.items.length;
+      if (!page.hasMore) break;
       cursor = page.nextCursor;
-    } while (cursor != null);
+    }
 
     return count;
   }
