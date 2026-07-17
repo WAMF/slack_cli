@@ -480,6 +480,66 @@ void main() {
       });
     });
 
+    group('authTest', () {
+      test('sends POST to auth.test', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'team': 'WAAF',
+              'team_id': 'T123',
+              'user': 'clayton',
+              'user_id': 'U123',
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.authTest();
+
+        expect(result['user'], equals('clayton'));
+        verify(
+          () => httpClient.post(
+            SlackUrls.authTest,
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).called(1);
+      });
+
+      test('throws on invalid_auth', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': false, 'error': 'invalid_auth'}),
+            200,
+          ),
+        );
+
+        expect(
+          slackClient.authTest,
+          throwsA(
+            isA<SlackApiException>().having(
+              (e) => e.error,
+              'error',
+              'invalid_auth',
+            ),
+          ),
+        );
+      });
+    });
+
     group('updateMessage', () {
       test('sends POST to chat.update', () async {
         when(

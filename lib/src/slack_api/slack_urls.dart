@@ -89,4 +89,9 @@ abstract final class SlackUrls {
   static final Uri usersProfileSet = Uri.parse(
     'https://slack.com/api/users.profile.set',
   );
+
+  /// Verify a token and get identity details for the authenticated user.
+  static final Uri authTest = Uri.parse(
+    'https://slack.com/api/auth.test',
+  );
 }

@@ -148,6 +148,36 @@ void main() {
       });
     });
 
+    group('authTest', () {
+      test('returns a typed SlackAuthIdentity', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'team': 'WAAF',
+              'team_id': 'T123',
+              'user': 'clayton',
+              'user_id': 'U123',
+            }),
+            200,
+          ),
+        );
+
+        final identity = await slack.authTest();
+
+        expect(identity.team, equals('WAAF'));
+        expect(identity.teamId, equals('T123'));
+        expect(identity.user, equals('clayton'));
+        expect(identity.userId, equals('U123'));
+      });
+    });
+
     group('updateMessage', () {
       test('returns a typed SlackMessage', () async {
         when(

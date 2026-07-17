@@ -235,6 +235,32 @@ void main() {
       ).called(1);
     });
 
+    test(
+      'emits a machine-readable JSON error line on SlackApiException',
+      () async {
+        // Regression for #23: downstream "exit 0 = sent" checks used to
+        // regex-match the human error text; a structured JSON line lets
+        // them branch on `ok`/`error` instead.
+        when(() => credentialsStore.load()).thenReturn(credentials);
+
+        final command = _TestCommand(
+          logger: logger,
+          credentialsStore: credentialsStore,
+          httpClient: httpClient,
+          onRun: (_) => throw const SlackApiException('token_revoked'),
+        );
+
+        final result = await command.run();
+
+        expect(result, isNot(equals(ExitCode.success.code)));
+        verify(
+          () => logger.err(
+            jsonEncode({'ok': false, 'error': 'token_revoked'}),
+          ),
+        ).called(1);
+      },
+    );
+
     test('catches SocketException and returns software exit code', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
 
@@ -252,6 +278,29 @@ void main() {
         () => logger.err('Network error: cannot reach the Slack API.'),
       ).called(1);
     });
+
+    test(
+      'emits a machine-readable JSON error line on SocketException',
+      () async {
+        when(() => credentialsStore.load()).thenReturn(credentials);
+
+        final command = _TestCommand(
+          logger: logger,
+          credentialsStore: credentialsStore,
+          httpClient: httpClient,
+          onRun: (_) => throw const SocketException('Connection refused'),
+        );
+
+        final result = await command.run();
+
+        expect(result, isNot(equals(ExitCode.success.code)));
+        verify(
+          () => logger.err(
+            jsonEncode({'ok': false, 'error': 'network_error'}),
+          ),
+        ).called(1);
+      },
+    );
 
     test('shows needed scope on missing_scope error', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
