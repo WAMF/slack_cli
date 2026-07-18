@@ -91,6 +91,15 @@ class Slack {
     return channels.map(SlackChannel.fromJson).toList();
   }
 
+  /// Verifies the token is valid and returns identity details.
+  ///
+  /// Throws [SlackApiException] (e.g. `invalid_auth`, `token_revoked`,
+  /// `token_expired`) when the token cannot authenticate.
+  Future<SlackAuthIdentity> authTest() async {
+    final json = await _client.authTest();
+    return SlackAuthIdentity.fromJson(json);
+  }
+
   /// Updates an existing message.
   Future<SlackMessage> updateMessage({
     required String channel,

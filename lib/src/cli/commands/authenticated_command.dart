@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -24,7 +25,11 @@ const String _slackTokenEnvVar = 'SLACK_TOKEN';
 /// file in the current directory (see [SlackApp]).
 ///
 /// Creates a [Slack] facade and delegates to [runAuthenticated]. Handles
-/// missing credentials and [SlackApiException] errors centrally.
+/// missing credentials and [SlackApiException] errors centrally: prints a
+/// human-readable message, emits a machine-readable `{"ok": false, "error":
+/// "<code>"}` JSON line so consumers can branch without regex-matching the
+/// human text, and returns a non-zero exit code so "exit 0 = sent" checks
+/// stay reliable against a dead or unreachable token.
 abstract class AuthenticatedCommand extends Command<int> {
   /// Creates an [AuthenticatedCommand].
   AuthenticatedCommand({
@@ -75,9 +80,12 @@ abstract class AuthenticatedCommand extends Command<int> {
           "Run 'dart_slack login' to re-authorize.",
         );
       }
+      logger.err(jsonEncode({'ok': false, 'error': e.error}));
       return ExitCode.software.code;
     } on SocketException catch (_) {
-      logger.err('Network error: cannot reach the Slack API.');
+      logger
+        ..err('Network error: cannot reach the Slack API.')
+        ..err(jsonEncode({'ok': false, 'error': 'network_error'}));
       return ExitCode.software.code;
     } finally {
       slack.close();

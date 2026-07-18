@@ -1,4 +1,5 @@
 export 'cursor_page.dart';
+export 'slack_auth_identity.dart';
 export 'slack_channel.dart';
 export 'slack_file.dart';
 export 'slack_message.dart';

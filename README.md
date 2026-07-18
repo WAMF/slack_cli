@@ -248,6 +248,9 @@ dart run bin/dart_slack.dart channels   # no `login` step required
 # Authenticate
 dart run bin/dart_slack.dart login
 
+# Validate the current token (exits non-zero and prints a JSON error on failure)
+dart run bin/dart_slack.dart auth test
+
 # List channels
 dart run bin/dart_slack.dart channels
 

@@ -1,3 +1,4 @@
+export 'auth_command.dart';
 export 'authenticated_command.dart';
 export 'canvas_command.dart';
 export 'channels_command.dart';

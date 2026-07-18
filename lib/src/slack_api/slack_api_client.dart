@@ -283,6 +283,13 @@ class SlackApiClient {
     },
   });
 
+  /// Verifies the token is valid and returns identity details.
+  ///
+  /// Wraps `auth.test`. Throws [SlackApiException] (e.g. `invalid_auth`,
+  /// `token_revoked`, `token_expired`) when the token cannot authenticate.
+  Future<Map<String, dynamic>> authTest() =>
+      _post(SlackUrls.authTest, const {});
+
   /// Updates the text of an existing message.
   Future<Map<String, dynamic>> updateMessage({
     required String channel,

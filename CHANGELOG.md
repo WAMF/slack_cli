@@ -65,6 +65,26 @@
   `_checkForUpdates()` call, the `update` command, and the `pub_updater`
   dependency.
 
+### Fixed
+
+- `info` reported `Members: 0` for channels that demonstrably have members,
+  contradicting `members` run against the same channel (#27).
+  `conversations.info`'s `num_members` field is frequently stale or
+  unpopulated; `info` now counts members by paginating
+  `conversations.members`, the same call `members` uses.
+- Auth failures (`invalid_auth`, `token_revoked`, etc.) now also emit a
+  machine-readable `{"ok": false, "error": "<code>"}` JSON line on stderr
+  alongside the human-readable message, so "exit 0 = sent" style checks can
+  branch on the error code instead of regex-matching text. Network failures
+  emit `{"ok": false, "error": "network_error"}` the same way. Non-zero exit
+  on these failures was already in place via `AuthenticatedCommand`'s shared
+  error handling (#23).
+- Added `auth test`, a first-class `auth.test` wrapper that validates the
+  current token and exits non-zero on failure, so a pre-flight health check
+  no longer has to piggyback on an unrelated command like `channels` (#23).
+  Backed by `Slack.authTest()`, `SlackApiClient.authTest()`, and the new
+  `SlackAuthIdentity` model.
+
 ## 0.1.0
 
 - Initial release.
