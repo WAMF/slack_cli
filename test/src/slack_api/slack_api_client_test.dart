@@ -24,6 +24,9 @@ void main() {
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
+      registerFallbackValue(
+        http.Request('GET', Uri.parse('https://example.com')),
+      );
     });
 
     group('postMessage', () {
@@ -420,6 +423,45 @@ void main() {
         final result = await slackClient.conversationsMembers(channel: 'C1');
 
         expect(result['members'], equals(['U1', 'U2']));
+      });
+    });
+
+    group('conversationsOpen', () {
+      test('sends POST to conversations.open with the user', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'channel': {'id': 'D1'},
+            }),
+            200,
+          ),
+        );
+
+        final result = await slackClient.conversationsOpen(user: 'U9');
+
+        final captured = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured;
+        final uri = captured[0] as Uri;
+        final body = jsonDecode(captured[1] as String) as Map<String, dynamic>;
+
+        expect(uri, equals(SlackUrls.conversationsOpen));
+        expect(body['users'], equals('U9'));
+        expect(
+          (result['channel'] as Map<String, dynamic>)['id'],
+          equals('D1'),
+        );
       });
     });
 
@@ -1128,6 +1170,166 @@ void main() {
           );
         },
       );
+    });
+
+    group('getUploadUrlExternal', () {
+      test('sends filename and length as query params', () async {
+        when(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'ok': true,
+              'upload_url': 'https://files.slack.com/upload/v1/abc',
+              'file_id': 'F123',
+            }),
+            200,
+          ),
+        );
+
+        final json = await slackClient.getUploadUrlExternal(
+          filename: 'notes.txt',
+          length: 42,
+        );
+
+        expect(json['file_id'], equals('F123'));
+        final uri =
+            verify(
+                  () => httpClient.get(
+                    captureAny(),
+                    headers: any(named: 'headers'),
+                  ),
+                ).captured.single
+                as Uri;
+        expect(uri.path, equals(SlackUrls.filesGetUploadURLExternal.path));
+        expect(uri.queryParameters['filename'], equals('notes.txt'));
+        expect(uri.queryParameters['length'], equals('42'));
+      });
+    });
+
+    group('uploadFileBytes', () {
+      test('posts the file bytes as multipart form data', () async {
+        when(() => httpClient.send(any())).thenAnswer(
+          (_) async => http.StreamedResponse(
+            Stream.value(utf8.encode('OK')),
+            200,
+          ),
+        );
+
+        final uploadUrl = Uri.parse('https://files.slack.com/upload/v1/abc');
+        await slackClient.uploadFileBytes(
+          uploadUrl: uploadUrl,
+          bytes: utf8.encode('hello'),
+          filename: 'notes.txt',
+        );
+
+        final request =
+            verify(() => httpClient.send(captureAny())).captured.single
+                as http.MultipartRequest;
+        expect(request.url, equals(uploadUrl));
+        expect(request.files.single.field, equals('file'));
+        expect(request.files.single.filename, equals('notes.txt'));
+      });
+
+      test('throws SlackApiException on a non-2xx response', () async {
+        when(() => httpClient.send(any())).thenAnswer(
+          (_) async => http.StreamedResponse(
+            Stream.value(utf8.encode('nope')),
+            500,
+          ),
+        );
+
+        expect(
+          () => slackClient.uploadFileBytes(
+            uploadUrl: Uri.parse('https://files.slack.com/upload/v1/abc'),
+            bytes: utf8.encode('hello'),
+            filename: 'notes.txt',
+          ),
+          throwsA(isA<SlackApiException>()),
+        );
+      });
+    });
+
+    group('completeUploadExternal', () {
+      test(
+        'sends the file id, title, channel, thread, and comment',
+        () async {
+          when(
+            () => httpClient.post(
+              any(),
+              headers: any(named: 'headers'),
+              body: any(named: 'body'),
+            ),
+          ).thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({'ok': true, 'files': <Map<String, dynamic>>[]}),
+              200,
+            ),
+          );
+
+          await slackClient.completeUploadExternal(
+            fileId: 'F123',
+            filename: 'notes.txt',
+            channel: 'C1',
+            threadTs: '1.0',
+            initialComment: 'here you go',
+          );
+
+          final captured = verify(
+            () => httpClient.post(
+              captureAny(),
+              headers: any(named: 'headers'),
+              body: captureAny(named: 'body'),
+            ),
+          ).captured;
+          expect(captured[0], equals(SlackUrls.filesCompleteUploadExternal));
+          final body =
+              jsonDecode(captured[1] as String) as Map<String, dynamic>;
+          final files = (body['files'] as List<dynamic>)
+              .cast<Map<String, dynamic>>();
+          expect(files.single['id'], equals('F123'));
+          expect(files.single['title'], equals('notes.txt'));
+          expect(body['channel_id'], equals('C1'));
+          expect(body['thread_ts'], equals('1.0'));
+          expect(body['initial_comment'], equals('here you go'));
+        },
+      );
+
+      test('omits optional fields when absent', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': true, 'files': <Map<String, dynamic>>[]}),
+            200,
+          ),
+        );
+
+        await slackClient.completeUploadExternal(
+          fileId: 'F123',
+          filename: 'notes.txt',
+        );
+
+        final body =
+            jsonDecode(
+                  verify(
+                        () => httpClient.post(
+                          any(),
+                          headers: any(named: 'headers'),
+                          body: captureAny(named: 'body'),
+                        ),
+                      ).captured.single
+                      as String,
+                )
+                as Map<String, dynamic>;
+        expect(body.containsKey('channel_id'), isFalse);
+        expect(body.containsKey('thread_ts'), isFalse);
+        expect(body.containsKey('initial_comment'), isFalse);
+      });
     });
   });
 }

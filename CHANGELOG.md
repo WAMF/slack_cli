@@ -7,6 +7,17 @@
 
 ### Added
 
+- `send`, `reply`, and `dm` accept a `--file <path>` option to attach a local
+  file to the posted message (with `--text` as the accompanying comment).
+  Backed by `Slack.uploadFile()`, which drives Slack's current (non-deprecated)
+  three-step external upload flow: `SlackApiClient.getUploadUrlExternal()`,
+  `uploadFileBytes()`, and `completeUploadExternal()`. Adds the `files:write`
+  OAuth scope.
+- `history`, `thread`, and `watch` now show a `[attachment: <name>, ...]`
+  indicator when a message carries files, via `SlackMessage.attachmentSuffix`.
+  Previously an inbound attachment (screenshot, spec, log export) was silently
+  dropped from the printed transcript even though `SlackMessage.files` already
+  parsed it.
 - `canvas read` command to fetch a canvas's markdown body. Slack has no
   `canvases.get` method, so the content is read by looking up the canvas's
   backing file with `files.info` and downloading its `url_private_download`

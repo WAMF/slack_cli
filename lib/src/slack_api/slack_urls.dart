@@ -55,6 +55,11 @@ abstract final class SlackUrls {
     'https://slack.com/api/conversations.members',
   );
 
+  /// Open (or look up) a direct-message conversation with a user.
+  static final Uri conversationsOpen = Uri.parse(
+    'https://slack.com/api/conversations.open',
+  );
+
   /// List all users in the workspace.
   static final Uri usersList = Uri.parse(
     'https://slack.com/api/users.list',
@@ -68,6 +73,16 @@ abstract final class SlackUrls {
   /// Get information about a file, including a canvas's download URL.
   static final Uri filesInfo = Uri.parse(
     'https://slack.com/api/files.info',
+  );
+
+  /// Request a pre-signed URL to upload a file's bytes to.
+  static final Uri filesGetUploadURLExternal = Uri.parse(
+    'https://slack.com/api/files.getUploadURLExternal',
+  );
+
+  /// Finalize an external upload, optionally attaching it to a channel.
+  static final Uri filesCompleteUploadExternal = Uri.parse(
+    'https://slack.com/api/files.completeUploadExternal',
   );
 
   /// Create a canvas (optionally tabbed into a channel).

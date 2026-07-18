@@ -72,4 +72,12 @@ class SlackMessage {
 
   /// Files attached to the message.
   final List<SlackFile>? files;
+
+  /// A short display indicator for attached files, e.g.
+  /// ` [attachment: report.pdf]`, or the empty string when [files] is empty
+  /// or absent.
+  String get attachmentSuffix {
+    if (files == null || files!.isEmpty) return '';
+    return ' [attachment: ${files!.map((f) => f.name).join(', ')}]';
+  }
 }

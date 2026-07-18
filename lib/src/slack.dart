@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_slack/src/auth/credentials_store.dart';
 import 'package:dart_slack/src/models/models.dart';
 import 'package:dart_slack/src/slack_api/slack_api_client.dart';
@@ -79,6 +81,65 @@ class Slack {
       threadTs: threadTs,
     );
     return SlackMessage.fromJson(json);
+  }
+
+  /// Uploads the local file at [path] and attaches it to [channel].
+  ///
+  /// Pass a user ID as [channel] to send it as a DM, [threadTs] to attach it
+  /// within a thread, and [comment] to include text alongside the upload
+  /// (equivalent to [postMessage]'s `text`). Returns the uploaded file's
+  /// name.
+  ///
+  /// Drives Slack's current (non-deprecated) three-step external upload
+  /// flow: request a pre-signed URL, upload the bytes to it, then finalize
+  /// the upload against [channel].
+  Future<String> uploadFile({
+    required String channel,
+    required String path,
+    String? threadTs,
+    String? comment,
+  }) async {
+    final bytes = await File(path).readAsBytes();
+    final filename = _basename(path);
+
+    final uploadInfo = await _client.getUploadUrlExternal(
+      filename: filename,
+      length: bytes.length,
+    );
+    await _client.uploadFileBytes(
+      uploadUrl: Uri.parse(uploadInfo['upload_url'] as String),
+      bytes: bytes,
+      filename: filename,
+    );
+    await _client.completeUploadExternal(
+      fileId: uploadInfo['file_id'] as String,
+      filename: filename,
+      channel: channel,
+      threadTs: threadTs,
+      initialComment: comment,
+    );
+
+    return filename;
+  }
+
+  /// Opens (or looks up) the direct-message conversation with [user] and
+  /// returns its channel ID (`D...`).
+  ///
+  /// `chat.postMessage` accepts a user ID as `channel` and auto-opens the DM,
+  /// but `files.completeUploadExternal` does not — it validates `channel_id`
+  /// against real conversation IDs, so callers attaching a file to a DM must
+  /// resolve this first and pass the result to [uploadFile].
+  Future<String> openDirectMessage({required String user}) async {
+    final json = await _client.conversationsOpen(user: user);
+    final channel = json['channel'] as Map<String, dynamic>;
+    return channel['id'] as String;
+  }
+
+  /// The final path segment of [path], tolerating both `/` and `\` as
+  /// separators regardless of host platform.
+  static String _basename(String path) {
+    final segments = path.replaceAll(r'\', '/').split('/');
+    return segments.last.isEmpty ? path : segments.last;
   }
 
   /// Lists channels the authenticated user has access to.

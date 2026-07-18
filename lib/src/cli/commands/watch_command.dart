@@ -144,6 +144,6 @@ class WatchCommand extends AuthenticatedCommand {
     final thread = message.replyCount != null
         ? ' [${message.replyCount} replies]'
         : '';
-    logger.info('<$user> ${message.text}$thread');
+    logger.info('<$user> ${message.text}${message.attachmentSuffix}$thread');
   }
 }
