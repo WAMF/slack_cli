@@ -78,6 +78,16 @@
 
 ### Fixed
 
+- `send`, `reply`, `dm`, and `edit` now normalize `--text` before they build
+  the Slack API request (#35). A plain double-quoted shell string does not
+  interpret backslash escapes, so `-t "line1\nline2"` used to reach Slack as
+  the literal characters `\` and `n` and rendered as broken text instead of a
+  line break. The literal `\n`, `\r\n`, `\r`, and `\t` sequences now become
+  real control characters, `\r\n` and lone `\r` line endings become `\n`, and
+  stray non-printable control bytes (C0 and DEL) are stripped while newline
+  and tab are kept. Write `\\n` to keep a literal backslash-n. Text that
+  already holds real newlines, real tabs, and printable characters is
+  unchanged byte-for-byte.
 - `info` reported `Members: 0` for channels that demonstrably have members,
   contradicting `members` run against the same channel (#27).
   `conversations.info`'s `num_members` field is frequently stale or

@@ -328,6 +328,31 @@ dart run bin/dart_slack.dart stream -c <channel-id>
 dart run bin/dart_slack.dart logout
 ```
 
+### Message text
+
+`send`, `reply`, `dm`, and `edit` normalize the `--text` argument before they
+call the Slack API. A plain double-quoted shell string does not interpret
+backslash escapes, so `-t "line1\nline2"` sends the two literal characters `\`
+and `n`, and Slack shows them as text instead of a line break.
+
+The normalization is a safety net for that case:
+
+- The literal `\n`, `\r\n`, `\r`, and `\t` sequences become real control
+  characters.
+- `\r\n` and lone `\r` line endings become `\n`.
+- Other non-printable control bytes (C0 and DEL) are removed. Newline and tab
+  are kept.
+- Every other backslash sequence is left alone. Write `\\n` to keep a literal
+  backslash-n.
+
+Text that already holds real newlines, real tabs, and printable characters is
+sent unchanged. To make a real newline in the shell, use ANSI-C quoting or a
+heredoc:
+
+```sh
+dart run bin/dart_slack.dart send -c <channel-id> -t $'line1\nline2'
+```
+
 ---
 
 ## Running Tests

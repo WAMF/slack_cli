@@ -1,4 +1,5 @@
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
+import 'package:dart_slack/src/cli/message_text.dart';
 import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
 
@@ -42,7 +43,7 @@ class EditCommand extends AuthenticatedCommand {
   Future<int> runAuthenticated(Slack slack) async {
     final channel = argResults!['channel'] as String;
     final ts = argResults!['ts'] as String;
-    final text = argResults!['text'] as String;
+    final text = normalizeMessageText(argResults!['text'] as String);
 
     await slack.updateMessage(channel: channel, ts: ts, text: text);
     logger.success('Message $ts in $channel updated.');

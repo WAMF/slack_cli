@@ -202,4 +202,75 @@ void main() {
       );
     });
   });
+
+  group('DmCommand text normalization', () {
+    late _MockLogger logger;
+    late _MockCredentialsStore credentialsStore;
+    late _MockHttpClient httpClient;
+    late CommandRunner<int> runner;
+    late List<String> sentBodies;
+
+    const credentials = Credentials(
+      accessToken: 'xoxp-test',
+      userId: 'U123',
+    );
+
+    setUpAll(() {
+      registerFallbackValue(Uri.parse('https://example.com'));
+    });
+
+    setUp(() {
+      logger = _MockLogger();
+      credentialsStore = _MockCredentialsStore();
+      httpClient = _MockHttpClient();
+      sentBodies = <String>[];
+
+      when(() => logger.success(any())).thenReturn(null);
+      when(() => logger.err(any())).thenReturn(null);
+      when(() => httpClient.close()).thenReturn(null);
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer((invocation) async {
+        sentBodies.add(invocation.namedArguments[#body] as String);
+        return http.Response(
+          jsonEncode({
+            'ok': true,
+            'channel': 'C1',
+            'ts': '1.0',
+            'message': {'text': 'x'},
+          }),
+          200,
+        );
+      });
+
+      runner = CommandRunner<int>('test', 'test')
+        ..addCommand(
+          DmCommand(
+            logger: logger,
+            credentialsStore: credentialsStore,
+            httpClient: httpClient,
+          ),
+        );
+    });
+
+    String sentText() =>
+        (jsonDecode(sentBodies.last) as Map<String, dynamic>)['text'] as String;
+
+    test('converts a literal escape sequence to a real newline', () async {
+      await runner.run(['dm', '-u', 'U9', '-t', r'line1\nline2']);
+
+      expect(sentText(), equals('line1\nline2'));
+    });
+
+    test('sends plain text unchanged', () async {
+      await runner.run(['dm', '-u', 'U9', '-t', 'plain text']);
+
+      expect(sentText(), equals('plain text'));
+    });
+  });
 }
