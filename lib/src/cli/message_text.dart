@@ -13,9 +13,15 @@
 /// Three steps run in order:
 ///
 /// 1. Unescape the literal two-character sequences `\n`, `\r`, `\t` and `\\`.
-///    `\\` yields a single backslash, so `\\n` is the escape hatch for text
-///    that must keep a literal `\n`. Every other backslash sequence (`\d`,
-///    `\s`, a trailing `\`) is left alone.
+///    `\\` yields a single backslash, so the three bytes `\\n` are the escape
+///    hatch for text that must keep a literal `\n`. Every other backslash
+///    sequence (`\d`, `\s`, a trailing `\`) is left alone.
+///
+///    Those are ARGUMENT bytes, not a shell spelling, and the difference is a
+///    trap: in bash double quotes `"\\n"` passes the same two bytes as `"\n"`,
+///    so it reaches here as an unescape and not as a hatch. The shell spellings
+///    that do pass three bytes are `'a\\nb'` and `"a\\\\nb"`. The README table
+///    and `test/src/cli/message_text_test.dart` pin this.
 /// 2. Normalize line endings: `\r\n` and a lone `\r` become `\n`.
 /// 3. Strip the remaining non-printable control characters (C0 and DEL),
 ///    keeping newline and tab.
