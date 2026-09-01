@@ -328,6 +328,55 @@ dart run bin/dart_slack.dart stream -c <channel-id>
 dart run bin/dart_slack.dart logout
 ```
 
+### Message text
+
+`send`, `reply`, `dm`, and `edit` normalize the `--text` argument before they
+call the Slack API. A plain double-quoted shell string does not interpret
+backslash escapes, so `-t "line1\nline2"` sends the two literal characters `\`
+and `n`, and Slack shows them as text instead of a line break.
+
+The normalization is a safety net for that case:
+
+- The literal `\n`, `\r\n`, `\r`, and `\t` sequences become real control
+  characters.
+- `\r\n` and lone `\r` line endings become `\n`.
+- Other non-printable control bytes (C0 and DEL) are removed. Newline and tab
+  are kept.
+- Every other backslash sequence is left alone.
+
+#### Keeping a literal backslash-n
+
+The escape hatch is a doubled backslash, but it must survive your shell first.
+What the CLI acts on is the BYTES the argument arrives as, not how you spelled
+it. In bash double quotes a backslash is only special before `$`, `` ` ``, `"`,
+`\` and a newline, so `"\n"` and `"\\n"` pass the SAME two bytes:
+
+| Spelling of `--text` | Bytes the CLI receives | What Slack shows |
+| --- | --- | --- |
+| `"a\nb"` | `a` `\` `n` `b` | two lines |
+| `"a\\nb"` | `a` `\` `n` `b` | two lines — the same bytes, so this is NOT an escape hatch |
+| `"a\\\\nb"` | `a` `\` `\` `n` `b` | the literal `\n` |
+| `'a\\nb'` | `a` `\` `\` `n` `b` | the literal `\n` |
+
+So use single quotes — `-t 'a\\nb'` — or four backslashes inside double quotes.
+
+The same rule applies to any literal text where a backslash meets `n`, `r` or
+`t`. A Windows path is the common one: `-t 'C:\new'` sends `C:`, a newline and
+`ew`, because the shell passes `C:\new` and `\n` is then unescaped. Write
+`-t 'C:\\new'` to keep the path.
+
+`test/src/cli/message_text_test.dart` pins this table. It runs the spellings
+above through `bash` and asserts the argument bytes, so the table cannot drift
+from the behaviour.
+
+Text that already holds real newlines, real tabs, and printable characters is
+sent unchanged. To make a real newline in the shell, use ANSI-C quoting or a
+heredoc:
+
+```sh
+dart run bin/dart_slack.dart send -c <channel-id> -t $'line1\nline2'
+```
+
 ---
 
 ## Running Tests

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
+import 'package:dart_slack/src/cli/message_text.dart';
 import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
 
@@ -43,7 +44,7 @@ class DmCommand extends AuthenticatedCommand {
   @override
   Future<int> runAuthenticated(Slack slack) async {
     final user = argResults!['user'] as String;
-    final text = argResults!['text'] as String;
+    final text = normalizeMessageText(argResults!['text'] as String);
     final filePath = argResults!['file'] as String?;
 
     if (filePath != null) {
