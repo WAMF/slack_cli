@@ -7,6 +7,16 @@
 
 ### Added
 
+- `search` command: full-text message search across every conversation the
+  authenticated user can see, backed by Slack's `search.messages` method.
+  Takes `-q`/`--query` (required), `-l`/`--limit` (default 20), and
+  `-c`/`--channel`, which adds the matching `in:` modifier to the query
+  without replacing it. Prints channel, timestamp, author, and a snippet for
+  each match. Adds `Slack.searchMessages()`,
+  `SlackApiClient.searchMessages()`, the `SlackSearchMatch` model, and the
+  `search:read` OAuth scope. **Existing users must run `dart_slack login`
+  again to receive `search:read`;** a stored token does not gain a new scope
+  on its own.
 - `send`, `reply`, and `dm` accept a `--file <path>` option to attach a local
   file to the posted message (with `--text` as the accompanying comment).
   Backed by `Slack.uploadFile()`, which drives Slack's current (non-deprecated)
