@@ -33,8 +33,9 @@ class SearchCommand extends AuthenticatedCommand {
         'query',
         abbr: 'q',
         help:
-            'The text to search for. Slack search modifiers such as '
-            '"in:#channel", "from:@user", "before:2026-08-01" are accepted.',
+            'Required. The text to search for. Slack search modifiers such '
+            'as "in:#channel", "from:@user", "before:2026-08-01" are '
+            'accepted.',
       )
       ..addOption(
         'limit',

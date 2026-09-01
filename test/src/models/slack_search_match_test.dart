@@ -76,6 +76,27 @@ void main() {
 
         expect(match.channelLabel, equals('C123'));
       });
+
+      test('treats an empty channel ID as absent', () {
+        const match = SlackSearchMatch(
+          ts: '1.0',
+          text: 'hi',
+          channelId: '',
+        );
+
+        expect(match.channelLabel, equals('unknown'));
+      });
+
+      test('treats an empty channel name and ID as absent', () {
+        const match = SlackSearchMatch(
+          ts: '1.0',
+          text: 'hi',
+          channelId: '',
+          channelName: '',
+        );
+
+        expect(match.channelLabel, equals('unknown'));
+      });
     });
 
     group('authorLabel', () {
@@ -111,6 +132,23 @@ void main() {
         );
 
         expect(match.authorLabel, equals('U123'));
+      });
+
+      test('treats an empty user ID as absent', () {
+        const match = SlackSearchMatch(ts: '1.0', text: 'hi', user: '');
+
+        expect(match.authorLabel, equals('unknown'));
+      });
+
+      test('treats an empty username and user ID as absent', () {
+        const match = SlackSearchMatch(
+          ts: '1.0',
+          text: 'hi',
+          user: '',
+          username: '',
+        );
+
+        expect(match.authorLabel, equals('unknown'));
       });
     });
   });

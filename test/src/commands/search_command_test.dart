@@ -132,6 +132,24 @@ void main() {
       expect(command.description, isNotEmpty);
     });
 
+    test('says in the usage that --query is required', () async {
+      // --query is not declared `mandatory: true` (see issue #42), so
+      // package:args does not add its own " (mandatory)" marker the way it
+      // does for `history -c` and `thread -c`. Without a marker in the help
+      // text a reader cannot tell the option is required. The assertion runs
+      // against the usage the user is actually shown on a usage error.
+      await runner.run(['search']);
+
+      final logged = verify(
+        () => logger.info(captureAny()),
+      ).captured.cast<String>();
+
+      expect(
+        logged.join('\n'),
+        contains('Required. The text to search for.'),
+      );
+    });
+
     group('argument validation', () {
       const missingQuery =
           'Missing --query. Give the text to search for, '
@@ -331,6 +349,120 @@ void main() {
       });
     });
 
+    group('conversation ID recognition', () {
+      // `buildQuery` tells an ID from a name with `^[CDG][A-Z0-9]{2,}$`. An
+      // ID becomes the channel-link form `in:<#ID>`; anything else becomes
+      // the name form `in:#name`. Each case below is chosen so that exactly
+      // one relaxation of that pattern would classify it the other way, so
+      // the whole pattern is pinned rather than only its happy path.
+      const cases = <(String, String, String)>[
+        // The `{2,}` bound, from both sides.
+        ('C1', 'deploy failed in:#C1', 'one trailing character is too few'),
+        (
+          'C12',
+          'deploy failed in:<#C12>',
+          'two trailing characters are enough',
+        ),
+        (
+          'C0123456789AB',
+          'deploy failed in:<#C0123456789AB>',
+          'the trailing run has no upper bound',
+        ),
+        // The anchors.
+        (
+          'C123 x',
+          'deploy failed in:#C123 x',
+          'an ID must reach the end of the value',
+        ),
+        (
+          'xC123',
+          'deploy failed in:#xC123',
+          'an ID must start at the start of the value',
+        ),
+        // The character classes.
+        (
+          'c0123abcdef',
+          'deploy failed in:#c0123abcdef',
+          'a lowercase leading letter is a name',
+        ),
+        (
+          'Cabcdef',
+          'deploy failed in:#Cabcdef',
+          'lowercase after the leading letter is a name',
+        ),
+        (
+          'U0123ABCDEF',
+          'deploy failed in:#U0123ABCDEF',
+          'a user ID is not a conversation ID',
+        ),
+        (
+          'D0123ABCDEF',
+          'deploy failed in:<#D0123ABCDEF>',
+          'a direct message ID is a conversation ID',
+        ),
+        (
+          'G0123ABCDEF',
+          'deploy failed in:<#G0123ABCDEF>',
+          'a private group ID is a conversation ID',
+        ),
+      ];
+
+      for (final (channel, expected, reason) in cases) {
+        test('reads -c "$channel" as $reason', () async {
+          final uri = await capturedRequestUri(
+            ['search', '-q', 'deploy failed', '-c', channel],
+            _searchResponse([_match()]),
+          );
+
+          expect(
+            uri.queryParameters['query'],
+            equals(expected),
+            reason: reason,
+          );
+        });
+      }
+    });
+
+    group('buildQuery', () {
+      // `validateArguments` rejects a blank --channel before the command
+      // reaches `buildQuery`, so the CLI cannot exercise these two guards.
+      // `buildQuery` is a public static, so they are part of its contract
+      // and are tested directly.
+      test('returns the query unchanged for a whitespace-only channel', () {
+        expect(
+          SearchCommand.buildQuery(query: 'deploy failed', channel: '   '),
+          equals('deploy failed'),
+        );
+      });
+
+      test('returns the query unchanged for an empty channel', () {
+        expect(
+          SearchCommand.buildQuery(query: 'deploy failed', channel: ''),
+          equals('deploy failed'),
+        );
+      });
+
+      test('trims the surrounding whitespace off a channel name', () {
+        expect(
+          SearchCommand.buildQuery(
+            query: 'deploy failed',
+            channel: '  incidents  ',
+          ),
+          equals('deploy failed in:#incidents'),
+        );
+      });
+
+      test('trims the surrounding whitespace off a channel ID', () {
+        expect(
+          SearchCommand.buildQuery(
+            query: 'deploy failed',
+            channel: '  C1763JQAD  ',
+          ),
+          equals('deploy failed in:<#C1763JQAD>'),
+        );
+      });
+    });
+
     group('API request', () {
       test('calls search.messages with the query and the first page', () async {
         final uri = await capturedRequestUri(
@@ -502,6 +634,30 @@ void main() {
         verify(
           () => logger.info('[#incidents] [1.0] <lee> ${'x' * 200}'),
         ).called(1);
+      });
+
+      test('truncates a match of exactly 201 characters', () async {
+        // 201 is the only length that separates the real `<= 200` bound from
+        // an off-by-one `<= 201`. At 200 both keep the text whole, and at
+        // 250 both cut it.
+        answerWith(_searchResponse([_match(text: 'x' * 201)]));
+
+        await runner.run(['search', '-q', 'deploy']);
+
+        verify(
+          () => logger.info('[#incidents] [1.0] <lee> ${'x' * 200}…'),
+        ).called(1);
+      });
+
+      test('trims the whitespace around a match', () async {
+        // Collapsing runs of whitespace turns "  padded  " into " padded ",
+        // which still carries a leading and a trailing space. The trim is
+        // what removes them.
+        answerWith(_searchResponse([_match(text: '  padded  ')]));
+
+        await runner.run(['search', '-q', 'deploy']);
+
+        verify(() => logger.info('[#incidents] [1.0] <lee> padded')).called(1);
       });
 
       test('notes when more pages of results exist', () async {

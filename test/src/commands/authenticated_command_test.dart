@@ -65,6 +65,28 @@ class _TestCommand extends AuthenticatedCommand {
   }
 }
 
+/// A command that does not override [AuthenticatedCommand.validateArguments].
+///
+/// [_TestCommand] always overrides it, so a test using [_TestCommand] reads
+/// the override and never the base-class body. This class leaves the base
+/// body in place, which is what a real command that takes no arguments does.
+class _NoOverrideCommand extends AuthenticatedCommand {
+  _NoOverrideCommand({
+    required super.logger,
+    super.credentialsStore,
+    super.httpClient,
+  });
+
+  @override
+  String get description => 'Command without a validateArguments override';
+
+  @override
+  String get name => 'no-override-cmd';
+
+  @override
+  Future<int> runAuthenticated(Slack slack) async => ExitCode.success.code;
+}
+
 void main() {
   group('AuthenticatedCommand', () {
     late _MockLogger logger;
@@ -126,6 +148,24 @@ void main() {
       when(() => credentialsStore.load()).thenReturn(credentials);
 
       final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+      );
+
+      expect(command.validateArguments(), isNull);
+      expect(await command.run(), equals(ExitCode.success.code));
+    });
+
+    test('accepts the arguments when a command adds no override', () async {
+      // The test above builds a _TestCommand, which overrides
+      // validateArguments with `onValidate?.call()`. With no callback that
+      // override returns null on its own, so the test reads the override and
+      // never the base-class body. This command adds no override, so the
+      // base-class default is the only thing that can answer.
+      when(() => credentialsStore.load()).thenReturn(credentials);
+
+      final command = _NoOverrideCommand(
         logger: logger,
         credentialsStore: credentialsStore,
         httpClient: httpClient,
