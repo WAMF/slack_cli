@@ -43,9 +43,15 @@ class _TestCommand extends AuthenticatedCommand {
     super.httpClient,
     super.environment,
     this.onRun,
+    this.onValidate,
   });
 
   final Future<int> Function(Slack slack)? onRun;
+
+  final int? Function()? onValidate;
+
+  @override
+  int? validateArguments() => onValidate?.call();
 
   @override
   String get description => 'Test command';
@@ -115,6 +121,45 @@ void main() {
         ),
       ).called(1);
     });
+
+    test('accepts the arguments by default', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+      );
+
+      expect(command.validateArguments(), isNull);
+      expect(await command.run(), equals(ExitCode.success.code));
+    });
+
+    test(
+      'stops on a validateArguments failure before reading credentials',
+      () async {
+        when(() => credentialsStore.load()).thenReturn(null);
+
+        final command = _TestCommand(
+          logger: logger,
+          credentialsStore: credentialsStore,
+          httpClient: httpClient,
+          environment: const {},
+          onValidate: () => ExitCode.usage.code,
+          onRun: (_) async => ExitCode.success.code,
+        );
+
+        final result = await command.run();
+
+        // A usage error must not depend on the auth state: no credential is
+        // read, so the answer is 64 and not the noUser code 67.
+        expect(result, equals(ExitCode.usage.code));
+        verifyNever(() => credentialsStore.load());
+        verifyNever(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        );
+      },
+    );
 
     test('falls back to SLACK_TOKEN when no credentials file exists', () async {
       when(() => credentialsStore.load()).thenReturn(null);

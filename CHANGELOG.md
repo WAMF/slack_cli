@@ -17,6 +17,11 @@
   `search:read` OAuth scope. **Existing users must run `dart_slack login`
   again to receive `search:read`;** a stored token does not gain a new scope
   on its own.
+- `AuthenticatedCommand.validateArguments()`: an optional hook that runs
+  before any credential is resolved. A usage error does not depend on a
+  token, so a command called with wrong arguments now answers the same way
+  whether or not the user is logged in. The default accepts everything, so
+  every existing command behaves exactly as before. `search` uses it.
 - `send`, `reply`, and `dm` accept a `--file <path>` option to attach a local
   file to the posted message (with `--text` as the accompanying comment).
   Backed by `Slack.uploadFile()`, which drives Slack's current (non-deprecated)

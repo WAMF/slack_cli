@@ -15,6 +15,20 @@ class _MockCredentialsStore extends Mock implements CredentialsStore {}
 
 class _MockHttpClient extends Mock implements http.Client {}
 
+/// A 200 answer carrying [body], decoded as UTF-8.
+///
+/// `http.Response(String, int)` encodes the body as Latin-1 and throws on any
+/// character outside it, so an emoji in a match would fail in the harness
+/// rather than in the code under test. Slack answers
+/// `application/json; charset=utf-8`, so the harness says so too.
+http.Response _okResponse(String body) {
+  return http.Response.bytes(
+    utf8.encode(body),
+    200,
+    headers: {'content-type': 'application/json; charset=utf-8'},
+  );
+}
+
 /// A `search.messages` body carrying [matches] on page [page] of [pages].
 String _searchResponse(
   List<Map<String, dynamic>> matches, {
@@ -96,7 +110,7 @@ void main() {
     Future<Uri> capturedRequestUri(List<String> args, String body) async {
       when(
         () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async => http.Response(body, 200));
+      ).thenAnswer((_) async => _okResponse(body));
 
       await runner.run(args);
 
@@ -109,7 +123,7 @@ void main() {
     void answerWith(String body) {
       when(
         () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async => http.Response(body, 200));
+      ).thenAnswer((_) async => _okResponse(body));
     }
 
     test('has correct name and description', () {
@@ -160,6 +174,39 @@ void main() {
           () => httpClient.get(any(), headers: any(named: 'headers')),
         );
       });
+      test('answers a usage error without reading any credential', () async {
+        // Regression test for the review finding on PR #43. Validation used
+        // to run inside runAuthenticated, so `search` with no --query and no
+        // stored token answered `Not logged in` and exit 67. A usage error
+        // must not depend on the auth state.
+        final exitCode = await runner.run(['search']);
+
+        expect(exitCode, equals(ExitCode.usage.code));
+        verifyNever(() => credentialsStore.load());
+        verifyNever(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        );
+      });
+
+      test(
+        'answers a limit usage error without reading any credential',
+        () async {
+          final exitCode = await runner.run(['search', '-q', 'hi', '-l', '0']);
+
+          expect(exitCode, equals(ExitCode.usage.code));
+          verifyNever(() => credentialsStore.load());
+        },
+      );
+
+      test(
+        'answers a channel usage error without reading any credential',
+        () async {
+          final exitCode = await runner.run(['search', '-q', 'hi', '-c', ' ']);
+
+          expect(exitCode, equals(ExitCode.usage.code));
+          verifyNever(() => credentialsStore.load());
+        },
+      );
     });
 
     group('limit handling', () {
@@ -407,6 +454,44 @@ void main() {
         ).captured.cast<String>();
         final line = logged.singleWhere((l) => l.startsWith('[#incidents]'));
         expect(line, equals('[#incidents] [1.0] <lee> ${'x' * 200}…'));
+      });
+
+      test(
+        'cuts a long emoji match without splitting a surrogate pair',
+        () async {
+          // A Dart string is indexed in UTF-16 code units, so a naive
+          // substring(0, 200) would cut this run of 2-code-unit emoji in half
+          // and emit a lone surrogate.
+          answerWith(_searchResponse([_match(text: '\u{1F600}' * 250)]));
+
+          await runner.run(['search', '-q', 'deploy']);
+
+          final logged = verify(
+            () => logger.info(captureAny()),
+          ).captured.cast<String>();
+          final line = logged.singleWhere((l) => l.startsWith('[#incidents]'));
+          expect(
+            line,
+            equals('[#incidents] [1.0] <lee> ${'\u{1F600}' * 200}…'),
+          );
+          expect(
+            line.runes.any((r) => r >= 0xD800 && r <= 0xDFFF),
+            isFalse,
+            reason: 'no lone surrogate may survive the cut',
+          );
+        },
+      );
+
+      test('keeps a match of exactly 200 runes whole', () async {
+        answerWith(_searchResponse([_match(text: '\u{1F600}' * 200)]));
+
+        await runner.run(['search', '-q', 'deploy']);
+
+        verify(
+          () => logger.info(
+            '[#incidents] [1.0] <lee> ${'\u{1F600}' * 200}',
+          ),
+        ).called(1);
       });
 
       test('keeps a match of exactly 200 characters whole', () async {

@@ -2,8 +2,9 @@ import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
 import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-/// The largest snippet printed for one match. Search matches can be long and
-/// multi-line; the full message is still readable with `history` or `thread`.
+/// The largest snippet printed for one match, counted in Unicode code
+/// points. Search matches can be long and multi-line; the full message is
+/// still readable with `history` or `thread`.
 const int _snippetLength = 200;
 
 /// Matches a Slack conversation ID: a channel (`C...`), a private group
@@ -56,23 +57,34 @@ class SearchCommand extends AuthenticatedCommand {
   @override
   String get name => 'search';
 
+  /// The trimmed `--query`, or `null` when it is absent or blank.
+  ///
+  /// Read as a nullable value rather than declaring the option
+  /// `mandatory: true`. A mandatory option throws an `ArgumentError` out of
+  /// `argResults[...]`, which reaches the user as an unhandled exception and
+  /// a Dart stack trace instead of the usage text. See issue #42.
+  String? get _query {
+    final raw = (argResults!['query'] as String?)?.trim();
+    return (raw == null || raw.isEmpty) ? null : raw;
+  }
+
+  /// The parsed `--limit`, or `null` when it is not a positive integer.
+  int? get _limit {
+    final parsed = int.tryParse(argResults!['limit'] as String);
+    return (parsed == null || parsed <= 0) ? null : parsed;
+  }
+
   @override
-  Future<int> runAuthenticated(Slack slack) async {
-    // Read as nullable and check it here rather than declaring the option
-    // `mandatory: true`. A mandatory option throws an ArgumentError out of
-    // `argResults[...]`, which reaches the user as an unhandled exception
-    // and a Dart stack trace instead of the usage text.
-    final query = (argResults!['query'] as String?)?.trim();
-    if (query == null || query.isEmpty) {
+  int? validateArguments() {
+    if (_query == null) {
       return _usageError(
         'Missing --query. Give the text to search for, '
         'for example: search -q "deploy failed".',
       );
     }
 
-    final rawLimit = argResults!['limit'] as String;
-    final limit = int.tryParse(rawLimit);
-    if (limit == null || limit <= 0) {
+    if (_limit == null) {
+      final rawLimit = argResults!['limit'] as String;
       return _usageError(
         'Invalid --limit value: "$rawLimit". Use a positive integer.',
       );
@@ -83,9 +95,19 @@ class SearchCommand extends AuthenticatedCommand {
       return _usageError('Invalid --channel value: it must not be empty.');
     }
 
+    return null;
+  }
+
+  @override
+  Future<int> runAuthenticated(Slack slack) async {
+    // `validateArguments` has already run and rejected a missing query and a
+    // bad limit, so both are known good here.
     final page = await slack.searchMessages(
-      query: buildQuery(query: query, channel: rawChannel),
-      limit: limit,
+      query: buildQuery(
+        query: _query!,
+        channel: argResults!['channel'] as String?,
+      ),
+      limit: _limit!,
     );
 
     if (page.items.isEmpty) {
@@ -126,10 +148,16 @@ class SearchCommand extends AuthenticatedCommand {
   /// Every run of whitespace — including the newlines of a multi-line
   /// message — collapses to a single space, so one match stays on one line.
   /// Text longer than [_snippetLength] is cut and marked with an ellipsis.
+  ///
+  /// The cut counts runes, not code units. A Dart string is indexed in UTF-16
+  /// code units, so cutting with `substring` can land between the two halves
+  /// of a surrogate pair and emit a lone surrogate. A Slack message with an
+  /// emoji near the limit would print as mojibake.
   static String snippet(String text) {
     final collapsed = text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (collapsed.length <= _snippetLength) return collapsed;
-    return '${collapsed.substring(0, _snippetLength)}…';
+    final runes = collapsed.runes;
+    if (runes.length <= _snippetLength) return collapsed;
+    return '${String.fromCharCodes(runes.take(_snippetLength))}…';
   }
 
   /// Prints [message] with the command usage and returns the usage exit code.
