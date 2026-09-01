@@ -193,6 +193,30 @@ class SlackApiClient {
     required String user,
   }) => _post(SlackUrls.conversationsOpen, {'users': user});
 
+  /// Searches messages the authenticated user can see for [query].
+  ///
+  /// [query] accepts Slack's search modifiers, for example `in:#incidents`,
+  /// `from:@lee`, `before:2026-08-01`. [count] caps the matches per page and
+  /// [page] selects the 1-based page.
+  ///
+  /// Requires a user token (`xoxp-...`) with the `search:read` scope. A bot
+  /// token cannot call this method at all.
+  ///
+  /// Returns a map containing `messages`, which holds the `matches` list and
+  /// the `paging` metadata.
+  Future<Map<String, dynamic>> searchMessages({
+    required String query,
+    int count = 20,
+    int page = 1,
+  }) async {
+    final params = <String, String>{
+      'query': query,
+      'count': '$count',
+      'page': '$page',
+    };
+    return _get(SlackUrls.searchMessages.replace(queryParameters: params));
+  }
+
   /// Lists all users in the workspace.
   ///
   /// Returns a map containing `members` (list) and pagination metadata.
