@@ -55,6 +55,9 @@ abstract class AuthenticatedCommand extends Command<int> {
 
   @override
   Future<int> run() async {
+    final argumentError = validateArguments();
+    if (argumentError != null) return argumentError;
+
     final credentials =
         credentialsStore.load() ?? _credentialsFromEnvironment();
     if (credentials == null) {
@@ -91,6 +94,20 @@ abstract class AuthenticatedCommand extends Command<int> {
       slack.close();
     }
   }
+
+  /// Checks the command's own arguments before any credential is resolved.
+  ///
+  /// Returns the exit code to stop with, or `null` to continue to
+  /// [runAuthenticated]. A usage error does not depend on a token, so a
+  /// command called with wrong arguments must answer the same way whether or
+  /// not the user is logged in. Validating here keeps that answer
+  /// independent of the auth state; validating inside [runAuthenticated]
+  /// would report `Not logged in` and exit 67 to a user whose real mistake
+  /// was a missing option.
+  ///
+  /// The default accepts everything, so a command that does not override it
+  /// behaves exactly as before.
+  int? validateArguments() => null;
 
   /// Subclasses implement this with their specific Slack API logic.
   Future<int> runAuthenticated(Slack slack);

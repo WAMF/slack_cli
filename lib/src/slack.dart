@@ -262,6 +262,48 @@ class Slack {
     );
   }
 
+  /// Searches messages the authenticated user can see for [query].
+  ///
+  /// [query] accepts Slack's search modifiers, for example `in:#incidents`,
+  /// `from:@lee`, `before:2026-08-01`. [limit] caps the matches per page and
+  /// [page] selects the 1-based page.
+  ///
+  /// Requires a user token (`xoxp-...`) with the `search:read` scope. A token
+  /// stored before that scope was added throws [SlackApiException] with
+  /// `missing_scope` until the user runs `dart_slack login` again.
+  Future<CursorPage<SlackSearchMatch>> searchMessages({
+    required String query,
+    int limit = 20,
+    int page = 1,
+  }) async {
+    final json = await _client.searchMessages(
+      query: query,
+      count: limit,
+      page: page,
+    );
+    final messages = json['messages'] as Map<String, dynamic>?;
+    final matches = (messages?['matches'] as List<dynamic>? ?? <dynamic>[])
+        .cast<Map<String, dynamic>>()
+        .map(SlackSearchMatch.fromJson)
+        .toList();
+    return CursorPage(
+      items: matches,
+      hasMore: _hasMorePages(messages),
+    );
+  }
+
+  /// Whether `search.messages` reports a page after the one just returned.
+  ///
+  /// The method pages by number rather than by cursor, so the answer comes
+  /// from `paging.page` and `paging.pages` instead of `response_metadata`.
+  static bool _hasMorePages(Map<String, dynamic>? messages) {
+    final paging = messages?['paging'] as Map<String, dynamic>?;
+    final page = paging?['page'] as int?;
+    final pages = paging?['pages'] as int?;
+    if (page == null || pages == null) return false;
+    return page < pages;
+  }
+
   /// Lists all users in the workspace.
   Future<CursorPage<SlackUser>> usersList({
     int limit = 100,

@@ -43,6 +43,12 @@ for (final channel in channels) {
 // Join a public channel
 await slack.joinChannel('C0123ABCDEF');
 
+// Search messages (user token with `search:read` only)
+final results = await slack.searchMessages(query: 'deploy failed', limit: 10);
+for (final match in results.items) {
+  print('${match.channelLabel} ${match.ts} ${match.authorLabel}');
+}
+
 // Read a canvas's markdown body (returns null if the id is not a canvas)
 final body = await slack.readCanvas(canvasId: 'F0123ABCDEF');
 print(body);
@@ -167,6 +173,22 @@ Returned by `Slack.listChannels`.
 | `name` | `String` | Channel name without the `#` prefix |
 | `isPrivate` | `bool` | Whether this is a private channel |
 
+#### SlackSearchMatch
+
+One message match, returned by `Slack.searchMessages` inside a `CursorPage`.
+
+| Field | Type | Description |
+|---|---|---|
+| `ts` | `String` | Message timestamp |
+| `text` | `String` | Message text content |
+| `channelId` | `String?` | Channel identifier (e.g. `C0123ABCDEF`) |
+| `channelName` | `String?` | Channel name without the `#` prefix |
+| `user` | `String?` | Author's user ID |
+| `username` | `String?` | Author's display name, as resolved by Slack |
+
+`channelLabel` gives `#name`, then the channel ID, then `unknown`.
+`authorLabel` gives the display name, then the user ID, then `unknown`.
+
 ---
 
 ## CLI
@@ -190,7 +212,14 @@ Returned by `Slack.listChannels`.
    - `files:write` (attach a file with `send`/`reply`/`dm --file`)
    - `groups:read`
    - `im:write`
+   - `search:read` (full-text message search with `search`)
    - `users:read`
+
+   > **Already logged in?** A stored token does not gain a new scope on its
+   > own. After `search:read` is added to the Slack app, every existing user
+   > must run `dart_slack login` again, or `search` fails with
+   > `missing_scope`. Run `dart_slack auth test` to see the active token and
+   > its scopes.
 
    > **Reading huddle transcripts:** Slack provides no API for huddle *audio*
    > recordings or spoken transcripts — once a huddle ends, the spoken content
@@ -267,6 +296,19 @@ dart run bin/dart_slack.dart history -c <channel-id> -l 20
 # Show thread replies
 dart run bin/dart_slack.dart thread -c <channel-id> --ts <thread_ts>
 
+# Search messages across every channel you can see
+dart run bin/dart_slack.dart search -q "deploy failed"
+
+# Limit the number of matches
+dart run bin/dart_slack.dart search -q "deploy failed" -l 20
+
+# Use Slack's own search modifiers in the query
+dart run bin/dart_slack.dart search -q "in:#incidents from:@lee after:2026-08-01"
+
+# Restrict the search to one channel, by ID or by name
+dart run bin/dart_slack.dart search -q "deploy failed" -c C0123ABCDEF
+dart run bin/dart_slack.dart search -q "deploy failed" -c incidents
+
 # Send a message
 dart run bin/dart_slack.dart send -c <channel-id> -t "Hello from the CLI"
 
@@ -327,6 +369,32 @@ dart run bin/dart_slack.dart stream -c <channel-id>
 # Log out
 dart run bin/dart_slack.dart logout
 ```
+
+### Search
+
+`search` reads Slack's `search.messages` method. It prints one line for each
+match:
+
+```
+[#incidents] [1756719000.123456] <lee> deploy failed on staging
+```
+
+The line holds the channel, the message timestamp, the author, and a snippet
+of the text. A multi-line message is collapsed onto one line, and a snippet
+longer than 200 characters is cut and marked with `…`. Use `history` or
+`thread` to read a match in full.
+
+`-c` restricts the search to one channel. It adds the matching `in:` modifier
+to the query and keeps the query itself: `-q "deploy failed" -c C0123ABCDEF`
+searches for `deploy failed in:<#C0123ABCDEF>`. A value that is not a
+conversation ID is treated as a channel name, so `-c incidents` and
+`-c '#incidents'` both add `in:#incidents`.
+
+`search` needs a user token with the `search:read` scope. That scope is new.
+**An existing user must run `dart_slack login` again to receive it** — a
+stored token does not gain a scope on its own. Without it, Slack answers
+`missing_scope` and the CLI prints the `dart_slack login` hint. Run
+`dart_slack auth test` to check the active token.
 
 ### Message text
 

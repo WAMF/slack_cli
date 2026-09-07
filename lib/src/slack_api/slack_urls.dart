@@ -60,6 +60,11 @@ abstract final class SlackUrls {
     'https://slack.com/api/conversations.open',
   );
 
+  /// Full-text search across messages the authenticated user can see.
+  static final Uri searchMessages = Uri.parse(
+    'https://slack.com/api/search.messages',
+  );
+
   /// List all users in the workspace.
   static final Uri usersList = Uri.parse(
     'https://slack.com/api/users.list',

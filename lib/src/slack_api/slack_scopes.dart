@@ -11,6 +11,7 @@ abstract final class SlackScopes {
   static const _groupsHistory = 'groups:history';
   static const _groupsRead = 'groups:read';
   static const _imWrite = 'im:write';
+  static const _searchRead = 'search:read';
   static const _usersRead = 'users:read';
   static const _usersReadEmail = 'users:read.email';
   static const _usersProfileWrite = 'users.profile:write';
@@ -28,6 +29,7 @@ abstract final class SlackScopes {
     _groupsHistory,
     _groupsRead,
     _imWrite,
+    _searchRead,
     _usersRead,
     _usersReadEmail,
     _usersProfileWrite,
