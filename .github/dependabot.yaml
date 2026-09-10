@@ -8,3 +8,15 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      # very_good_analysis 11.0.0 requires Dart SDK ^3.13.0. This package
+      # declares environment: sdk: ^3.10.0 and pins Dart 3.10.0 in both jobs of
+      # dart_slack.yaml, so the major upgrade cannot resolve here. dart_slack is
+      # published, so raising the floor drops support for installers on Dart
+      # 3.10 to 3.12 and is a consumer-facing decision, not a chore. Do not
+      # widen the constraint across the major boundary instead: 10.x sets
+      # formatter trailing_commas: preserve and 11.0.0 sets automate, there is
+      # no pubspec.lock here, and the format gate would then depend on each
+      # contributor's SDK. Remove this entry with the floor raise. See #49.
+      - dependency-name: "very_good_analysis"
+        update-types: ["version-update:semver-major"]
