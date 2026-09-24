@@ -146,7 +146,14 @@ void main() {
       });
 
       test('--text-stdin delivers the bytes unchanged', () async {
-        const raw = 'x `printf changed` y \$(id)\nz';
+        // The literal backslash-n and the carriage return are here on
+        // purpose. Without them this test survives a mutant that normalizes
+        // the standard-input bytes, and the byte-identity promise is then
+        // guarded on the file path only.
+        const raw =
+            'x `printf changed` y \$(id) z \${HOME}\n'
+            r'keep \n and \t literal'
+            '\r\nafter a carriage return\ttab';
         readsStdin(raw);
 
         final exitCode = await run(['--text-stdin']);
@@ -171,6 +178,17 @@ void main() {
         final file = writeTextFile(r'line1\nline2');
 
         await run(['--text-file', file.path]);
+
+        expect(sentText(), equals(r'line1\nline2'));
+        expect(sentText(), isNot(contains('\n')));
+      });
+
+      test('stdin text keeps a literal backslash-n', () async {
+        // The mirror of the file case. The inline path unescapes this; the
+        // standard-input path must not, for the same reason.
+        readsStdin(r'line1\nline2');
+
+        await run(['--text-stdin']);
 
         expect(sentText(), equals(r'line1\nline2'));
         expect(sentText(), isNot(contains('\n')));
