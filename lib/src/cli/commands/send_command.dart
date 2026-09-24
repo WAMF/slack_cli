@@ -1,14 +1,17 @@
 import 'dart:io';
 
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
-import 'package:dart_slack/src/cli/message_text.dart';
+import 'package:dart_slack/src/cli/message_text_input.dart';
 import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-/// `dart_slack send --channel <id> --text "message" [--file <path>]`
+/// `dart_slack send --channel <id> --text-file <path> [--file <path>]`
+///
+/// The message text comes from exactly one of `--text`, `--text-file` or
+/// `--text-stdin`. `--file` attaches a file and is a different option.
 ///
 /// Posts a message to a Slack channel.
-class SendCommand extends AuthenticatedCommand {
+class SendCommand extends AuthenticatedCommand with MessageTextCommand {
   /// Creates a [SendCommand].
   SendCommand({
     required super.logger,
@@ -22,17 +25,8 @@ class SendCommand extends AuthenticatedCommand {
         help: 'The channel ID to post to.',
         mandatory: true,
       )
-      ..addOption(
-        'text',
-        abbr: 't',
-        help: 'The message text.',
-        mandatory: true,
-      )
-      ..addOption(
-        'file',
-        abbr: 'f',
-        help: 'Path to a local file to attach.',
-      );
+      ..addOption('file', abbr: 'f', help: 'Path to a local file to attach.');
+    addMessageTextOptions(argParser, help: 'The message text.');
   }
 
   @override
@@ -44,7 +38,6 @@ class SendCommand extends AuthenticatedCommand {
   @override
   Future<int> runAuthenticated(Slack slack) async {
     final channel = argResults!['channel'] as String;
-    final text = normalizeMessageText(argResults!['text'] as String);
     final filePath = argResults!['file'] as String?;
 
     if (filePath != null) {
@@ -55,13 +48,16 @@ class SendCommand extends AuthenticatedCommand {
       final filename = await slack.uploadFile(
         channel: channel,
         path: filePath,
-        comment: text,
+        comment: messageText,
       );
       logger.success('File "$filename" sent to $channel.');
       return ExitCode.success.code;
     }
 
-    final message = await slack.postMessage(channel: channel, text: text);
+    final message = await slack.postMessage(
+      channel: channel,
+      text: messageText,
+    );
     logger.success('Message sent to $channel (ts: ${message.ts}).');
     return ExitCode.success.code;
   }

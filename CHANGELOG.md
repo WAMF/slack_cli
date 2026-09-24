@@ -2,11 +2,29 @@
 
 ### Breaking
 
+- `--text` is no longer `mandatory` on `send`, `reply`, `dm`, and `edit`.
+  Exactly one of `--text`, `--text-file` and `--text-stdin` is now required,
+  and giving none or more than one is a usage error (exit 64). Every existing
+  command line that passes `--text` keeps working.
 - OAuth flow now validates the `state` parameter (CSRF protection). Callbacks without a valid state are rejected.
 - HTML characters in OAuth callback responses are now escaped.
 
 ### Added
 
+- `send`, `reply`, `dm`, and `edit` take the message text from a file with
+  `--text-file <path>`, or from standard input with `--text-stdin`
+  (`--text-file -` is the same thing). Those bytes never pass through a shell,
+  so they are sent unchanged: no unescaping, no line-ending rewrite, no
+  control-character stripping. Inline `--text` keeps the normalization it has
+  today, because a shell-quoted argument is the case that normalization
+  repairs. This closes the case where a backtick span or a `$( )` span in a
+  double-quoted `--text` argument is run by the shell before the CLI starts,
+  which changed the message while the send still reported success.
+  `--file` / `-f` is unchanged: it attaches a file, it does not supply text.
+- Inline `--text` warns when its value contains `` ` ``, `$(` or `${`. The
+  warning names the habit, not a detected fault: a marker that reaches the CLI
+  proves the shell did not expand it that time, and a span the shell did expand
+  leaves no trace to detect. The message is sent either way.
 - `search` command: full-text message search across every conversation the
   authenticated user can see, backed by Slack's `search.messages` method.
   Takes `-q`/`--query` (required), `-l`/`--limit` (default 20), and
