@@ -318,4 +318,76 @@ void main() {
       });
     });
   }
+
+  _byteOrderMarkGroup();
+}
+
+/// Checks the real `readStandardInput()` and the real file reader.
+///
+/// A leading U+FEFF is the case the injected-reader tests cannot reach.
+/// Dart's UTF-8 decoder drops it, and `File.readAsStringSync` uses that
+/// decoder, so both safe paths lost a valid character before this guard.
+void _byteOrderMarkGroup() {
+  group('leading U+FEFF survives the safe input paths', () {
+    const bomBytes = [0xEF, 0xBB, 0xBF];
+    const helloBytes = [0x68, 0x65, 0x6C, 0x6C, 0x6F];
+
+    test('decodeMessageBytes keeps it', () {
+      expect(decodeMessageBytes([...bomBytes, ...helloBytes]).codeUnits, [
+        0xFEFF,
+        ...helloBytes,
+      ]);
+    });
+
+    test('decodeMessageBytes keeps a second U+FEFF too', () {
+      // Only the leading mark is dropped by the decoder. A mark further in
+      // must not be duplicated or moved by the repair.
+      expect(
+        decodeMessageBytes([...bomBytes, 0x61, ...bomBytes, 0x62]).codeUnits,
+        [0xFEFF, 0x61, 0xFEFF, 0x62],
+      );
+    });
+
+    test('decodeMessageBytes leaves text without a mark alone', () {
+      expect(decodeMessageBytes(helloBytes), equals('hello'));
+    });
+
+    test('the real file reader keeps it', () {
+      final dir = Directory.systemTemp.createTempSync('dart_slack_bom');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final file = File('${dir.path}/message.txt')
+        ..writeAsBytesSync([...bomBytes, ...helloBytes]);
+
+      expect(decodeMessageBytes(file.readAsBytesSync()).codeUnits, [
+        0xFEFF,
+        ...helloBytes,
+      ]);
+      // The reader this replaced, named so the regression is unmistakable.
+      expect(file.readAsStringSync(), equals('hello'));
+    });
+
+    test('the real readStandardInput keeps it', () {
+      // This drives `readStandardInput` itself, not the test double the
+      // command-level stdin tests install. Only the byte loop is replaced,
+      // so the decode that dropped the mark runs for real here.
+      expect(
+        readStandardInput(
+          readBytes: () => [...bomBytes, ...helloBytes],
+        ).codeUnits,
+        equals([0xFEFF, ...helloBytes]),
+      );
+    });
+
+    test(
+      'the real readStandardInput does not repair a literal backslash-n',
+      () {
+        // The same seam guards the other promise of this path. A mutant that
+        // normalizes inside `readStandardInput` is caught here.
+        expect(
+          readStandardInput(readBytes: () => utf8.encode(r'line1\nline2')),
+          equals(r'line1\nline2'),
+        );
+      },
+    );
+  });
 }
