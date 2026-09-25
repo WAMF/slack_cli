@@ -42,7 +42,12 @@ String decodeMessageBytes(List<int> bytes) {
       bytes[0] == utf8ByteOrderMark[0] &&
       bytes[1] == utf8ByteOrderMark[1] &&
       bytes[2] == utf8ByteOrderMark[2];
-  if (hadMark && !text.startsWith('\uFEFF')) return '\uFEFF$text';
+  // UNCONDITIONAL when the bytes carried a mark. The decoder drops EXACTLY
+  // ONE leading mark, so one must go back, whatever the decoded text starts
+  // with. Testing `!text.startsWith('\uFEFF')` first was wrong and lost a
+  // character: two leading marks decode to one, that one satisfied the test,
+  // and the repair was skipped (kumar-waaf, review of #53).
+  if (hadMark) return '\uFEFF$text';
   return text;
 }
 

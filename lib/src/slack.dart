@@ -14,8 +14,7 @@ enum CanvasEditMode {
   append('insert_at_end'),
 
   /// Insert the content before the existing body.
-  prepend('insert_at_start')
-  ;
+  prepend('insert_at_start');
 
   const CanvasEditMode(this.operation);
 

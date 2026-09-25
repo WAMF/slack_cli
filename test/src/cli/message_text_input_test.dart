@@ -110,6 +110,26 @@ void main() {
         (command as MessageTextCommand).readMessageStdin = () => value;
       }
 
+      File writeTextBytes(List<int> bytes) {
+        final file = File(
+          '${Directory.systemTemp.createTempSync('dart_slack_bytes').path}'
+          '/message.txt',
+        )..writeAsBytesSync(bytes);
+        addTearDown(() => file.parent.deleteSync(recursive: true));
+        return file;
+      }
+
+      /// Installs the REAL `readStandardInput` with a supplied byte source,
+      /// so the command's standard-input path runs the real decode rather
+      /// than a string the test handed it.
+      void readsStdinBytes(List<int> bytes) {
+        (command as MessageTextCommand).readMessageStdin = () =>
+            readStandardInput(readBytes: () => bytes);
+      }
+
+      /// The UTF-8 bytes of the message the command actually sent.
+      List<int> sentTextBytes() => utf8.encode(sentText());
+
       File writeTextFile(String contents) {
         final file = File(
           '${Directory.systemTemp.createTempSync('dart_slack_text').path}'
@@ -309,6 +329,52 @@ void main() {
         verifyNever(() => logger.warn(any()));
       });
 
+      // --- U+FEFF, through the COMMAND, on both safe paths -------------
+      //
+      // The decoder-level tests below prove `decodeMessageBytes`. They do
+      // not prove the command uses it: restoring `readAsStringSync()` in
+      // the file branch left the whole file green (kumar-waaf). These
+      // compare the UTF-8 bytes of the SENT message against the input
+      // bytes, so only the real command path can satisfy them.
+      const bom = [0xEF, 0xBB, 0xBF];
+      const hello = [0x68, 0x65, 0x6C, 0x6C, 0x6F];
+
+      for (final shape in <({String name, List<int> bytes})>[
+        (name: 'a single leading mark', bytes: [...bom, ...hello]),
+        (
+          name: 'two consecutive leading marks',
+          bytes: [...bom, ...bom, ...hello],
+        ),
+        (
+          name: 'three consecutive leading marks',
+          bytes: [...bom, ...bom, ...bom, ...hello],
+        ),
+        (name: 'a non-leading mark only', bytes: [...hello, ...bom, ...hello]),
+        (
+          name: 'a leading mark and a separated one',
+          bytes: [...bom, ...hello, ...bom, ...hello],
+        ),
+        (name: 'a mark and nothing else', bytes: [...bom]),
+      ]) {
+        test('--text-file sends ${shape.name} unchanged', () async {
+          final file = writeTextBytes(shape.bytes);
+
+          final exitCode = await run(['--text-file', file.path]);
+
+          expect(exitCode, equals(ExitCode.success.code));
+          expect(sentTextBytes(), equals(shape.bytes));
+        });
+
+        test('--text-stdin sends ${shape.name} unchanged', () async {
+          readsStdinBytes(shape.bytes);
+
+          final exitCode = await run(['--text-stdin']);
+
+          expect(exitCode, equals(ExitCode.success.code));
+          expect(sentTextBytes(), equals(shape.bytes));
+        });
+      }
+
       test('does not warn about a backtick that came from stdin', () async {
         readsStdin('see `code` here');
 
@@ -337,6 +403,32 @@ void _byteOrderMarkGroup() {
         0xFEFF,
         ...helloBytes,
       ]);
+    });
+
+    test('decodeMessageBytes keeps BOTH of two consecutive leading marks', () {
+      // The decoder drops exactly ONE. A repair conditioned on the decoded
+      // text not already starting with U+FEFF skips this case and loses a
+      // character (kumar-waaf, review of #53).
+      expect(
+        decodeMessageBytes([...bomBytes, ...bomBytes, ...helloBytes]).codeUnits,
+        [0xFEFF, 0xFEFF, ...helloBytes],
+      );
+    });
+
+    test('decodeMessageBytes keeps all three of three leading marks', () {
+      expect(
+        decodeMessageBytes([
+          ...bomBytes,
+          ...bomBytes,
+          ...bomBytes,
+          ...helloBytes,
+        ]).codeUnits,
+        [0xFEFF, 0xFEFF, 0xFEFF, ...helloBytes],
+      );
+    });
+
+    test('decodeMessageBytes keeps a mark that is the whole input', () {
+      expect(decodeMessageBytes(bomBytes).codeUnits, [0xFEFF]);
     });
 
     test('decodeMessageBytes keeps a second U+FEFF too', () {
