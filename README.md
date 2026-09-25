@@ -309,17 +309,26 @@ dart run bin/dart_slack.dart search -q "in:#incidents from:@lee after:2026-08-01
 dart run bin/dart_slack.dart search -q "deploy failed" -c C0123ABCDEF
 dart run bin/dart_slack.dart search -q "deploy failed" -c incidents
 
-# Send a message
+# Send a message. Write the text to a file first, then pass the path.
+# A shell runs backticks and $( ) inside a double-quoted argument, so
+# inline -t can change the message before the CLI starts. See "Message text".
+dart run bin/dart_slack.dart send -c <channel-id> --text-file ./message.md
+
+# The same text from standard input
+printf 'Hello from the CLI\n' |
+  dart run bin/dart_slack.dart send -c <channel-id> --text-stdin
+
+# Short text with no backtick, no $( and no newline is safe inline
 dart run bin/dart_slack.dart send -c <channel-id> -t "Hello from the CLI"
 
-# Send a message with a file attached
-dart run bin/dart_slack.dart send -c <channel-id> -t "See attached" -f ./report.pdf
+# Send a message with a file attached. --file attaches, --text-file is the text.
+dart run bin/dart_slack.dart send -c <channel-id> --text-file ./comment.md -f ./report.pdf
 
 # Reply to a thread
-dart run bin/dart_slack.dart reply -c <channel-id> -r <thread_ts> -t "Thread reply"
+dart run bin/dart_slack.dart reply -c <channel-id> -r <thread_ts> --text-file ./reply.md
 
 # Edit a message
-dart run bin/dart_slack.dart edit -c <channel-id> --ts <message_ts> -t "Updated text"
+dart run bin/dart_slack.dart edit -c <channel-id> --ts <message_ts> --text-file ./new.md
 
 # Delete a message
 dart run bin/dart_slack.dart delete -c <channel-id> --ts <message_ts>
@@ -343,10 +352,10 @@ dart run bin/dart_slack.dart canvas edit --canvas <canvas-id> --mode append -m "
 dart run bin/dart_slack.dart canvas delete --canvas <canvas-id>
 
 # Send a DM
-dart run bin/dart_slack.dart dm -u <user-id> -t "Hey there"
+dart run bin/dart_slack.dart dm -u <user-id> --text-file ./message.md
 
 # Send a DM with a file attached
-dart run bin/dart_slack.dart dm -u <user-id> -t "Here you go" -f ./notes.txt
+dart run bin/dart_slack.dart dm -u <user-id> --text-file ./comment.md -f ./notes.txt
 
 # List workspace users
 dart run bin/dart_slack.dart users
@@ -397,6 +406,62 @@ stored token does not gain a scope on its own. Without it, Slack answers
 `dart_slack auth test` to check the active token.
 
 ### Message text
+
+`send`, `reply`, `dm`, and `edit` take the message text from exactly one of
+three sources. Giving none of them, or more than one, is a usage error.
+
+| Source | Passes through a shell | Bytes sent |
+| --- | --- | --- |
+| `--text-file <path>` | no | exactly the file contents |
+| `--text-stdin` (or `--text-file -`) | no | exactly the standard input |
+| `-t` / `--text` | YES | normalized, see below |
+
+`--file` / `-f` is a different option. It attaches a file to the message.
+`--text-file` supplies the text of the message.
+
+#### Why the inline option is the unsafe one
+
+A shell expands a backtick span and a `$( )` span inside a double-quoted
+argument. It runs them BEFORE this CLI starts, so the CLI never sees the text
+the author wrote:
+
+```sh
+python3 -c 'import sys; print(repr(sys.argv[1]))' "field is `printf changed`"
+# 'field is changed'
+```
+
+The marked-up span is gone and the command output is spliced in. The send then
+succeeds, so nothing reports the change. The CLI cannot detect this, because
+the shell destroys the evidence before the process starts. The only fix is to
+keep the text out of the argument list.
+
+`--text` therefore prints a warning when its value contains `` ` ``, `$(` or
+`${`. Read that warning as "this command line is a risky habit", not as "this
+message was damaged": a marker that arrives intact proves the shell did NOT
+run it that time.
+
+```sh
+# Safe. The bytes never meet a shell.
+cat > message.md <<'EOF'
+Run `dart test` and check $(pwd).
+EOF
+dart run bin/dart_slack.dart send -c C0123ABCDEF --text-file message.md
+
+# Also safe, and no temporary file.
+dart run bin/dart_slack.dart send -c C0123ABCDEF --text-stdin <<'EOF'
+Run `dart test` and check $(pwd).
+EOF
+```
+
+File and standard-input bytes are sent unchanged. They are NOT normalized: no
+unescaping, no line-ending rewrite, no control-character stripping. There is no
+shell between the author and those bytes, so there is nothing to repair, and
+repairing would corrupt a file that deliberately holds the two characters `\`
+and `n`.
+
+#### Normalization of inline `--text`
+
+The rest of this section applies to `-t` / `--text` only.
 
 `send`, `reply`, `dm`, and `edit` normalize the `--text` argument before they
 call the Slack API. A plain double-quoted shell string does not interpret

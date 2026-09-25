@@ -35,7 +35,13 @@ void main() {
       final options = command.argParser.options;
       expect(options['channel']?.mandatory, isTrue);
       expect(options['thread']?.mandatory, isTrue);
-      expect(options['text']?.mandatory, isTrue);
+      // `--text` is no longer mandatory: `--text-file` and
+      // `--text-stdin` are the safe sources. Exactly one of the three
+      // is required at run time, proved in
+      // test/src/cli/message_text_input_test.dart.
+      expect(options['text']?.mandatory, isFalse);
+      expect(options['text-file'], isNotNull);
+      expect(options['text-stdin'], isNotNull);
     });
 
     test('has correct abbreviations', () {

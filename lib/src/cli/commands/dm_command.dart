@@ -1,20 +1,19 @@
 import 'dart:io';
 
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
-import 'package:dart_slack/src/cli/message_text.dart';
+import 'package:dart_slack/src/cli/message_text_input.dart';
 import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-/// `dart_slack dm --user <id> --text "message" [--file <path>]`
+/// `dart_slack dm --user <id> --text-file <path> [--file <path>]`
+///
+/// The message text comes from exactly one of `--text`, `--text-file` or
+/// `--text-stdin`. `--file` attaches a file and is a different option.
 ///
 /// Sends a direct message to a Slack user.
-class DmCommand extends AuthenticatedCommand {
+class DmCommand extends AuthenticatedCommand with MessageTextCommand {
   /// Creates a [DmCommand].
-  DmCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  DmCommand({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'user',
@@ -22,17 +21,8 @@ class DmCommand extends AuthenticatedCommand {
         help: 'The user ID to message.',
         mandatory: true,
       )
-      ..addOption(
-        'text',
-        abbr: 't',
-        help: 'The message text.',
-        mandatory: true,
-      )
-      ..addOption(
-        'file',
-        abbr: 'f',
-        help: 'Path to a local file to attach.',
-      );
+      ..addOption('file', abbr: 'f', help: 'Path to a local file to attach.');
+    addMessageTextOptions(argParser, help: 'The message text.');
   }
 
   @override
@@ -44,7 +34,6 @@ class DmCommand extends AuthenticatedCommand {
   @override
   Future<int> runAuthenticated(Slack slack) async {
     final user = argResults!['user'] as String;
-    final text = normalizeMessageText(argResults!['text'] as String);
     final filePath = argResults!['file'] as String?;
 
     if (filePath != null) {
@@ -56,13 +45,13 @@ class DmCommand extends AuthenticatedCommand {
       final filename = await slack.uploadFile(
         channel: channel,
         path: filePath,
-        comment: text,
+        comment: messageText,
       );
       logger.success('File "$filename" sent to $user.');
       return ExitCode.success.code;
     }
 
-    final message = await slack.postMessage(channel: user, text: text);
+    final message = await slack.postMessage(channel: user, text: messageText);
     logger.success('DM sent to $user (ts: ${message.ts}).');
     return ExitCode.success.code;
   }
