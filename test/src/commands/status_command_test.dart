@@ -10,11 +10,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('StatusCommand', () {
@@ -100,9 +100,8 @@ void main() {
         expect(profile['status_text'], equals('Working on a task'));
         expect(profile['status_emoji'], equals(':gear:'));
         expect(profile['status_expiration'], equals(0));
-        verify(
-          () => logger.info('Status set: :gear: Working on a task'),
-        ).called(1);
+        verify(() => logger.info('Status set: :gear: Working on a task'))
+            .called(1);
       });
 
       test('computes status_expiration from --expires-in', () async {
@@ -214,9 +213,8 @@ void main() {
         final exitCode = await runner.run(['status', 'set', '-t', 'Working']);
 
         expect(exitCode, equals(ExitCode.software.code));
-        verify(
-          () => logger.err(any(that: contains('requires a user token'))),
-        ).called(1);
+        verify(() => logger.err(any(that: contains('requires a user token'))))
+            .called(1);
       });
 
       test('surfaces other API errors via the shared handler', () async {

@@ -14,11 +14,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Replies to a message thread in a Slack channel.
 class ReplyCommand extends AuthenticatedCommand with MessageTextCommand {
   /// Creates a [ReplyCommand].
-  ReplyCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'channel',

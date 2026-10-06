@@ -18,14 +18,13 @@ class _Defaults {
 /// interval. Runs until interrupted with Ctrl+C.
 class WatchCommand extends AuthenticatedCommand {
   /// Creates a [WatchCommand].
-  WatchCommand({
+  new({
     required super.logger,
     super.credentialsStore,
     super.httpClient,
     @visibleForTesting Future<void> Function(Duration)? delay,
-    @visibleForTesting Stream<ProcessSignal>? signalStream,
-  }) : _delay = delay ?? Future.delayed,
-       _signalStream = signalStream {
+    @visibleForTesting this._signalStream,
+  }) : _delay = delay ?? Future.delayed {
     argParser
       ..addOption(
         'channel',
@@ -75,9 +74,7 @@ class WatchCommand extends AuthenticatedCommand {
     }
     if (initialCount == null || initialCount <= 0) {
       logger
-        ..err(
-          'Invalid --count value: "$rawCount". Use a positive integer.',
-        )
+        ..err('Invalid --count value: "$rawCount". Use a positive integer.')
         ..info('')
         ..info(usage);
       return ExitCode.usage.code;
@@ -111,11 +108,7 @@ class WatchCommand extends AuthenticatedCommand {
     return ExitCode.success.code;
   }
 
-  Future<String?> _fetchInitial(
-    Slack slack,
-    String channel,
-    int limit,
-  ) async {
+  Future<String?> _fetchInitial(Slack slack, String channel, int limit) async {
     final page = await slack.conversationsHistory(
       channel: channel,
       limit: limit,

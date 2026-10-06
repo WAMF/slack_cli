@@ -7,11 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Deletes a Slack message.
 class DeleteCommand extends AuthenticatedCommand {
   /// Creates a [DeleteCommand].
-  DeleteCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'channel',

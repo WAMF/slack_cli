@@ -37,9 +37,8 @@ void main() {
     });
 
     test('load returns null when config file has unexpected shape', () {
-      File(
-        '${tempDir.path}/config.json',
-      ).writeAsStringSync('{"app_token": 123}');
+      File('${tempDir.path}/config.json')
+          .writeAsStringSync('{"app_token": 123}');
 
       expect(store.load(), isNull);
     });
@@ -77,9 +76,7 @@ void main() {
         }
       });
 
-      final store = AppConfigStore(
-        environment: {'USERPROFILE': homeDir.path},
-      );
+      final store = AppConfigStore(environment: {'USERPROFILE': homeDir.path});
       final configFile = File('${homeDir.path}/.dart_slack/config.json');
 
       store.save(config);

@@ -11,7 +11,7 @@ class _Retry {
 /// Thrown when the Slack API returns a non-ok response.
 class SlackApiException implements Exception {
   /// Creates a [SlackApiException] from the decoded JSON error response.
-  const SlackApiException(this.error, {this.needed});
+  const new(this.error, {this.needed});
 
   /// The error code returned by the Slack API (e.g. `invalid_auth`).
   final String error;
@@ -27,16 +27,15 @@ class SlackApiException implements Exception {
 ///
 /// All methods throw [SlackApiException] when the API returns `ok: false`.
 class SlackApiClient {
-  /// Creates a [SlackApiClient] authenticated with [token].
+  /// Creates a [SlackApiClient] authenticated with [_token].
   ///
   /// An optional [httpClient] can be provided for testing. The [delay]
   /// callback is used for rate-limit back-off and can be replaced in tests.
-  SlackApiClient({
-    required String token,
+  new({
+    required this._token,
     http.Client? httpClient,
     @visibleForTesting Future<void> Function(Duration)? delay,
-  }) : _token = token,
-       _httpClient = httpClient ?? http.Client(),
+  }) : _httpClient = httpClient ?? http.Client(),
        _delay = delay ?? Future.delayed;
 
   final String _token;
@@ -65,13 +64,10 @@ class SlackApiClient {
     final error = json['error'] as String? ?? 'unknown_error';
     if (error == 'not_in_channel') {
       await joinChannel(channel);
-      return _post(SlackUrls.postMessage, body);
+      return await _post(SlackUrls.postMessage, body);
     }
 
-    throw SlackApiException(
-      error,
-      needed: json['needed'] as String?,
-    );
+    throw SlackApiException(error, needed: json['needed'] as String?);
   }
 
   /// Joins a public channel by [channelId].
@@ -125,7 +121,7 @@ class SlackApiClient {
       'oldest': ?oldest,
       'latest': ?latest,
     };
-    return _get(
+    return await _get(
       SlackUrls.conversationsHistory.replace(queryParameters: params),
     );
   }
@@ -149,19 +145,15 @@ class SlackApiClient {
       'oldest': ?oldest,
       'latest': ?latest,
     };
-    return _get(
+    return await _get(
       SlackUrls.conversationsReplies.replace(queryParameters: params),
     );
   }
 
   /// Gets detailed information about [channel].
-  Future<Map<String, dynamic>> conversationsInfo({
-    required String channel,
-  }) {
+  Future<Map<String, dynamic>> conversationsInfo({required String channel}) {
     final params = <String, String>{'channel': channel};
-    return _get(
-      SlackUrls.conversationsInfo.replace(queryParameters: params),
-    );
+    return _get(SlackUrls.conversationsInfo.replace(queryParameters: params));
   }
 
   /// Lists member user IDs for [channel].
@@ -178,7 +170,7 @@ class SlackApiClient {
       'limit': '$limit',
       'cursor': ?cursor,
     };
-    return _get(
+    return await _get(
       SlackUrls.conversationsMembers.replace(queryParameters: params),
     );
   }
@@ -189,9 +181,8 @@ class SlackApiClient {
   /// `id` is the DM conversation ID (`D...`). Unlike `chat.postMessage`,
   /// which accepts a user ID directly, `files.completeUploadExternal`
   /// requires this resolved conversation ID as `channel_id`.
-  Future<Map<String, dynamic>> conversationsOpen({
-    required String user,
-  }) => _post(SlackUrls.conversationsOpen, {'users': user});
+  Future<Map<String, dynamic>> conversationsOpen({required String user}) =>
+      _post(SlackUrls.conversationsOpen, {'users': user});
 
   /// Searches messages the authenticated user can see for [query].
   ///
@@ -214,7 +205,9 @@ class SlackApiClient {
       'count': '$count',
       'page': '$page',
     };
-    return _get(SlackUrls.searchMessages.replace(queryParameters: params));
+    return await _get(
+      SlackUrls.searchMessages.replace(queryParameters: params),
+    );
   }
 
   /// Lists all users in the workspace.
@@ -224,17 +217,12 @@ class SlackApiClient {
     int limit = 100,
     String? cursor,
   }) async {
-    final params = <String, String>{
-      'limit': '$limit',
-      'cursor': ?cursor,
-    };
-    return _get(SlackUrls.usersList.replace(queryParameters: params));
+    final params = <String, String>{'limit': '$limit', 'cursor': ?cursor};
+    return await _get(SlackUrls.usersList.replace(queryParameters: params));
   }
 
   /// Gets detailed information about a [user].
-  Future<Map<String, dynamic>> usersInfo({
-    required String user,
-  }) {
+  Future<Map<String, dynamic>> usersInfo({required String user}) {
     final params = <String, String>{'user': user};
     return _get(SlackUrls.usersInfo.replace(queryParameters: params));
   }
@@ -244,9 +232,7 @@ class SlackApiClient {
   /// For a canvas (`filetype: canvas`/`quip`), the returned `file` object
   /// carries a `url_private_download` URL from which the canvas body can be
   /// fetched with [downloadFile]. Requires the `files:read` scope.
-  Future<Map<String, dynamic>> filesInfo({
-    required String file,
-  }) {
+  Future<Map<String, dynamic>> filesInfo({required String file}) {
     final params = <String, String>{'file': file};
     return _get(SlackUrls.filesInfo.replace(queryParameters: params));
   }
@@ -261,10 +247,7 @@ class SlackApiClient {
     required String filename,
     required int length,
   }) {
-    final params = <String, String>{
-      'filename': filename,
-      'length': '$length',
-    };
+    final params = <String, String>{'filename': filename, 'length': '$length'};
     return _get(
       SlackUrls.filesGetUploadURLExternal.replace(queryParameters: params),
     );
@@ -329,10 +312,7 @@ class SlackApiClient {
   /// rejected with [SlackApiException]`('not_authorized')`.
   Future<String> downloadFile(Uri url) async {
     final response = await _sendWithRetry(
-      () => _httpClient.get(
-        url,
-        headers: {'Authorization': 'Bearer $_token'},
-      ),
+      () => _httpClient.get(url, headers: {'Authorization': 'Bearer $_token'}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw SlackApiException('download_failed_${response.statusCode}');
@@ -391,20 +371,12 @@ class SlackApiClient {
     required String channel,
     required String ts,
     required String text,
-  }) => _post(SlackUrls.chatUpdate, {
-    'channel': channel,
-    'ts': ts,
-    'text': text,
-  });
+  }) =>
+      _post(SlackUrls.chatUpdate, {'channel': channel, 'ts': ts, 'text': text});
 
   /// Deletes a message from [channel] at [ts].
-  Future<void> deleteMessage({
-    required String channel,
-    required String ts,
-  }) => _post(SlackUrls.chatDelete, {
-    'channel': channel,
-    'ts': ts,
-  });
+  Future<void> deleteMessage({required String channel, required String ts}) =>
+      _post(SlackUrls.chatDelete, {'channel': channel, 'ts': ts});
 
   /// Creates a canvas whose body is the given markdown [content].
   ///
@@ -463,10 +435,7 @@ class SlackApiClient {
   /// Throws [SlackApiException] when the response contains `ok: false`.
   Future<Map<String, dynamic>> _get(Uri uri) async {
     final response = await _sendWithRetry(
-      () => _httpClient.get(
-        uri,
-        headers: {'Authorization': 'Bearer $_token'},
-      ),
+      () => _httpClient.get(uri, headers: {'Authorization': 'Bearer $_token'}),
     );
     return _checkOk(response);
   }
@@ -487,10 +456,7 @@ class SlackApiClient {
 
   /// Sends a POST request with a JSON [body] and returns the decoded,
   /// ok-checked response.
-  Future<Map<String, dynamic>> _post(
-    Uri uri,
-    Map<String, dynamic> body,
-  ) async {
+  Future<Map<String, dynamic>> _post(Uri uri, Map<String, dynamic> body) async {
     final response = await _postRaw(uri, body);
     return _checkOk(response);
   }

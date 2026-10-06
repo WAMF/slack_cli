@@ -9,11 +9,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('WhoisCommand', () {
@@ -22,10 +22,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -69,10 +66,7 @@ void main() {
               'real_name': 'Jane Doe',
               'is_bot': false,
               'deleted': false,
-              'profile': {
-                'display_name': 'Jane',
-                'email': 'jane@example.com',
-              },
+              'profile': {'display_name': 'Jane', 'email': 'jane@example.com'},
             },
           }),
           200,
@@ -83,31 +77,28 @@ void main() {
 
       verify(() => logger.info('Jane Doe (@jane)')).called(1);
       verify(() => logger.info('  Display name: Jane')).called(1);
-      verify(
-        () => logger.info('  Email: jane@example.com'),
-      ).called(1);
+      verify(() => logger.info('  Email: jane@example.com')).called(1);
     });
 
     test('shows bot and deactivated flags', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'user': {
-              'id': 'U2',
-              'name': 'oldbot',
-              'real_name': 'Old Bot',
-              'is_bot': true,
-              'deleted': true,
-              'profile': {'display_name': ''},
-            },
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'user': {
+                  'id': 'U2',
+                  'name': 'oldbot',
+                  'real_name': 'Old Bot',
+                  'is_bot': true,
+                  'deleted': true,
+                  'profile': {'display_name': ''},
+                },
+              }),
+              200,
+            ),
+          );
 
       await runner.run(['whois', '-u', 'U2']);
 

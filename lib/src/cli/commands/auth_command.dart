@@ -12,7 +12,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Groups commands for inspecting and validating Slack authentication.
 class AuthCommand extends Command<int> {
   /// Creates an [AuthCommand].
-  AuthCommand({
+  new({
     required Logger logger,
     CredentialsStore? credentialsStore,
     http.Client? httpClient,
@@ -41,11 +41,7 @@ class AuthCommand extends Command<int> {
 /// an unrelated command like `channels`.
 class AuthTestCommand extends AuthenticatedCommand {
   /// Creates an [AuthTestCommand].
-  AuthTestCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  });
+  new({required super.logger, super.credentialsStore, super.httpClient});
 
   @override
   String get description =>

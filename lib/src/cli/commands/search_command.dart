@@ -23,11 +23,7 @@ final RegExp _conversationId = RegExp(r'^[CDG][A-Z0-9]{2,}$');
 /// [AuthenticatedCommand] handler prints the `dart_slack login` hint.
 class SearchCommand extends AuthenticatedCommand {
   /// Creates a [SearchCommand].
-  SearchCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'query',

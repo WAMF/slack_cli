@@ -12,7 +12,7 @@ class AppConfigStore {
   /// Creates an [AppConfigStore] that writes to [configDirectory].
   ///
   /// Defaults to `~/.dart_slack` when [configDirectory] is omitted.
-  AppConfigStore({
+  new({
     Directory? configDirectory,
     @visibleForTesting Map<String, String>? environment,
   }) : _configDirectory =

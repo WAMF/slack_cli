@@ -13,7 +13,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Sends a direct message to a Slack user.
 class DmCommand extends AuthenticatedCommand with MessageTextCommand {
   /// Creates a [DmCommand].
-  DmCommand({required super.logger, super.credentialsStore, super.httpClient}) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'user',

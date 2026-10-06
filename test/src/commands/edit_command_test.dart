@@ -9,11 +9,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('EditCommand', () {
@@ -22,10 +22,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -77,9 +74,7 @@ void main() {
 
       await runner.run(['edit', '-c', 'C1', '--ts', '1.0', '-t', 'updated']);
 
-      verify(
-        () => logger.success('Message 1.0 in C1 updated.'),
-      ).called(1);
+      verify(() => logger.success('Message 1.0 in C1 updated.')).called(1);
     });
   });
 
@@ -90,10 +85,7 @@ void main() {
     late CommandRunner<int> runner;
     late List<String> sentBodies;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));

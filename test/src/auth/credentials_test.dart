@@ -19,9 +19,7 @@ void main() {
     });
 
     test('fromJson handles missing optional userId', () {
-      final json = <String, dynamic>{
-        'access_token': accessToken,
-      };
+      final json = <String, dynamic>{'access_token': accessToken};
 
       final credentials = Credentials.fromJson(json);
 
@@ -30,10 +28,7 @@ void main() {
     });
 
     test('toJson produces the expected map', () {
-      const credentials = Credentials(
-        accessToken: accessToken,
-        userId: userId,
-      );
+      const credentials = Credentials(accessToken: accessToken, userId: userId);
 
       expect(credentials.toJson(), {
         'access_token': accessToken,
@@ -48,10 +43,7 @@ void main() {
     });
 
     test('round-trip fromJson(toJson) preserves all fields', () {
-      const original = Credentials(
-        accessToken: accessToken,
-        userId: userId,
-      );
+      const original = Credentials(accessToken: accessToken, userId: userId);
 
       final restored = Credentials.fromJson(original.toJson());
 

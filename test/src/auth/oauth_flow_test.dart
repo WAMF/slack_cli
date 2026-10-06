@@ -8,11 +8,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockProcess extends Mock implements Process {}
+class _MockProcess extends Mock implements Process;
 
 void main() {
   group('OAuthFlow', () {
@@ -121,9 +121,7 @@ void main() {
           headers: any(named: 'headers'),
           body: any(named: 'body'),
         ),
-      ).thenAnswer(
-        (_) async => http.Response(jsonEncode(tokenResponse), 200),
-      );
+      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
 
       final flow = createFlow(
         processStarter: (command, args) async {
@@ -139,10 +137,7 @@ void main() {
 
       await flow.execute();
 
-      expect(
-        capturedUrl.queryParameters,
-        containsPair('state', isNotEmpty),
-      );
+      expect(capturedUrl.queryParameters, containsPair('state', isNotEmpty));
     });
 
     test('prefers an IPv6 callback server with dual-stack enabled', () async {
@@ -155,18 +150,13 @@ void main() {
           headers: any(named: 'headers'),
           body: any(named: 'body'),
         ),
-      ).thenAnswer(
-        (_) async => http.Response(jsonEncode(tokenResponse), 200),
-      );
+      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
 
       final flow = createFlow(
         processStarter: (command, args) async {
           final url = Uri.parse(args.first);
           final cbPort = callbackPortFrom(url);
-          fireCallback(
-            'code=c&state=${stateFrom(url)}',
-            callbackPort: cbPort,
-          );
+          fireCallback('code=c&state=${stateFrom(url)}', callbackPort: cbPort);
           return process;
         },
         bindServer:
@@ -206,18 +196,13 @@ void main() {
           headers: any(named: 'headers'),
           body: any(named: 'body'),
         ),
-      ).thenAnswer(
-        (_) async => http.Response(jsonEncode(tokenResponse), 200),
-      );
+      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
 
       final flow = createFlow(
         processStarter: (command, args) async {
           final url = Uri.parse(args.first);
           final cbPort = callbackPortFrom(url);
-          fireCallback(
-            'code=c&state=${stateFrom(url)}',
-            callbackPort: cbPort,
-          );
+          fireCallback('code=c&state=${stateFrom(url)}', callbackPort: cbPort);
           return process;
         },
         bindServer:
@@ -249,44 +234,36 @@ void main() {
 
       expect(
         bindAttempts,
-        equals([
-          InternetAddress.loopbackIPv6,
-          InternetAddress.loopbackIPv4,
-        ]),
+        equals([InternetAddress.loopbackIPv6, InternetAddress.loopbackIPv4]),
       );
     });
 
-    test(
-      'completes successfully with valid code and matching state',
-      () async {
-        when(
-          () => httpClient.post(
-            any(),
-            headers: any(named: 'headers'),
-            body: any(named: 'body'),
-          ),
-        ).thenAnswer(
-          (_) async => http.Response(jsonEncode(tokenResponse), 200),
-        );
+    test('completes successfully with valid code and matching state', () async {
+      when(
+        () => httpClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
 
-        final flow = createFlow(
-          processStarter: (command, args) async {
-            final url = Uri.parse(args.first);
-            final cbPort = callbackPortFrom(url);
-            fireCallback(
-              'code=auth-code&state=${stateFrom(url)}',
-              callbackPort: cbPort,
-            );
-            return process;
-          },
-        );
+      final flow = createFlow(
+        processStarter: (command, args) async {
+          final url = Uri.parse(args.first);
+          final cbPort = callbackPortFrom(url);
+          fireCallback(
+            'code=auth-code&state=${stateFrom(url)}',
+            callbackPort: cbPort,
+          );
+          return process;
+        },
+      );
 
-        final credentials = await flow.execute();
+      final credentials = await flow.execute();
 
-        expect(credentials.accessToken, equals('xoxp-test'));
-        expect(credentials.userId, equals('U123'));
-      },
-    );
+      expect(credentials.accessToken, equals('xoxp-test'));
+      expect(credentials.userId, equals('U123'));
+    });
 
     test('rejects callback with mismatched state', () async {
       final flow = createFlow(
@@ -359,10 +336,7 @@ void main() {
         processStarter: (command, args) async {
           final url = Uri.parse(args.first);
           final cbPort = callbackPortFrom(url);
-          fireCallback(
-            'state=${stateFrom(url)}',
-            callbackPort: cbPort,
-          );
+          fireCallback('state=${stateFrom(url)}', callbackPort: cbPort);
           return process;
         },
       );
@@ -396,10 +370,7 @@ void main() {
         },
       );
 
-      await expectLater(
-        flow.execute(),
-        throwsA(isA<OAuthException>()),
-      );
+      await expectLater(flow.execute(), throwsA(isA<OAuthException>()));
 
       final responseBody = await responseFuture.future;
       expect(responseBody, contains('&lt;script&gt;'));
@@ -451,18 +422,13 @@ void main() {
           headers: any(named: 'headers'),
           body: any(named: 'body'),
         ),
-      ).thenAnswer(
-        (_) async => http.Response(jsonEncode(tokenResponse), 200),
-      );
+      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
 
       final flow = createFlow(
         processStarter: (command, args) async {
           final url = Uri.parse(args.first);
           final cbPort = callbackPortFrom(url);
-          fireCallback(
-            'code=c&state=${stateFrom(url)}',
-            callbackPort: cbPort,
-          );
+          fireCallback('code=c&state=${stateFrom(url)}', callbackPort: cbPort);
           return process;
         },
       );
@@ -480,19 +446,14 @@ void main() {
           headers: any(named: 'headers'),
           body: any(named: 'body'),
         ),
-      ).thenAnswer(
-        (_) async => http.Response(jsonEncode(tokenResponse), 200),
-      );
+      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
 
       // First run generates certs.
       var flow = createFlow(
         processStarter: (command, args) async {
           final url = Uri.parse(args.first);
           final cbPort = callbackPortFrom(url);
-          fireCallback(
-            'code=c&state=${stateFrom(url)}',
-            callbackPort: cbPort,
-          );
+          fireCallback('code=c&state=${stateFrom(url)}', callbackPort: cbPort);
           return process;
         },
       );
@@ -506,10 +467,7 @@ void main() {
         processStarter: (command, args) async {
           final url = Uri.parse(args.first);
           final cbPort = callbackPortFrom(url);
-          fireCallback(
-            'code=c&state=${stateFrom(url)}',
-            callbackPort: cbPort,
-          );
+          fireCallback('code=c&state=${stateFrom(url)}', callbackPort: cbPort);
           return process;
         },
       );

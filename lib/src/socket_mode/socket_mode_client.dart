@@ -21,14 +21,13 @@ class _Backoff {
 /// acknowledges them, and exposes parsed message events as a stream.
 /// Automatically reconnects with exponential backoff on disconnect.
 class SocketModeClient {
-  /// Creates a [SocketModeClient] authenticated with [appToken].
-  SocketModeClient({
-    required String appToken,
+  /// Creates a [SocketModeClient] authenticated with [_appToken].
+  new({
+    required this._appToken,
     http.Client? httpClient,
     WebSocketChannelFactory? channelFactory,
     Future<void> Function(Duration)? delay,
-  }) : _appToken = appToken,
-       _httpClient = httpClient ?? http.Client(),
+  }) : _httpClient = httpClient ?? http.Client(),
        _channelFactory = channelFactory ?? _defaultChannelFactory,
        _delay = delay ?? Future.delayed;
 

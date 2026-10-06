@@ -9,11 +9,11 @@ import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
-class _MockWebSocketChannel extends Mock implements WebSocketChannel {}
+class _MockWebSocketChannel extends Mock implements WebSocketChannel;
 
-class _MockWebSocketSink extends Mock implements WebSocketSink {}
+class _MockWebSocketSink extends Mock implements WebSocketSink;
 
 void main() {
   group('SocketModeClient', () {
@@ -62,9 +62,8 @@ void main() {
       when(() => wsSink.add(any<dynamic>())).thenReturn(null);
       when(() => wsSink.close()).thenAnswer((_) async {});
       when(() => httpClient.close()).thenReturn(null);
-      when(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async => connectResponse());
+      when(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => connectResponse());
     });
 
     tearDown(() async {
@@ -167,9 +166,7 @@ void main() {
 
       await Future<void>.delayed(Duration.zero);
 
-      verify(
-        () => wsSink.add(jsonEncode({'envelope_id': 'env-1'})),
-      ).called(1);
+      verify(() => wsSink.add(jsonEncode({'envelope_id': 'env-1'}))).called(1);
 
       await client.close();
     });
@@ -238,16 +235,14 @@ void main() {
       final client = buildClient();
       await client.connect();
 
-      verify(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).called(1);
+      verify(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .called(1);
 
       serverController.add(envelope('disconnect'));
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      verify(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).called(1);
+      verify(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .called(1);
 
       await client.close();
     });
@@ -267,27 +262,24 @@ void main() {
       final client = buildClient();
       await client.connect();
 
-      verify(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).called(1);
+      verify(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .called(1);
 
       await firstController.close();
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      verify(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).called(1);
+      verify(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .called(1);
 
       await client.close();
       await secondController.close();
     });
 
     test('throws SocketModeException on API failure', () async {
-      when(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => connectResponse(ok: false, error: 'invalid_auth'),
-      );
+      when(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => connectResponse(ok: false, error: 'invalid_auth'),
+          );
 
       final client = buildClient();
 
@@ -309,9 +301,8 @@ void main() {
       final client = buildClient();
       await client.connect();
 
-      verify(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).called(1);
+      verify(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .called(1);
 
       await client.close();
 

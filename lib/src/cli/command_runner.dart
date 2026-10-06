@@ -19,7 +19,7 @@ const description =
 /// {@endtemplate}
 class DartSlackCommandRunner extends CompletionCommandRunner<int> {
   /// {@macro dart_slack_command_runner}
-  DartSlackCommandRunner({Logger? logger})
+  new({Logger? logger})
     : _logger = logger ?? Logger(),
       super(executableName, description) {
     // Add root options and flags

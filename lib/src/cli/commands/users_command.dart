@@ -7,11 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Lists workspace users.
 class UsersCommand extends AuthenticatedCommand {
   /// Creates a [UsersCommand].
-  UsersCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  });
+  new({required super.logger, super.credentialsStore, super.httpClient});
 
   @override
   String get description => 'List workspace users.';

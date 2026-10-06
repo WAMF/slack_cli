@@ -9,11 +9,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('InfoCommand', () {
@@ -22,10 +22,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -59,29 +56,25 @@ void main() {
     /// [channelJson] and `conversations.members` by paginating [members],
     /// dispatching on the request path the same way the real Slack API
     /// endpoints differ.
-    void stubChannel(
-      Map<String, dynamic> channelJson,
-      List<String> members,
-    ) {
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((invocation) async {
-        final uri = invocation.positionalArguments.first as Uri;
-        if (uri.path.endsWith('conversations.info')) {
-          return http.Response(
-            jsonEncode({'ok': true, 'channel': channelJson}),
-            200,
-          );
-        }
-        return http.Response(
-          jsonEncode({
-            'ok': true,
-            'members': members,
-            'response_metadata': {'next_cursor': ''},
-          }),
-          200,
-        );
-      });
+    void stubChannel(Map<String, dynamic> channelJson, List<String> members) {
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((invocation) async {
+            final uri = invocation.positionalArguments.first as Uri;
+            if (uri.path.endsWith('conversations.info')) {
+              return http.Response(
+                jsonEncode({'ok': true, 'channel': channelJson}),
+                200,
+              );
+            }
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'members': members,
+                'response_metadata': {'next_cursor': ''},
+              }),
+              200,
+            );
+          });
     }
 
     test('displays channel details', () async {

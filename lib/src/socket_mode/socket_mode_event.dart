@@ -1,7 +1,7 @@
 /// A message event received over a Socket Mode WebSocket connection.
 class SocketModeEvent {
   /// Creates a [SocketModeEvent].
-  const SocketModeEvent({
+  const new({
     required this.type,
     required this.channel,
     required this.user,
@@ -13,7 +13,7 @@ class SocketModeEvent {
 
   /// Deserializes from the inner `payload.event` map of an `events_api`
   /// envelope.
-  factory SocketModeEvent.fromJson(Map<String, dynamic> json) {
+  factory fromJson(Map<String, dynamic> json) {
     return SocketModeEvent(
       type: json['type'] as String? ?? '',
       channel: json['channel'] as String? ?? '',

@@ -11,11 +11,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('WatchCommand', () {
@@ -24,10 +24,7 @@ void main() {
     late _MockHttpClient httpClient;
     late StreamController<ProcessSignal> signalController;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -48,9 +45,7 @@ void main() {
       await signalController.close();
     });
 
-    CommandRunner<int> buildRunner({
-      Future<void> Function(Duration)? delay,
-    }) {
+    CommandRunner<int> buildRunner({Future<void> Function(Duration)? delay}) {
       return CommandRunner<int>('test', 'test')..addCommand(
         WatchCommand(
           logger: logger,
@@ -67,11 +62,7 @@ void main() {
       bool hasMore = false,
     }) {
       return http.Response(
-        jsonEncode({
-          'ok': true,
-          'messages': messages,
-          'has_more': hasMore,
-        }),
+        jsonEncode({'ok': true, 'messages': messages, 'has_more': hasMore}),
         200,
       );
     }
@@ -84,14 +75,13 @@ void main() {
 
     test('shows initial context messages on start', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => historyResponse([
-          {'ts': '2.0', 'text': 'Second', 'user': 'U2'},
-          {'ts': '1.0', 'text': 'First', 'user': 'U1'},
-        ]),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => historyResponse([
+              {'ts': '2.0', 'text': 'Second', 'user': 'U2'},
+              {'ts': '1.0', 'text': 'First', 'user': 'U1'},
+            ]),
+          );
 
       final runner = buildRunner(
         delay: (_) async {
@@ -112,20 +102,19 @@ void main() {
 
     test('shows an attachment indicator for messages with files', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => historyResponse([
-          {
-            'ts': '1.0',
-            'text': 'Here is the export',
-            'user': 'U1',
-            'files': [
-              {'name': 'export.csv'},
-            ],
-          },
-        ]),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => historyResponse([
+              {
+                'ts': '1.0',
+                'text': 'Here is the export',
+                'user': 'U1',
+                'files': [
+                  {'name': 'export.csv'},
+                ],
+              },
+            ]),
+          );
 
       final runner = buildRunner(
         delay: (_) async {
@@ -136,9 +125,7 @@ void main() {
       await runner.run(['watch', '-c', 'C1']);
 
       verify(
-        () => logger.info(
-          '<U1> Here is the export [attachment: export.csv]',
-        ),
+        () => logger.info('<U1> Here is the export [attachment: export.csv]'),
       ).called(1);
     });
 
@@ -146,19 +133,18 @@ void main() {
       when(() => credentialsStore.load()).thenReturn(credentials);
 
       var callCount = 0;
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async {
-        callCount++;
-        if (callCount == 1) {
-          return historyResponse([
-            {'ts': '2.0', 'text': 'Initial', 'user': 'U1'},
-          ]);
-        }
-        return historyResponse([
-          {'ts': '3.0', 'text': 'New message', 'user': 'U2'},
-        ]);
-      });
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async {
+            callCount++;
+            if (callCount == 1) {
+              return historyResponse([
+                {'ts': '2.0', 'text': 'Initial', 'user': 'U1'},
+              ]);
+            }
+            return historyResponse([
+              {'ts': '3.0', 'text': 'New message', 'user': 'U2'},
+            ]);
+          });
 
       final runner = buildRunner(
         delay: (_) async {
@@ -184,17 +170,16 @@ void main() {
       when(() => credentialsStore.load()).thenReturn(credentials);
 
       var callCount = 0;
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async {
-        callCount++;
-        if (callCount == 1) {
-          return historyResponse([
-            {'ts': '1.0', 'text': 'Initial', 'user': 'U1'},
-          ]);
-        }
-        return historyResponse([]);
-      });
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async {
+            callCount++;
+            if (callCount == 1) {
+              return historyResponse([
+                {'ts': '1.0', 'text': 'Initial', 'user': 'U1'},
+              ]);
+            }
+            return historyResponse([]);
+          });
 
       final runner = buildRunner(
         delay: (_) async {
@@ -206,9 +191,8 @@ void main() {
 
       await runner.run(['watch', '-c', 'C1']);
 
-      final logged = verify(
-        () => logger.info(captureAny()),
-      ).captured.cast<String>();
+      final logged = verify(() => logger.info(captureAny())).captured
+          .cast<String>();
       final messageLines = logged.where((l) => l.startsWith('<')).toList();
       expect(messageLines, hasLength(1));
       expect(messageLines.first, equals('<U1> Initial'));
@@ -216,11 +200,8 @@ void main() {
 
     test('exits cleanly on SIGINT', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => historyResponse([]),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => historyResponse([]));
 
       final runner = buildRunner(
         delay: (_) async {
@@ -234,11 +215,8 @@ void main() {
 
     test('handles empty channel', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => historyResponse([]),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => historyResponse([]));
 
       final runner = buildRunner(
         delay: (_) async {
@@ -248,20 +226,16 @@ void main() {
 
       await runner.run(['watch', '-c', 'C1']);
 
-      final logged = verify(
-        () => logger.info(captureAny()),
-      ).captured.cast<String>();
+      final logged = verify(() => logger.info(captureAny())).captured
+          .cast<String>();
       expect(logged, contains('Watching C1 (Ctrl+C to stop)...'));
       expect(logged.where((l) => l.startsWith('<')), isEmpty);
     });
 
     test('respects custom interval', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => historyResponse([]),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => historyResponse([]));
 
       Duration? capturedDuration;
       final runner = buildRunner(
@@ -278,11 +252,8 @@ void main() {
 
     test('respects custom initial count', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => historyResponse([]),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => historyResponse([]));
 
       final runner = buildRunner(
         delay: (_) async {
@@ -316,9 +287,7 @@ void main() {
           'Invalid --interval value: "0". Use a positive integer.',
         ),
       ).called(1);
-      verifyNever(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      );
+      verifyNever(() => httpClient.get(any(), headers: any(named: 'headers')));
     });
 
     test('rejects invalid count values', () async {
@@ -332,9 +301,7 @@ void main() {
         () =>
             logger.err('Invalid --count value: "-1". Use a positive integer.'),
       ).called(1);
-      verifyNever(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      );
+      verifyNever(() => httpClient.get(any(), headers: any(named: 'headers')));
     });
   });
 }

@@ -4,9 +4,9 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
 void main() {
   group('LogoutCommand', () {
@@ -38,18 +38,13 @@ void main() {
       verify(() => logger.success('Logged out.')).called(1);
     });
 
-    test(
-      'logs info message when no credentials exist',
-      () async {
-        when(() => credentialsStore.delete()).thenReturn(false);
+    test('logs info message when no credentials exist', () async {
+      when(() => credentialsStore.delete()).thenReturn(false);
 
-        final result = await command.run();
+      final result = await command.run();
 
-        expect(result, equals(ExitCode.success.code));
-        verify(
-          () => logger.info('No credentials found.'),
-        ).called(1);
-      },
-    );
+      expect(result, equals(ExitCode.success.code));
+      verify(() => logger.info('No credentials found.')).called(1);
+    });
   });
 }

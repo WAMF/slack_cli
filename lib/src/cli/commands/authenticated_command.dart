@@ -32,7 +32,7 @@ const String _slackTokenEnvVar = 'SLACK_TOKEN';
 /// stay reliable against a dead or unreachable token.
 abstract class AuthenticatedCommand extends Command<int> {
   /// Creates an [AuthenticatedCommand].
-  AuthenticatedCommand({
+  new({
     required this.logger,
     CredentialsStore? credentialsStore,
     this.httpClient,
@@ -68,10 +68,7 @@ abstract class AuthenticatedCommand extends Command<int> {
       return ExitCode.noUser.code;
     }
 
-    final slack = Slack(
-      token: credentials.accessToken,
-      httpClient: httpClient,
-    );
+    final slack = Slack(token: credentials.accessToken, httpClient: httpClient);
 
     try {
       return await runAuthenticated(slack);

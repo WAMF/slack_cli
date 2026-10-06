@@ -11,11 +11,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 /// Issues one Slack request so the token reaches the mock HTTP client,
 /// where [_capturedBearerToken] can read it from the `Authorization`
@@ -29,15 +29,15 @@ Future<int> _probeToken(Slack slack) async {
 /// the mock HTTP client's most recent `get` call.
 String _capturedBearerToken(_MockHttpClient httpClient) {
   final headers =
-      verify(
-            () => httpClient.get(any(), headers: captureAny(named: 'headers')),
-          ).captured.last
+      verify(() => httpClient.get(any(), headers: captureAny(named: 'headers')))
+              .captured
+              .last
           as Map<String, String>;
   return headers['Authorization']!.replaceFirst('Bearer ', '');
 }
 
 class _TestCommand extends AuthenticatedCommand {
-  _TestCommand({
+  new({
     required super.logger,
     super.credentialsStore,
     super.httpClient,
@@ -61,7 +61,7 @@ class _TestCommand extends AuthenticatedCommand {
 
   @override
   Future<int> runAuthenticated(Slack slack) async {
-    return onRun?.call(slack) ?? ExitCode.success.code;
+    return await onRun?.call(slack) ?? ExitCode.success.code;
   }
 }
 
@@ -71,11 +71,7 @@ class _TestCommand extends AuthenticatedCommand {
 /// the override and never the base-class body. This class leaves the base
 /// body in place, which is what a real command that takes no arguments does.
 class _NoOverrideCommand extends AuthenticatedCommand {
-  _NoOverrideCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  });
+  new({required super.logger, super.credentialsStore, super.httpClient});
 
   @override
   String get description => 'Command without a validateArguments override';
@@ -93,10 +89,7 @@ void main() {
     late _MockCredentialsStore credentialsStore;
     late _MockHttpClient httpClient;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -109,18 +102,17 @@ void main() {
 
       when(() => logger.err(any())).thenReturn(null);
       when(() => httpClient.close()).thenReturn(null);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'channels': <dynamic>[],
-            'response_metadata': {'next_cursor': ''},
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'channels': <dynamic>[],
+                'response_metadata': {'next_cursor': ''},
+              }),
+              200,
+            ),
+          );
     });
 
     test('returns noUser exit code when no credentials exist', () async {
@@ -315,9 +307,7 @@ void main() {
       final result = await command.run();
 
       expect(result, equals(ExitCode.software.code));
-      verify(
-        () => logger.err('Slack API error: invalid_auth'),
-      ).called(1);
+      verify(() => logger.err('Slack API error: invalid_auth')).called(1);
     });
 
     test(
@@ -339,9 +329,7 @@ void main() {
 
         expect(result, isNot(equals(ExitCode.success.code)));
         verify(
-          () => logger.err(
-            jsonEncode({'ok': false, 'error': 'token_revoked'}),
-          ),
+          () => logger.err(jsonEncode({'ok': false, 'error': 'token_revoked'})),
         ).called(1);
       },
     );
@@ -359,9 +347,8 @@ void main() {
       final result = await command.run();
 
       expect(result, equals(ExitCode.software.code));
-      verify(
-        () => logger.err('Network error: cannot reach the Slack API.'),
-      ).called(1);
+      verify(() => logger.err('Network error: cannot reach the Slack API.'))
+          .called(1);
     });
 
     test(
@@ -380,9 +367,7 @@ void main() {
 
         expect(result, isNot(equals(ExitCode.success.code)));
         verify(
-          () => logger.err(
-            jsonEncode({'ok': false, 'error': 'network_error'}),
-          ),
+          () => logger.err(jsonEncode({'ok': false, 'error': 'network_error'})),
         ).called(1);
       },
     );
@@ -403,9 +388,7 @@ void main() {
       final result = await command.run();
 
       expect(result, equals(ExitCode.software.code));
-      verify(
-        () => logger.err('Slack API error: missing_scope'),
-      ).called(1);
+      verify(() => logger.err('Slack API error: missing_scope')).called(1);
       verify(
         () => logger.err(
           "Missing scope 'channels:history'. "

@@ -28,9 +28,7 @@ void main() {
     });
 
     test('fromJson defaults optional fields when missing', () {
-      final user = SlackUser.fromJson(const {
-        'id': 'U456',
-      });
+      final user = SlackUser.fromJson(const {'id': 'U456'});
 
       expect(user.id, equals('U456'));
       expect(user.name, isEmpty);
@@ -49,9 +47,7 @@ void main() {
         'real_name': 'Slackbot',
         'is_bot': true,
         'deleted': false,
-        'profile': {
-          'display_name': 'Slackbot',
-        },
+        'profile': {'display_name': 'Slackbot'},
       });
 
       expect(user.isBot, isTrue);

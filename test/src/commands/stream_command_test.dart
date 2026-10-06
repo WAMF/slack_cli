@@ -12,15 +12,15 @@ import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
-class _MockWebSocketChannel extends Mock implements WebSocketChannel {}
+class _MockWebSocketChannel extends Mock implements WebSocketChannel;
 
-class _MockAppConfigStore extends Mock implements AppConfigStore {}
+class _MockAppConfigStore extends Mock implements AppConfigStore;
 
-class _MockWebSocketSink extends Mock implements WebSocketSink {}
+class _MockWebSocketSink extends Mock implements WebSocketSink;
 
 void main() {
   group('StreamCommand', () {
@@ -52,14 +52,13 @@ void main() {
       when(() => wsSink.add(any<dynamic>())).thenReturn(null);
       when(() => wsSink.close()).thenAnswer((_) async {});
       when(() => httpClient.close()).thenReturn(null);
-      when(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({'ok': true, 'url': 'wss://example.com/ws'}),
-          200,
-        ),
-      );
+      when(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({'ok': true, 'url': 'wss://example.com/ws'}),
+              200,
+            ),
+          );
     });
 
     tearDown(() async {
@@ -210,17 +209,15 @@ void main() {
       final exitCode = await runner.run(['stream', '-c', 'C123']);
       expect(exitCode, equals(ExitCode.config.code));
 
-      verify(
-        () => logger.err(any(that: contains('SLACK_APP_TOKEN'))),
-      ).called(1);
+      verify(() => logger.err(any(that: contains('SLACK_APP_TOKEN'))))
+          .called(1);
       verify(configStore.load).called(1);
     });
 
     test('uses token from AppConfigStore when available', () async {
       final configStore = _MockAppConfigStore();
-      when(configStore.load).thenReturn(
-        const AppConfig(appToken: 'xapp-config-store-token'),
-      );
+      when(configStore.load)
+          .thenReturn(const AppConfig(appToken: 'xapp-config-store-token'));
 
       final runner = CommandRunner<int>('test', 'test')
         ..addCommand(
@@ -263,43 +260,38 @@ void main() {
       expect(exitCode, equals(ExitCode.config.code));
 
       verify(configStore.load).called(1);
-      verify(
-        () => logger.err(any(that: contains('dart_slack configure'))),
-      ).called(1);
+      verify(() => logger.err(any(that: contains('dart_slack configure'))))
+          .called(1);
     });
 
     test('returns software exit code on SocketModeException', () async {
-      when(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({'ok': false, 'error': 'invalid_auth'}),
-          200,
-        ),
-      );
+      when(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({'ok': false, 'error': 'invalid_auth'}),
+              200,
+            ),
+          );
 
       final runner = buildRunner();
       final exitCode = await runner.run(['stream', '-c', 'C123']);
 
       expect(exitCode, equals(ExitCode.software.code));
 
-      verify(
-        () => logger.err(any(that: contains('Socket Mode error'))),
-      ).called(1);
+      verify(() => logger.err(any(that: contains('Socket Mode error'))))
+          .called(1);
     });
 
     test('returns software exit code on unexpected exception', () async {
-      when(
-        () => httpClient.post(any(), headers: any(named: 'headers')),
-      ).thenThrow(const SocketException('boom'));
+      when(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .thenThrow(const SocketException('boom'));
 
       final runner = buildRunner();
       final exitCode = await runner.run(['stream', '-c', 'C123']);
 
       expect(exitCode, equals(ExitCode.software.code));
-      verify(
-        () => logger.err(any(that: contains('Unexpected stream error'))),
-      ).called(1);
+      verify(() => logger.err(any(that: contains('Unexpected stream error'))))
+          .called(1);
     });
   });
 }

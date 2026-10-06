@@ -9,11 +9,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockAppConfigStore extends Mock implements AppConfigStore {}
+class _MockAppConfigStore extends Mock implements AppConfigStore;
 
-class _MockStdout extends Mock implements Stdout {}
+class _MockStdout extends Mock implements Stdout;
 
 /// Fake [Stdin] that records [echoMode] changes and returns a preset line.
 class _FakeStdin extends Fake implements Stdin {
@@ -94,9 +94,8 @@ void main() {
               as AppConfig;
       expect(captured.appToken, equals('xapp-1-A0123-token'));
 
-      verify(
-        () => logger.success(any(that: contains('App token saved'))),
-      ).called(1);
+      verify(() => logger.success(any(that: contains('App token saved'))))
+          .called(1);
     });
 
     test('disables echo during token input', () async {
@@ -143,9 +142,7 @@ void main() {
 
       expect(exitCode, equals(ExitCode.success.code));
 
-      verify(
-        () => logger.success(any(that: contains('removed'))),
-      ).called(1);
+      verify(() => logger.success(any(that: contains('removed')))).called(1);
     });
 
     test('--clear handles no existing config', () async {
@@ -156,16 +153,14 @@ void main() {
 
       expect(exitCode, equals(ExitCode.success.code));
 
-      verify(
-        () => logger.info(any(that: contains('No app configuration'))),
-      ).called(1);
+      verify(() => logger.info(any(that: contains('No app configuration'))))
+          .called(1);
     });
 
     test('prompts before overwriting existing config', () async {
       when(() => configStore.hasConfig).thenReturn(true);
-      when(() => configStore.load()).thenReturn(
-        const AppConfig(appToken: 'xapp-1-existing'),
-      );
+      when(() => configStore.load())
+          .thenReturn(const AppConfig(appToken: 'xapp-1-existing'));
       when(() => logger.confirm(any())).thenReturn(false);
 
       final runner = buildRunner();
@@ -173,17 +168,15 @@ void main() {
 
       expect(exitCode, equals(ExitCode.success.code));
 
-      verify(
-        () => logger.confirm(any(that: contains('Reconfigure'))),
-      ).called(1);
+      verify(() => logger.confirm(any(that: contains('Reconfigure'))))
+          .called(1);
       verifyNever(() => configStore.save(any()));
     });
 
     test('overwrites when user confirms', () async {
       when(() => configStore.hasConfig).thenReturn(true);
-      when(() => configStore.load()).thenReturn(
-        const AppConfig(appToken: 'xapp-1-existing'),
-      );
+      when(() => configStore.load())
+          .thenReturn(const AppConfig(appToken: 'xapp-1-existing'));
       when(() => logger.confirm(any())).thenReturn(true);
       when(() => configStore.save(any())).thenReturn(null);
       fakeStdin.lineToReturn = 'xapp-1-new-token';

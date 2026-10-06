@@ -8,11 +8,7 @@ void main() {
         'ok': true,
         'channel': 'C123',
         'ts': '1234567890.123456',
-        'message': {
-          'text': 'Hello',
-          'user': 'U123',
-          'ts': '1234567890.123456',
-        },
+        'message': {'text': 'Hello', 'user': 'U123', 'ts': '1234567890.123456'},
       });
 
       expect(message.channel, equals('C123'));
@@ -53,10 +49,7 @@ void main() {
     test('fromHistory handles missing optional fields', () {
       final message = SlackMessage.fromHistory(
         channel: 'C123',
-        json: const {
-          'ts': '1512085951.000300',
-          'text': 'Simple message',
-        },
+        json: const {'ts': '1512085951.000300', 'text': 'Simple message'},
       );
 
       expect(message.user, isNull);
@@ -107,10 +100,7 @@ void main() {
     test('fromHistory leaves reactions and files null when absent', () {
       final message = SlackMessage.fromHistory(
         channel: 'C123',
-        json: const {
-          'ts': '1512085951.000300',
-          'text': 'Plain message',
-        },
+        json: const {'ts': '1512085951.000300', 'text': 'Plain message'},
       );
 
       expect(message.reactions, isNull);

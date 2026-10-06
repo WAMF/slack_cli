@@ -7,11 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Shows thread replies for a message.
 class ThreadCommand extends AuthenticatedCommand {
   /// Creates a [ThreadCommand].
-  ThreadCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'channel',
@@ -19,11 +15,7 @@ class ThreadCommand extends AuthenticatedCommand {
         help: 'The channel ID containing the thread.',
         mandatory: true,
       )
-      ..addOption(
-        'ts',
-        help: 'The thread parent timestamp.',
-        mandatory: true,
-      );
+      ..addOption('ts', help: 'The thread parent timestamp.', mandatory: true);
   }
 
   @override

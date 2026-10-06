@@ -9,11 +9,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('AuthCommand', () {
@@ -22,10 +22,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -84,9 +81,8 @@ void main() {
 
         expect(exitCode, equals(ExitCode.success.code));
         verify(
-          () => logger.success(
-            'Authenticated as clayton (U123) on WAAF (T123).',
-          ),
+          () =>
+              logger.success('Authenticated as clayton (U123) on WAAF (T123).'),
         ).called(1);
         verify(
           () => logger.info(
@@ -123,9 +119,8 @@ void main() {
 
           expect(exitCode, isNot(equals(ExitCode.success.code)));
           verify(
-            () => logger.err(
-              jsonEncode({'ok': false, 'error': 'invalid_auth'}),
-            ),
+            () =>
+                logger.err(jsonEncode({'ok': false, 'error': 'invalid_auth'})),
           ).called(1);
         },
       );
