@@ -1,7 +1,10 @@
-## Unreleased
+## 0.2.0
 
 ### Breaking
 
+- The minimum Dart SDK is now 3.13.0 (`environment: sdk: ^3.13.0`, was
+  `^3.10.0`). Dart 3.10, 3.11 and 3.12 can no longer resolve this release;
+  installs on those SDKs stay on 0.1.0. CI runs on Dart 3.13.0. See #49.
 - `--text` is no longer `mandatory` on `send`, `reply`, `dm`, and `edit`.
   Exactly one of `--text`, `--text-file` and `--text-stdin` is now required,
   and giving none or more than one is a usage error (exit 64). Every existing
@@ -80,6 +83,10 @@
 
 ### Changed
 
+- Development: adopt `very_good_analysis` 11.0.0. Its formatter setting
+  `trailing_commas: automate` reformats the sources, and its new lints are
+  fixed. The format gate now gives the same result on Dart 3.13.0 and on the
+  current stable SDK, which closes #40.
 - `send`, `reply`, and `dm` now surface the posted message's `ts` on the
   success line (e.g. `Reply sent to thread <root> in <channel> (ts: <ts>).`).
   The `ts` was already fetched and modeled — it was just discarded before
