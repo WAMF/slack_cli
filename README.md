@@ -195,7 +195,7 @@ One message match, returned by `Slack.searchMessages` inside a `CursorPage`.
 
 ### Prerequisites
 
-- Dart SDK `^3.10.0` (included with Flutter 3.41+)
+- Dart SDK `^3.13.0` (included with Flutter 3.47+)
 - A Slack app with the required OAuth scopes (see [Slack App Setup](#slack-app-setup))
 
 ### Slack App Setup
