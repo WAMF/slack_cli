@@ -7,6 +7,11 @@ import 'package:mason_logger/mason_logger.dart';
 /// still readable with `history` or `thread`.
 const int _snippetLength = 200;
 
+/// The largest `--limit`. Slack documents `count` on `search.messages` in
+/// the range 1 to 100, so a larger value would not return the matches the
+/// user asked for. See issue #46.
+const int _maxLimit = 100;
+
 /// Matches a Slack conversation ID: a channel (`C...`), a private group
 /// (`G...`), or a direct message (`D...`).
 final RegExp _conversationId = RegExp(r'^[CDG][A-Z0-9]{2,}$');
@@ -36,7 +41,7 @@ class SearchCommand extends AuthenticatedCommand {
       ..addOption(
         'limit',
         abbr: 'l',
-        help: 'Maximum number of matches to show.',
+        help: 'Maximum number of matches to show, from 1 to $_maxLimit.',
         defaultsTo: '20',
       )
       ..addOption(
@@ -65,10 +70,11 @@ class SearchCommand extends AuthenticatedCommand {
     return (raw == null || raw.isEmpty) ? null : raw;
   }
 
-  /// The parsed `--limit`, or `null` when it is not a positive integer.
+  /// The parsed `--limit`, or `null` when it is not an integer from 1 to
+  /// [_maxLimit].
   int? get _limit {
     final parsed = int.tryParse(argResults!['limit'] as String);
-    return (parsed == null || parsed <= 0) ? null : parsed;
+    return (parsed == null || parsed < 1 || parsed > _maxLimit) ? null : parsed;
   }
 
   @override
@@ -83,7 +89,8 @@ class SearchCommand extends AuthenticatedCommand {
     if (_limit == null) {
       final rawLimit = argResults!['limit'] as String;
       return _usageError(
-        'Invalid --limit value: "$rawLimit". Use a positive integer.',
+        'Invalid --limit value: "$rawLimit". '
+        'Use an integer from 1 to $_maxLimit.',
       );
     }
 

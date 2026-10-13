@@ -278,8 +278,9 @@ void main() {
 
         expect(exitCode, equals(ExitCode.usage.code));
         verify(
-          () =>
-              logger.err('Invalid --limit value: "0". Use a positive integer.'),
+          () => logger.err(
+            'Invalid --limit value: "0". Use an integer from 1 to 100.',
+          ),
         ).called(1);
         verifyNever(
           () => httpClient.get(any(), headers: any(named: 'headers')),
@@ -298,9 +299,68 @@ void main() {
         expect(exitCode, equals(ExitCode.usage.code));
         verify(
           () => logger.err(
-            'Invalid --limit value: "many". Use a positive integer.',
+            'Invalid --limit value: "many". Use an integer from 1 to 100.',
           ),
         ).called(1);
+      });
+
+      test('rejects a --limit above 100', () async {
+        // Slack documents `count` on search.messages in the range 1 to 100.
+        // An out-of-range count returns a different number of matches than
+        // the user asked for, and the command would not say so. See #46.
+        final exitCode = await runner.run([
+          'search',
+          '-q',
+          'deploy',
+          '-l',
+          '101',
+        ]);
+
+        expect(exitCode, equals(ExitCode.usage.code));
+        verify(
+          () => logger.err(
+            'Invalid --limit value: "101". Use an integer from 1 to 100.',
+          ),
+        ).called(1);
+        verifyNever(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        );
+      });
+
+      test('sends a --limit of exactly 100 as the count parameter', () async {
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+          '-l',
+          '100',
+        ], _searchResponse([_match()]));
+
+        expect(uri.queryParameters['count'], equals('100'));
+      });
+
+      test('sends a --limit of exactly 1 as the count parameter', () async {
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+          '-l',
+          '1',
+        ], _searchResponse([_match()]));
+
+        expect(uri.queryParameters['count'], equals('1'));
+      });
+
+      test('says in the usage that --limit is from 1 to 100', () async {
+        await runner.run(['search']);
+
+        final logged = verify(() => logger.info(captureAny())).captured
+            .cast<String>();
+
+        expect(
+          logged.join('\n'),
+          contains('Maximum number of matches to show, from 1 to 100.'),
+        );
       });
 
       test('sends the default limit of 20 when --limit is omitted', () async {
