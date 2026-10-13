@@ -183,6 +183,54 @@ void main() {
           () => httpClient.get(any(), headers: any(named: 'headers')),
         );
       });
+
+      // Issue #44: a Slack channel name cannot hold whitespace, and a lone
+      // `#` names no channel. Both used to build a broken `in:` modifier
+      // (`in:#my channel`, `in:#`) and search the wrong place with no
+      // warning.
+      for (final channel in ['my channel', '#my channel', 'my\tchannel']) {
+        test('rejects a --channel with inner whitespace: "$channel"', () async {
+          final exitCode = await runner.run([
+            'search',
+            '-q',
+            'deploy failed',
+            '-c',
+            channel,
+          ]);
+
+          expect(exitCode, equals(ExitCode.usage.code));
+          verify(
+            () => logger.err(
+              'Invalid --channel value: "$channel". '
+              'A channel name cannot contain whitespace.',
+            ),
+          ).called(1);
+          verifyNever(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          );
+        });
+      }
+
+      for (final channel in ['#', '  #  ']) {
+        test('rejects a --channel that is only "#": "$channel"', () async {
+          final exitCode = await runner.run([
+            'search',
+            '-q',
+            'deploy failed',
+            '-c',
+            channel,
+          ]);
+
+          expect(exitCode, equals(ExitCode.usage.code));
+          verify(
+            () => logger.err('Invalid --channel value: it must not be empty.'),
+          ).called(1);
+          verifyNever(
+            () => httpClient.get(any(), headers: any(named: 'headers')),
+          );
+        });
+      }
+
       test('answers a usage error without reading any credential', () async {
         // Regression test for the review finding on PR #43. Validation used
         // to run inside runAuthenticated, so `search` with no --query and no
@@ -371,8 +419,10 @@ void main() {
         ),
         // The anchors.
         (
-          'C123 x',
-          'deploy failed in:#C123 x',
+          // Not 'C123 x': a space is now a usage error (#44), so the
+          // end anchor is pinned with a lowercase tail instead.
+          'C123x',
+          'deploy failed in:#C123x',
           'an ID must reach the end of the value',
         ),
         (

@@ -87,9 +87,20 @@ class SearchCommand extends AuthenticatedCommand {
       );
     }
 
+    // A lone `#` names no channel, and a Slack channel name cannot hold
+    // whitespace. Either would build a broken `in:` modifier (`in:#`,
+    // `in:#my channel`) that searches the wrong place without a warning.
+    // See issue #44.
     final rawChannel = argResults!['channel'] as String?;
-    if (rawChannel != null && rawChannel.trim().isEmpty) {
+    final channel = rawChannel?.trim();
+    if (channel != null && (channel.isEmpty || channel == '#')) {
       return _usageError('Invalid --channel value: it must not be empty.');
+    }
+    if (channel != null && channel.contains(RegExp(r'\s'))) {
+      return _usageError(
+        'Invalid --channel value: "$rawChannel". '
+        'A channel name cannot contain whitespace.',
+      );
     }
 
     return null;
