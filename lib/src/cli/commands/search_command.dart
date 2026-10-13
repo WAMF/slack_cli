@@ -16,7 +16,8 @@ const int _maxLimit = 100;
 /// (`G...`), or a direct message (`D...`).
 final RegExp _conversationId = RegExp(r'^[CDG][A-Z0-9]{2,}$');
 
-/// `dart_slack search --query <text> [--limit <n>] [--channel <id-or-name>]`
+/// `dart_slack search --query <text> [--limit <n>] [--page <n>]`
+/// `[--channel <id-or-name>]`
 ///
 /// Searches every conversation the authenticated user can see. The query
 /// accepts Slack's own search modifiers, for example `in:#incidents`,
@@ -43,6 +44,14 @@ class SearchCommand extends AuthenticatedCommand {
         abbr: 'l',
         help: 'Maximum number of matches to show, from 1 to $_maxLimit.',
         defaultsTo: '20',
+      )
+      ..addOption(
+        'page',
+        abbr: 'p',
+        help:
+            'The page of matches to show, starting at 1. Each page holds '
+            '--limit matches.',
+        defaultsTo: '1',
       )
       ..addOption(
         'channel',
@@ -77,6 +86,12 @@ class SearchCommand extends AuthenticatedCommand {
     return (parsed == null || parsed < 1 || parsed > _maxLimit) ? null : parsed;
   }
 
+  /// The parsed `--page`, or `null` when it is not a positive integer.
+  int? get _page {
+    final parsed = int.tryParse(argResults!['page'] as String);
+    return (parsed == null || parsed <= 0) ? null : parsed;
+  }
+
   @override
   int? validateArguments() {
     if (_query == null) {
@@ -91,6 +106,13 @@ class SearchCommand extends AuthenticatedCommand {
       return _usageError(
         'Invalid --limit value: "$rawLimit". '
         'Use an integer from 1 to $_maxLimit.',
+      );
+    }
+
+    if (_page == null) {
+      final rawPage = argResults!['page'] as String;
+      return _usageError(
+        'Invalid --page value: "$rawPage". Use a positive integer.',
       );
     }
 
@@ -115,14 +137,16 @@ class SearchCommand extends AuthenticatedCommand {
 
   @override
   Future<int> runAuthenticated(Slack slack) async {
-    // `validateArguments` has already run and rejected a missing query and a
-    // bad limit, so both are known good here.
+    // `validateArguments` has already run and rejected a missing query, a bad
+    // limit and a bad page, so all three are known good here.
+    final pageNumber = _page!;
     final page = await slack.searchMessages(
       query: buildQuery(
         query: _query!,
         channel: argResults!['channel'] as String?,
       ),
       limit: _limit!,
+      page: pageNumber,
     );
 
     if (page.items.isEmpty) {
@@ -138,7 +162,7 @@ class SearchCommand extends AuthenticatedCommand {
     }
 
     if (page.hasMore) {
-      logger.info('(more results available)');
+      logger.info('(more results available: use --page ${pageNumber + 1})');
     }
 
     return ExitCode.success.code;

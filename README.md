@@ -302,6 +302,9 @@ dart run bin/dart_slack.dart search -q "deploy failed"
 # Limit the number of matches
 dart run bin/dart_slack.dart search -q "deploy failed" -l 20
 
+# Read the next page of matches
+dart run bin/dart_slack.dart search -q "deploy failed" --page 2
+
 # Use Slack's own search modifiers in the query
 dart run bin/dart_slack.dart search -q "in:#incidents from:@lee after:2026-08-01"
 
@@ -392,6 +395,11 @@ The line holds the channel, the message timestamp, the author, and a snippet
 of the text. A multi-line message is collapsed onto one line, and a snippet
 longer than 200 characters is cut and marked with `…`. Use `history` or
 `thread` to read a match in full.
+
+When Slack has more matches than one page holds, the last line names the next
+page, for example `(more results available: use --page 2)`. Run the same
+command with that `--page` to read it. Each page holds `--limit` matches, so
+keep `--limit` the same from page to page.
 
 `-c` restricts the search to one channel. It adds the matching `in:` modifier
 to the query and keeps the query itself: `-q "deploy failed" -c C0123ABCDEF`

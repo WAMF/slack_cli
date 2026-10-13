@@ -386,6 +386,73 @@ void main() {
       });
     });
 
+    group('page handling', () {
+      test('rejects a non-positive --page', () async {
+        final exitCode = await runner.run([
+          'search',
+          '-q',
+          'deploy',
+          '--page',
+          '0',
+        ]);
+
+        expect(exitCode, equals(ExitCode.usage.code));
+        verify(
+          () =>
+              logger.err('Invalid --page value: "0". Use a positive integer.'),
+        ).called(1);
+        verifyNever(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        );
+      });
+
+      test('rejects a non-numeric --page', () async {
+        final exitCode = await runner.run([
+          'search',
+          '-q',
+          'deploy',
+          '-p',
+          'next',
+        ]);
+
+        expect(exitCode, equals(ExitCode.usage.code));
+        verify(
+          () => logger.err(
+            'Invalid --page value: "next". Use a positive integer.',
+          ),
+        ).called(1);
+        verifyNever(
+          () => httpClient.get(any(), headers: any(named: 'headers')),
+        );
+      });
+
+      test('sends the requested page as the page parameter', () async {
+        // Regression test for #45. The command used to send page 1 whatever
+        // the user asked for, so a later page could not be read.
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+          '--page',
+          '3',
+        ], _searchResponse([_match()], page: 3, pages: 5));
+
+        expect(uri.queryParameters['page'], equals('3'));
+      });
+
+      test('says in the usage how to choose a page', () async {
+        await runner.run(['search']);
+
+        final logged = verify(() => logger.info(captureAny())).captured
+            .cast<String>();
+
+        expect(
+          logged.join('\n'),
+          contains('The page of matches to show, starting at 1.'),
+        );
+      });
+    });
+
     group('channel filtering', () {
       test('adds no modifier when --channel is omitted', () async {
         final uri = await capturedRequestUri([
@@ -764,12 +831,22 @@ void main() {
         verify(() => logger.info('[#incidents] [1.0] <lee> padded')).called(1);
       });
 
-      test('notes when more pages of results exist', () async {
+      test('names the next page when more pages of results exist', () async {
         answerWith(_searchResponse([_match()], pages: 3));
 
         await runner.run(['search', '-q', 'deploy']);
 
-        verify(() => logger.info('(more results available)')).called(1);
+        verify(() => logger.info('(more results available: use --page 2)'))
+            .called(1);
+      });
+
+      test('names the page after the one the user asked for', () async {
+        answerWith(_searchResponse([_match()], page: 2, pages: 3));
+
+        await runner.run(['search', '-q', 'deploy', '--page', '2']);
+
+        verify(() => logger.info('(more results available: use --page 3)'))
+            .called(1);
       });
 
       test('says nothing about more results on the last page', () async {
@@ -778,7 +855,9 @@ void main() {
 
         await runner.run(['search', '-q', 'deploy']);
 
-        verifyNever(() => logger.info('(more results available)'));
+        verifyNever(
+          () => logger.info(any(that: startsWith('(more results available'))),
+        );
       });
 
       test('says nothing about more results when paging is absent', () async {
@@ -796,7 +875,9 @@ void main() {
         expect(exitCode, equals(ExitCode.success.code));
         verify(() => logger.info('[#incidents] [1.0] <lee> deploy failed'))
             .called(1);
-        verifyNever(() => logger.info('(more results available)'));
+        verifyNever(
+          () => logger.info(any(that: startsWith('(more results available'))),
+        );
       });
     });
 
