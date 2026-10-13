@@ -7,11 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Shows recent messages in a Slack channel.
 class HistoryCommand extends AuthenticatedCommand {
   /// Creates a [HistoryCommand].
-  HistoryCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'channel',

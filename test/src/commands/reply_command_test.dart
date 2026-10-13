@@ -10,11 +10,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('ReplyCommand', () {
@@ -59,10 +59,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -110,9 +107,15 @@ void main() {
         ),
       );
 
-      await runner.run(
-        ['reply', '-c', 'C1', '-r', '1784205912.550099', '-t', 'yo'],
-      );
+      await runner.run([
+        'reply',
+        '-c',
+        'C1',
+        '-r',
+        '1784205912.550099',
+        '-t',
+        'yo',
+      ]);
 
       verify(
         () => logger.success(
@@ -129,18 +132,17 @@ void main() {
       addTearDown(tempFile.deleteSync);
 
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'upload_url': 'https://files.slack.com/upload/v1/abc',
-            'file_id': 'F123',
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'upload_url': 'https://files.slack.com/upload/v1/abc',
+                'file_id': 'F123',
+              }),
+              200,
+            ),
+          );
       when(() => httpClient.send(any())).thenAnswer(
         (_) async =>
             http.StreamedResponse(Stream.value(utf8.encode('OK')), 200),
@@ -212,10 +214,7 @@ void main() {
     late CommandRunner<int> runner;
     late List<String> sentBodies;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));

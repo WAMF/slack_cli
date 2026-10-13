@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('SlackApiClient', () {
@@ -16,10 +16,7 @@ void main() {
 
     setUp(() {
       httpClient = _MockHttpClient();
-      slackClient = SlackApiClient(
-        token: token,
-        httpClient: httpClient,
-      );
+      slackClient = SlackApiClient(token: token, httpClient: httpClient);
     });
 
     setUpAll(() {
@@ -38,16 +35,11 @@ void main() {
             body: any(named: 'body'),
           ),
         ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': true, 'ts': '1234.5678'}),
-            200,
-          ),
+          (_) async =>
+              http.Response(jsonEncode({'ok': true, 'ts': '1234.5678'}), 200),
         );
 
-        await slackClient.postMessage(
-          channel: 'C123',
-          text: 'Hello',
-        );
+        await slackClient.postMessage(channel: 'C123', text: 'Hello');
 
         final captured = verify(
           () => httpClient.post(
@@ -80,10 +72,8 @@ void main() {
             body: any(named: 'body'),
           ),
         ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': true, 'ts': '1234.5678'}),
-            200,
-          ),
+          (_) async =>
+              http.Response(jsonEncode({'ok': true, 'ts': '1234.5678'}), 200),
         );
 
         await slackClient.postMessage(
@@ -113,19 +103,13 @@ void main() {
           ),
         ).thenAnswer(
           (_) async => http.Response(
-            jsonEncode({
-              'ok': false,
-              'error': 'channel_not_found',
-            }),
+            jsonEncode({'ok': false, 'error': 'channel_not_found'}),
             200,
           ),
         );
 
         expect(
-          () => slackClient.postMessage(
-            channel: 'C_BAD',
-            text: 'Hello',
-          ),
+          () => slackClient.postMessage(channel: 'C_BAD', text: 'Hello'),
           throwsA(
             isA<SlackApiException>().having(
               (e) => e.error,
@@ -155,10 +139,7 @@ void main() {
         );
 
         expect(
-          () => slackClient.postMessage(
-            channel: 'C123',
-            text: 'Hello',
-          ),
+          () => slackClient.postMessage(channel: 'C123', text: 'Hello'),
           throwsA(
             isA<SlackApiException>()
                 .having((e) => e.error, 'error', 'missing_scope')
@@ -167,38 +148,29 @@ void main() {
         );
       });
 
-      test(
-        'throws SlackApiException with unknown_error '
-        'when error field is missing',
-        () async {
-          when(
-            () => httpClient.post(
-              any(),
-              headers: any(named: 'headers'),
-              body: any(named: 'body'),
-            ),
-          ).thenAnswer(
-            (_) async => http.Response(
-              jsonEncode({'ok': false}),
-              200,
-            ),
-          );
+      test('throws SlackApiException with unknown_error '
+          'when error field is missing', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode({'ok': false}), 200),
+        );
 
-          expect(
-            () => slackClient.postMessage(
-              channel: 'C123',
-              text: 'Hello',
+        expect(
+          () => slackClient.postMessage(channel: 'C123', text: 'Hello'),
+          throwsA(
+            isA<SlackApiException>().having(
+              (e) => e.error,
+              'error',
+              'unknown_error',
             ),
-            throwsA(
-              isA<SlackApiException>().having(
-                (e) => e.error,
-                'error',
-                'unknown_error',
-              ),
-            ),
-          );
-        },
-      );
+          ),
+        );
+      });
     });
 
     test('close delegates to httpClient', () {
@@ -209,19 +181,18 @@ void main() {
 
     group('listChannels', () {
       test('sends GET with correct query params', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'channels': [
-                {'id': 'C1', 'name': 'general', 'is_private': false},
-              ],
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'channels': [
+                    {'id': 'C1', 'name': 'general', 'is_private': false},
+                  ],
+                }),
+                200,
+              ),
+            );
 
         final result = await slackClient.listChannels();
 
@@ -246,28 +217,25 @@ void main() {
 
       test('fetches all pages until cursor is exhausted', () async {
         var callCount = 0;
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async {
-            callCount++;
-            return http.Response(
-              jsonEncode({
-                'ok': true,
-                'channels': [
-                  if (callCount == 1)
-                    {'id': 'C1', 'name': 'general', 'is_private': false}
-                  else
-                    {'id': 'G2', 'name': 'secret', 'is_private': true},
-                ],
-                'response_metadata': {
-                  'next_cursor': callCount == 1 ? 'cursor-1' : '',
-                },
-              }),
-              200,
-            );
-          },
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async {
+              callCount++;
+              return http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'channels': [
+                    if (callCount == 1)
+                      {'id': 'C1', 'name': 'general', 'is_private': false}
+                    else
+                      {'id': 'G2', 'name': 'secret', 'is_private': true},
+                  ],
+                  'response_metadata': {
+                    'next_cursor': callCount == 1 ? 'cursor-1' : '',
+                  },
+                }),
+                200,
+              );
+            });
 
         final result = await slackClient.listChannels();
 
@@ -276,10 +244,7 @@ void main() {
         expect(result[1]['id'], equals('G2'));
 
         final calls = verify(
-          () => httpClient.get(
-            captureAny(),
-            headers: any(named: 'headers'),
-          ),
+          () => httpClient.get(captureAny(), headers: any(named: 'headers')),
         ).captured.cast<Uri>();
 
         expect(calls, hasLength(2));
@@ -290,20 +255,19 @@ void main() {
 
     group('conversationsHistory', () {
       test('sends GET with channel and limit', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'messages': [
-                {'ts': '1.0', 'text': 'hi', 'user': 'U1'},
-              ],
-              'has_more': false,
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'messages': [
+                    {'ts': '1.0', 'text': 'hi', 'user': 'U1'},
+                  ],
+                  'has_more': false,
+                }),
+                200,
+              ),
+            );
 
         final result = await slackClient.conversationsHistory(
           channel: 'C1',
@@ -328,20 +292,19 @@ void main() {
 
     group('conversationsReplies', () {
       test('sends GET with channel and ts', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'messages': [
-                {'ts': '1.0', 'text': 'parent', 'user': 'U1'},
-              ],
-              'has_more': false,
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'messages': [
+                    {'ts': '1.0', 'text': 'parent', 'user': 'U1'},
+                  ],
+                  'has_more': false,
+                }),
+                200,
+              ),
+            );
 
         await slackClient.conversationsReplies(channel: 'C1', ts: '1.0');
 
@@ -367,11 +330,7 @@ void main() {
           (_) async => http.Response(
             jsonEncode({
               'ok': true,
-              'channel': {
-                'id': 'C1',
-                'name': 'general',
-                'is_private': false,
-              },
+              'channel': {'id': 'C1', 'name': 'general', 'is_private': false},
             }),
             200,
           ),
@@ -383,14 +342,13 @@ void main() {
       });
 
       test('throws on error', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': false, 'error': 'channel_not_found'}),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({'ok': false, 'error': 'channel_not_found'}),
+                200,
+              ),
+            );
 
         expect(
           () => slackClient.conversationsInfo(channel: 'C_BAD'),
@@ -407,18 +365,17 @@ void main() {
 
     group('conversationsMembers', () {
       test('returns member IDs', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'members': ['U1', 'U2'],
-              'response_metadata': {'next_cursor': ''},
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'members': ['U1', 'U2'],
+                  'response_metadata': {'next_cursor': ''},
+                }),
+                200,
+              ),
+            );
 
         final result = await slackClient.conversationsMembers(channel: 'C1');
 
@@ -458,36 +415,32 @@ void main() {
 
         expect(uri, equals(SlackUrls.conversationsOpen));
         expect(body['users'], equals('U9'));
-        expect(
-          (result['channel'] as Map<String, dynamic>)['id'],
-          equals('D1'),
-        );
+        expect((result['channel'] as Map<String, dynamic>)['id'], equals('D1'));
       });
     });
 
     group('usersList', () {
       test('returns user objects', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'members': [
-                {
-                  'id': 'U1',
-                  'name': 'jane',
-                  'real_name': 'Jane',
-                  'is_bot': false,
-                  'deleted': false,
-                  'profile': {'display_name': 'Jane'},
-                },
-              ],
-              'response_metadata': {'next_cursor': ''},
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'members': [
+                    {
+                      'id': 'U1',
+                      'name': 'jane',
+                      'real_name': 'Jane',
+                      'is_bot': false,
+                      'deleted': false,
+                      'profile': {'display_name': 'Jane'},
+                    },
+                  ],
+                  'response_metadata': {'next_cursor': ''},
+                }),
+                200,
+              ),
+            );
 
         final result = await slackClient.usersList();
 
@@ -497,24 +450,23 @@ void main() {
 
     group('usersInfo', () {
       test('returns user object', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'user': {
-                'id': 'U1',
-                'name': 'jane',
-                'real_name': 'Jane',
-                'is_bot': false,
-                'deleted': false,
-                'profile': {'display_name': 'Jane'},
-              },
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'user': {
+                    'id': 'U1',
+                    'name': 'jane',
+                    'real_name': 'Jane',
+                    'is_bot': false,
+                    'deleted': false,
+                    'profile': {'display_name': 'Jane'},
+                  },
+                }),
+                200,
+              ),
+            );
 
         final result = await slackClient.usersInfo(user: 'U1');
 
@@ -675,24 +627,20 @@ void main() {
             headers: any(named: 'headers'),
             body: any(named: 'body'),
           ),
-        ).thenAnswer(
-          (_) async => http.Response(jsonEncode({'ok': true}), 200),
-        );
+        ).thenAnswer((_) async => http.Response(jsonEncode({'ok': true}), 200));
 
         await slackClient.usersProfileSet(statusText: '', statusEmoji: '');
 
-        final body =
-            jsonDecode(
-                  verify(
-                        () => httpClient.post(
-                          any(),
-                          headers: any(named: 'headers'),
-                          body: captureAny(named: 'body'),
-                        ),
-                      ).captured.first
-                      as String,
-                )
-                as Map<String, dynamic>;
+        final body = jsonDecode(
+          verify(
+                () => httpClient.post(
+                  any(),
+                  headers: any(named: 'headers'),
+                  body: captureAny(named: 'body'),
+                ),
+              ).captured.first
+              as String,
+        ) as Map<String, dynamic>;
         final profile = body['profile'] as Map<String, dynamic>;
 
         expect(profile['status_text'], isEmpty);
@@ -769,12 +717,7 @@ void main() {
             headers: any(named: 'headers'),
             body: any(named: 'body'),
           ),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': true}),
-            200,
-          ),
-        );
+        ).thenAnswer((_) async => http.Response(jsonEncode({'ok': true}), 200));
 
         await slackClient.joinChannel('C1');
 
@@ -821,11 +764,7 @@ void main() {
           return http.Response(
             jsonEncode({
               'ok': true,
-              'channel': {
-                'id': 'C1',
-                'name': 'general',
-                'is_private': false,
-              },
+              'channel': {'id': 'C1', 'name': 'general', 'is_private': false},
             }),
             200,
           );
@@ -866,15 +805,14 @@ void main() {
       });
 
       test('throws after max retry attempts', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': false, 'error': 'ratelimited'}),
-            429,
-            headers: {'retry-after': '1'},
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({'ok': false, 'error': 'ratelimited'}),
+                429,
+                headers: {'retry-after': '1'},
+              ),
+            );
 
         expect(
           () => retryClient.conversationsInfo(channel: 'C1'),
@@ -889,14 +827,13 @@ void main() {
       });
 
       test('does not retry non-429 errors', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': false, 'error': 'invalid_auth'}),
-            401,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({'ok': false, 'error': 'invalid_auth'}),
+                401,
+              ),
+            );
 
         expect(
           () => retryClient.conversationsInfo(channel: 'C1'),
@@ -909,9 +846,8 @@ void main() {
           ),
         );
 
-        verify(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).called(1);
+        verify(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .called(1);
       });
     });
 
@@ -924,10 +860,8 @@ void main() {
             body: any(named: 'body'),
           ),
         ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': true, 'canvas_id': 'F1'}),
-            200,
-          ),
+          (_) async =>
+              http.Response(jsonEncode({'ok': true, 'canvas_id': 'F1'}), 200),
         );
 
         await slackClient.createCanvas(content: '# Title', title: 'Doc');
@@ -959,26 +893,22 @@ void main() {
             body: any(named: 'body'),
           ),
         ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({'ok': true, 'canvas_id': 'F2'}),
-            200,
-          ),
+          (_) async =>
+              http.Response(jsonEncode({'ok': true, 'canvas_id': 'F2'}), 200),
         );
 
         await slackClient.createCanvas(content: 'body', channel: 'C9');
 
-        final body =
-            jsonDecode(
-                  verify(
-                        () => httpClient.post(
-                          any(),
-                          headers: any(named: 'headers'),
-                          body: captureAny(named: 'body'),
-                        ),
-                      ).captured.first
-                      as String,
-                )
-                as Map<String, dynamic>;
+        final body = jsonDecode(
+          verify(
+                () => httpClient.post(
+                  any(),
+                  headers: any(named: 'headers'),
+                  body: captureAny(named: 'body'),
+                ),
+              ).captured.first
+              as String,
+        ) as Map<String, dynamic>;
 
         expect(body['channel_id'], equals('C9'));
         expect(body.containsKey('title'), isFalse);
@@ -993,9 +923,7 @@ void main() {
             headers: any(named: 'headers'),
             body: any(named: 'body'),
           ),
-        ).thenAnswer(
-          (_) async => http.Response(jsonEncode({'ok': true}), 200),
-        );
+        ).thenAnswer((_) async => http.Response(jsonEncode({'ok': true}), 200));
 
         await slackClient.editCanvas(
           canvasId: 'F1',
@@ -1037,9 +965,7 @@ void main() {
             headers: any(named: 'headers'),
             body: any(named: 'body'),
           ),
-        ).thenAnswer(
-          (_) async => http.Response(jsonEncode({'ok': true}), 200),
-        );
+        ).thenAnswer((_) async => http.Response(jsonEncode({'ok': true}), 200));
 
         await slackClient.deleteCanvas(canvasId: 'F1');
 
@@ -1061,17 +987,16 @@ void main() {
 
     group('filesInfo', () {
       test('sends GET to files.info with the file id', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'file': {'id': 'F1', 'filetype': 'canvas'},
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'file': {'id': 'F1', 'filetype': 'canvas'},
+                }),
+                200,
+              ),
+            );
 
         final json = await slackClient.filesInfo(file: 'F1');
 
@@ -1091,9 +1016,8 @@ void main() {
 
     group('downloadFile', () {
       test('returns the raw body for a 2xx response', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer((_) async => http.Response('# Canvas body', 200));
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => http.Response('# Canvas body', 200));
 
         final body = await slackClient.downloadFile(
           Uri.parse('https://files.slack.com/c-F1'),
@@ -1103,9 +1027,8 @@ void main() {
       });
 
       test('throws SlackApiException on a non-2xx response', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer((_) async => http.Response('nope', 403));
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => http.Response('nope', 403));
 
         expect(
           () => slackClient.downloadFile(
@@ -1118,15 +1041,14 @@ void main() {
       test(
         'throws not_authorized for a 200 HTML response (text/html header)',
         () async {
-          when(
-            () => httpClient.get(any(), headers: any(named: 'headers')),
-          ).thenAnswer(
-            (_) async => http.Response(
-              '<!doctype html><html><body>Sign in to Slack</body></html>',
-              200,
-              headers: {'content-type': 'text/html; charset=utf-8'},
-            ),
-          );
+          when(() => httpClient.get(any(), headers: any(named: 'headers')))
+              .thenAnswer(
+                (_) async => http.Response(
+                  '<!doctype html><html><body>Sign in to Slack</body></html>',
+                  200,
+                  headers: {'content-type': 'text/html; charset=utf-8'},
+                ),
+              );
 
           expect(
             () => slackClient.downloadFile(
@@ -1143,49 +1065,44 @@ void main() {
         },
       );
 
-      test(
-        'throws not_authorized when the body sniffs as HTML without a '
-        'content-type header',
-        () async {
-          when(
-            () => httpClient.get(any(), headers: any(named: 'headers')),
-          ).thenAnswer(
-            (_) async => http.Response(
-              '  <!DOCTYPE HTML>\n<html><head><title>Slack</title></head>',
-              200,
-            ),
-          );
-
-          expect(
-            () => slackClient.downloadFile(
-              Uri.parse('https://files.slack.com/c-F1'),
-            ),
-            throwsA(
-              isA<SlackApiException>().having(
-                (e) => e.error,
-                'error',
-                'not_authorized',
+      test('throws not_authorized when the body sniffs as HTML without a '
+          'content-type header', () async {
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                '  <!DOCTYPE HTML>\n<html><head><title>Slack</title></head>',
+                200,
               ),
+            );
+
+        expect(
+          () => slackClient.downloadFile(
+            Uri.parse('https://files.slack.com/c-F1'),
+          ),
+          throwsA(
+            isA<SlackApiException>().having(
+              (e) => e.error,
+              'error',
+              'not_authorized',
             ),
-          );
-        },
-      );
+          ),
+        );
+      });
     });
 
     group('getUploadUrlExternal', () {
       test('sends filename and length as query params', () async {
-        when(
-          () => httpClient.get(any(), headers: any(named: 'headers')),
-        ).thenAnswer(
-          (_) async => http.Response(
-            jsonEncode({
-              'ok': true,
-              'upload_url': 'https://files.slack.com/upload/v1/abc',
-              'file_id': 'F123',
-            }),
-            200,
-          ),
-        );
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+              (_) async => http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'upload_url': 'https://files.slack.com/upload/v1/abc',
+                  'file_id': 'F123',
+                }),
+                200,
+              ),
+            );
 
         final json = await slackClient.getUploadUrlExternal(
           filename: 'notes.txt',
@@ -1210,10 +1127,8 @@ void main() {
     group('uploadFileBytes', () {
       test('posts the file bytes as multipart form data', () async {
         when(() => httpClient.send(any())).thenAnswer(
-          (_) async => http.StreamedResponse(
-            Stream.value(utf8.encode('OK')),
-            200,
-          ),
+          (_) async =>
+              http.StreamedResponse(Stream.value(utf8.encode('OK')), 200),
         );
 
         final uploadUrl = Uri.parse('https://files.slack.com/upload/v1/abc');
@@ -1233,10 +1148,8 @@ void main() {
 
       test('throws SlackApiException on a non-2xx response', () async {
         when(() => httpClient.send(any())).thenAnswer(
-          (_) async => http.StreamedResponse(
-            Stream.value(utf8.encode('nope')),
-            500,
-          ),
+          (_) async =>
+              http.StreamedResponse(Stream.value(utf8.encode('nope')), 500),
         );
 
         expect(
@@ -1251,49 +1164,45 @@ void main() {
     });
 
     group('completeUploadExternal', () {
-      test(
-        'sends the file id, title, channel, thread, and comment',
-        () async {
-          when(
-            () => httpClient.post(
-              any(),
-              headers: any(named: 'headers'),
-              body: any(named: 'body'),
-            ),
-          ).thenAnswer(
-            (_) async => http.Response(
-              jsonEncode({'ok': true, 'files': <Map<String, dynamic>>[]}),
-              200,
-            ),
-          );
+      test('sends the file id, title, channel, thread, and comment', () async {
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({'ok': true, 'files': <Map<String, dynamic>>[]}),
+            200,
+          ),
+        );
 
-          await slackClient.completeUploadExternal(
-            fileId: 'F123',
-            filename: 'notes.txt',
-            channel: 'C1',
-            threadTs: '1.0',
-            initialComment: 'here you go',
-          );
+        await slackClient.completeUploadExternal(
+          fileId: 'F123',
+          filename: 'notes.txt',
+          channel: 'C1',
+          threadTs: '1.0',
+          initialComment: 'here you go',
+        );
 
-          final captured = verify(
-            () => httpClient.post(
-              captureAny(),
-              headers: any(named: 'headers'),
-              body: captureAny(named: 'body'),
-            ),
-          ).captured;
-          expect(captured[0], equals(SlackUrls.filesCompleteUploadExternal));
-          final body =
-              jsonDecode(captured[1] as String) as Map<String, dynamic>;
-          final files = (body['files'] as List<dynamic>)
-              .cast<Map<String, dynamic>>();
-          expect(files.single['id'], equals('F123'));
-          expect(files.single['title'], equals('notes.txt'));
-          expect(body['channel_id'], equals('C1'));
-          expect(body['thread_ts'], equals('1.0'));
-          expect(body['initial_comment'], equals('here you go'));
-        },
-      );
+        final captured = verify(
+          () => httpClient.post(
+            captureAny(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured;
+        expect(captured[0], equals(SlackUrls.filesCompleteUploadExternal));
+        final body = jsonDecode(captured[1] as String) as Map<String, dynamic>;
+        final files = (body['files'] as List<dynamic>)
+            .cast<Map<String, dynamic>>();
+        expect(files.single['id'], equals('F123'));
+        expect(files.single['title'], equals('notes.txt'));
+        expect(body['channel_id'], equals('C1'));
+        expect(body['thread_ts'], equals('1.0'));
+        expect(body['initial_comment'], equals('here you go'));
+      });
 
       test('omits optional fields when absent', () async {
         when(
@@ -1314,18 +1223,16 @@ void main() {
           filename: 'notes.txt',
         );
 
-        final body =
-            jsonDecode(
-                  verify(
-                        () => httpClient.post(
-                          any(),
-                          headers: any(named: 'headers'),
-                          body: captureAny(named: 'body'),
-                        ),
-                      ).captured.single
-                      as String,
-                )
-                as Map<String, dynamic>;
+        final body = jsonDecode(
+          verify(
+                () => httpClient.post(
+                  any(),
+                  headers: any(named: 'headers'),
+                  body: captureAny(named: 'body'),
+                ),
+              ).captured.single
+              as String,
+        ) as Map<String, dynamic>;
         expect(body.containsKey('channel_id'), isFalse);
         expect(body.containsKey('thread_ts'), isFalse);
         expect(body.containsKey('initial_comment'), isFalse);

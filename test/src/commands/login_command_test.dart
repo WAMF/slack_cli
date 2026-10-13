@@ -6,11 +6,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockOAuthFlow extends Mock implements OAuthFlow {}
+class _MockOAuthFlow extends Mock implements OAuthFlow;
 
 void main() {
   group('LoginCommand', () {
@@ -19,10 +19,7 @@ void main() {
     late OAuthFlow oauthFlow;
     late LoginCommand command;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUp(() {
       logger = _MockLogger();
@@ -42,66 +39,50 @@ void main() {
 
     test('successful login stores credentials and logs success', () async {
       when(() => credentialsStore.hasCredentials).thenReturn(false);
-      when(() => oauthFlow.execute()).thenAnswer(
-        (_) async => credentials,
-      );
+      when(() => oauthFlow.execute()).thenAnswer((_) async => credentials);
       when(() => credentialsStore.save(credentials)).thenReturn(null);
 
       final result = await command.run();
 
       expect(result, equals(ExitCode.success.code));
       verify(() => credentialsStore.save(credentials)).called(1);
-      verify(
-        () => logger.success('Logged in to Slack.'),
-      ).called(1);
+      verify(() => logger.success('Logged in to Slack.')).called(1);
     });
 
-    test(
-      'prompts re-auth when already logged in and user declines',
-      () async {
-        when(() => credentialsStore.hasCredentials).thenReturn(true);
-        when(() => credentialsStore.load()).thenReturn(credentials);
-        when(() => logger.confirm(any())).thenReturn(false);
+    test('prompts re-auth when already logged in and user declines', () async {
+      when(() => credentialsStore.hasCredentials).thenReturn(true);
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(() => logger.confirm(any())).thenReturn(false);
 
-        final result = await command.run();
+      final result = await command.run();
 
-        expect(result, equals(ExitCode.success.code));
-        verifyNever(() => oauthFlow.execute());
-      },
-    );
+      expect(result, equals(ExitCode.success.code));
+      verifyNever(() => oauthFlow.execute());
+    });
 
-    test(
-      'prompts re-auth when already logged in and user accepts',
-      () async {
-        when(() => credentialsStore.hasCredentials).thenReturn(true);
-        when(() => credentialsStore.load()).thenReturn(credentials);
-        when(() => logger.confirm(any())).thenReturn(true);
-        when(() => oauthFlow.execute()).thenAnswer(
-          (_) async => credentials,
-        );
-        when(
-          () => credentialsStore.save(credentials),
-        ).thenReturn(null);
+    test('prompts re-auth when already logged in and user accepts', () async {
+      when(() => credentialsStore.hasCredentials).thenReturn(true);
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(() => logger.confirm(any())).thenReturn(true);
+      when(() => oauthFlow.execute()).thenAnswer((_) async => credentials);
+      when(() => credentialsStore.save(credentials)).thenReturn(null);
 
-        final result = await command.run();
+      final result = await command.run();
 
-        expect(result, equals(ExitCode.success.code));
-        verify(() => oauthFlow.execute()).called(1);
-      },
-    );
+      expect(result, equals(ExitCode.success.code));
+      verify(() => oauthFlow.execute()).called(1);
+    });
 
     test('returns software error on OAuthException', () async {
       when(() => credentialsStore.hasCredentials).thenReturn(false);
-      when(() => oauthFlow.execute()).thenThrow(
-        const OAuthException('access_denied'),
-      );
+      when(() => oauthFlow.execute())
+          .thenThrow(const OAuthException('access_denied'));
 
       final result = await command.run();
 
       expect(result, equals(ExitCode.software.code));
-      verify(
-        () => logger.err('Authentication failed: access_denied'),
-      ).called(1);
+      verify(() => logger.err('Authentication failed: access_denied'))
+          .called(1);
     });
   });
 }

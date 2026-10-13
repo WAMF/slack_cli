@@ -7,11 +7,8 @@ import 'package:mason_logger/mason_logger.dart';
 /// Removes stored Slack credentials.
 class LogoutCommand extends Command<int> {
   /// Creates a [LogoutCommand].
-  LogoutCommand({
-    required Logger logger,
-    CredentialsStore? credentialsStore,
-  }) : _logger = logger,
-       _credentialsStore = credentialsStore ?? CredentialsStore();
+  new({required this._logger, CredentialsStore? credentialsStore})
+    : _credentialsStore = credentialsStore ?? CredentialsStore();
 
   @override
   String get description => 'Remove stored Slack credentials.';

@@ -10,11 +10,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('CanvasCommand', () {
@@ -23,10 +23,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -64,16 +61,15 @@ void main() {
 
     Map<String, dynamic> capturedBody() {
       return jsonDecode(
-            verify(
-                  () => httpClient.post(
-                    any(),
-                    headers: any(named: 'headers'),
-                    body: captureAny(named: 'body'),
-                  ),
-                ).captured.last
-                as String,
-          )
-          as Map<String, dynamic>;
+        verify(
+              () => httpClient.post(
+                any(),
+                headers: any(named: 'headers'),
+                body: captureAny(named: 'body'),
+              ),
+            ).captured.last
+            as String,
+      ) as Map<String, dynamic>;
     }
 
     test('has correct name and description', () {
@@ -97,25 +93,24 @@ void main() {
       String? downloadUrl = 'https://files.slack.com/canvas-F1',
       String body = '# Huddle notes',
     }) {
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((invocation) async {
-        final uri = invocation.positionalArguments.first as Uri;
-        if (uri.host == 'slack.com' && uri.path.contains('files.info')) {
-          return http.Response(
-            jsonEncode({
-              'ok': true,
-              'file': {
-                'id': 'F1',
-                'filetype': 'canvas',
-                'url_private_download': ?downloadUrl,
-              },
-            }),
-            200,
-          );
-        }
-        return http.Response(body, 200);
-      });
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((invocation) async {
+            final uri = invocation.positionalArguments.first as Uri;
+            if (uri.host == 'slack.com' && uri.path.contains('files.info')) {
+              return http.Response(
+                jsonEncode({
+                  'ok': true,
+                  'file': {
+                    'id': 'F1',
+                    'filetype': 'canvas',
+                    'url_private_download': ?downloadUrl,
+                  },
+                }),
+                200,
+              );
+            }
+            return http.Response(body, 200);
+          });
     }
 
     group('read', () {
@@ -136,10 +131,7 @@ void main() {
         await runner.run(['canvas', 'read', '--canvas', 'F1']);
 
         final uris = verify(
-          () => httpClient.get(
-            captureAny(),
-            headers: any(named: 'headers'),
-          ),
+          () => httpClient.get(captureAny(), headers: any(named: 'headers')),
         ).captured.cast<Uri>();
         final infoUri = uris.firstWhere((u) => u.path.contains('files.info'));
         expect(infoUri.queryParameters['file'], equals('F1'));
@@ -171,9 +163,8 @@ void main() {
         final code = await runner.run(['canvas', 'read', '--canvas', 'F1']);
 
         expect(code, equals(ExitCode.unavailable.code));
-        verify(
-          () => logger.err(any(that: contains('No readable content'))),
-        ).called(1);
+        verify(() => logger.err(any(that: contains('No readable content'))))
+            .called(1);
       });
 
       test('errors when the --output file cannot be written', () async {
@@ -193,9 +184,8 @@ void main() {
         ]);
 
         expect(code, equals(ExitCode.cantCreate.code));
-        verify(
-          () => logger.err(any(that: startsWith('Failed to write file:'))),
-        ).called(1);
+        verify(() => logger.err(any(that: startsWith('Failed to write file:'))))
+            .called(1);
       });
 
       test('requires the canvas option', () {
@@ -255,9 +245,8 @@ void main() {
         final code = await runner.run(['canvas', 'create']);
 
         expect(code, equals(ExitCode.usage.code));
-        verify(
-          () => logger.err('Provide exactly one of --content or --file.'),
-        ).called(1);
+        verify(() => logger.err('Provide exactly one of --content or --file.'))
+            .called(1);
         verifyNever(
           () => httpClient.post(
             any(),
@@ -278,9 +267,8 @@ void main() {
         ]);
 
         expect(code, equals(ExitCode.usage.code));
-        verify(
-          () => logger.err('Provide exactly one of --content or --file.'),
-        ).called(1);
+        verify(() => logger.err('Provide exactly one of --content or --file.'))
+            .called(1);
       });
 
       test('errors when the --file path does not exist', () async {
@@ -292,9 +280,8 @@ void main() {
         ]);
 
         expect(code, equals(ExitCode.usage.code));
-        verify(
-          () => logger.err(any(that: startsWith('Failed to read file:'))),
-        ).called(1);
+        verify(() => logger.err(any(that: startsWith('Failed to read file:'))))
+            .called(1);
         verifyNever(
           () => httpClient.post(
             any(),
@@ -313,9 +300,8 @@ void main() {
         final code = await runner.run(['canvas', 'create', '-f', dir.path]);
 
         expect(code, equals(ExitCode.usage.code));
-        verify(
-          () => logger.err(any(that: startsWith('Failed to read file:'))),
-        ).called(1);
+        verify(() => logger.err(any(that: startsWith('Failed to read file:'))))
+            .called(1);
         verifyNever(
           () => httpClient.post(
             any(),
@@ -378,12 +364,7 @@ void main() {
       test('deletes a canvas', () async {
         stubPost({'ok': true});
 
-        final code = await runner.run([
-          'canvas',
-          'delete',
-          '--canvas',
-          'F1',
-        ]);
+        final code = await runner.run(['canvas', 'delete', '--canvas', 'F1']);
 
         expect(code, equals(ExitCode.success.code));
         expect(capturedBody()['canvas_id'], equals('F1'));

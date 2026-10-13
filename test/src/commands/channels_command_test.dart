@@ -8,11 +8,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('ChannelsCommand', () {
@@ -21,10 +21,7 @@ void main() {
     late _MockHttpClient httpClient;
     late ChannelsCommand command;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -52,20 +49,19 @@ void main() {
 
     test('lists channels with correct prefixes', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'channels': [
-              {'id': 'C1', 'name': 'general', 'is_private': false},
-              {'id': 'G2', 'name': 'secret', 'is_private': true},
-            ],
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'channels': [
+                  {'id': 'C1', 'name': 'general', 'is_private': false},
+                  {'id': 'G2', 'name': 'secret', 'is_private': true},
+                ],
+              }),
+              200,
+            ),
+          );
 
       final result = await command.run();
 
@@ -76,17 +72,13 @@ void main() {
 
     test('shows info message when no channels found', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'channels': <Map<String, dynamic>>[],
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({'ok': true, 'channels': <Map<String, dynamic>>[]}),
+              200,
+            ),
+          );
 
       final result = await command.run();
 
@@ -97,28 +89,25 @@ void main() {
     test('lists channels from later pages too', () async {
       var callCount = 0;
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async {
-          callCount++;
-          return http.Response(
-            jsonEncode({
-              'ok': true,
-              'channels': [
-                if (callCount == 1)
-                  {'id': 'C1', 'name': 'general', 'is_private': false}
-                else
-                  {'id': 'G2', 'name': 'secret', 'is_private': true},
-              ],
-              'response_metadata': {
-                'next_cursor': callCount == 1 ? 'cursor-1' : '',
-              },
-            }),
-            200,
-          );
-        },
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async {
+            callCount++;
+            return http.Response(
+              jsonEncode({
+                'ok': true,
+                'channels': [
+                  if (callCount == 1)
+                    {'id': 'C1', 'name': 'general', 'is_private': false}
+                  else
+                    {'id': 'G2', 'name': 'secret', 'is_private': true},
+                ],
+                'response_metadata': {
+                  'next_cursor': callCount == 1 ? 'cursor-1' : '',
+                },
+              }),
+              200,
+            );
+          });
 
       final result = await command.run();
 

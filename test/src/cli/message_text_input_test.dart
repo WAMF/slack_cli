@@ -15,15 +15,15 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 /// One message-writing command, with the arguments that address it.
 class _Subject {
-  const _Subject(this.name, this.build, this.address);
+  const new(this.name, this.build, this.address);
 
   final String name;
   final AuthenticatedCommand Function({
@@ -241,11 +241,7 @@ void main() {
       test('rejects --text-file together with --text-stdin', () async {
         final file = writeTextFile('from file');
 
-        final exitCode = await run([
-          '--text-file',
-          file.path,
-          '--text-stdin',
-        ]);
+        final exitCode = await run(['--text-file', file.path, '--text-stdin']);
 
         expect(exitCode, equals(ExitCode.usage.code));
         expect(sentBodies, isEmpty);
@@ -293,9 +289,9 @@ void main() {
 
           expect(exitCode, equals(ExitCode.success.code));
           expect(sentText(), equals('see `code` here'));
-          final warning = verify(
-            () => logger.warn(captureAny()),
-          ).captured.single;
+          final warning = verify(() => logger.warn(captureAny()))
+              .captured
+              .single;
           expect(warning, contains('--$textFileOption'));
           expect(warning, contains('`'));
         },
@@ -463,9 +459,8 @@ void _byteOrderMarkGroup() {
       // command-level stdin tests install. Only the byte loop is replaced,
       // so the decode that dropped the mark runs for real here.
       expect(
-        readStandardInput(
-          readBytes: () => [...bomBytes, ...helloBytes],
-        ).codeUnits,
+        readStandardInput(readBytes: () => [...bomBytes, ...helloBytes])
+            .codeUnits,
         equals([0xFEFF, ...helloBytes]),
       );
     });

@@ -6,7 +6,7 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
 void main() {
   group('DartSlackCommandRunner', () {
@@ -18,22 +18,16 @@ void main() {
       commandRunner = DartSlackCommandRunner(logger: logger);
     });
 
-    test(
-      'fast-tracks the completion command and exits successfully',
-      () async {
-        final result = await commandRunner.run(['completion']);
-        expect(result, equals(ExitCode.success.code));
-      },
-    );
+    test('fast-tracks the completion command and exits successfully', () async {
+      final result = await commandRunner.run(['completion']);
+      expect(result, equals(ExitCode.success.code));
+    });
 
-    test(
-      'can be instantiated without an explicit logger instance',
-      () {
-        final commandRunner = DartSlackCommandRunner();
-        expect(commandRunner, isNotNull);
-        expect(commandRunner, isA<CompletionCommandRunner<int>>());
-      },
-    );
+    test('can be instantiated without an explicit logger instance', () {
+      final commandRunner = DartSlackCommandRunner();
+      expect(commandRunner, isNotNull);
+      expect(commandRunner, isA<CompletionCommandRunner<int>>());
+    });
 
     test('handles FormatException', () async {
       const exception = FormatException('oops!');
@@ -78,18 +72,10 @@ void main() {
         final result = await commandRunner.run(['--verbose']);
         expect(result, equals(ExitCode.success.code));
 
-        verify(
-          () => logger.detail('Argument information:'),
-        ).called(1);
-        verify(
-          () => logger.detail('  Top level options:'),
-        ).called(1);
-        verify(
-          () => logger.detail('  - verbose: true'),
-        ).called(1);
-        verifyNever(
-          () => logger.detail('    Command options:'),
-        );
+        verify(() => logger.detail('Argument information:')).called(1);
+        verify(() => logger.detail('  Top level options:')).called(1);
+        verify(() => logger.detail('  - verbose: true')).called(1);
+        verifyNever(() => logger.detail('    Command options:'));
       });
     });
   });

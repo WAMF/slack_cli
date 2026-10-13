@@ -1,7 +1,7 @@
 /// A Slack workspace user.
 class SlackUser {
   /// Creates a [SlackUser].
-  const SlackUser({
+  const new({
     required this.id,
     required this.name,
     required this.realName,
@@ -13,7 +13,7 @@ class SlackUser {
   });
 
   /// Deserializes from a Slack API user object.
-  factory SlackUser.fromJson(Map<String, dynamic> json) {
+  factory fromJson(Map<String, dynamic> json) {
     final profile = json['profile'] as Map<String, dynamic>? ?? {};
     return SlackUser(
       id: json['id'] as String,

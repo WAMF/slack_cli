@@ -158,49 +158,45 @@ void main() {
   // Dart can prove that, so ask bash. `bash` is the shell the README uses and
   // the CI runner is `ubuntu-latest`; the group is skipped where no POSIX shell
   // is available.
-  group(
-    'the README shell spellings, measured through bash',
-    () {
-      // `$spelling` is DART interpolation, not a shell variable: the spelling
-      // carries its own quotes, so bash sees `printf %s "a\nb"` and prints the
-      // exact bytes that spelling produces as an argument.
-      Future<String> argumentFrom(String spelling) async {
-        final result = await Process.run('bash', ['-c', 'printf %s $spelling']);
-        expect(result.exitCode, equals(0), reason: result.stderr.toString());
-        return result.stdout as String;
+  group('the README shell spellings, measured through bash', () {
+    // `$spelling` is DART interpolation, not a shell variable: the spelling
+    // carries its own quotes, so bash sees `printf %s "a\nb"` and prints the
+    // exact bytes that spelling produces as an argument.
+    Future<String> argumentFrom(String spelling) async {
+      final result = await Process.run('bash', ['-c', 'printf %s $spelling']);
+      expect(result.exitCode, equals(0), reason: result.stderr.toString());
+      return result.stdout as String;
+    }
+
+    test('double quotes: 1 and 2 backslashes are equal', () async {
+      final oneBackslash = await argumentFrom(r'"a\nb"');
+      final twoBackslashes = await argumentFrom(r'"a\\nb"');
+
+      expect(oneBackslash.codeUnits, equals([0x61, 0x5C, 0x6E, 0x62]));
+      expect(twoBackslashes.codeUnits, equals(oneBackslash.codeUnits));
+      expect(normalizeMessageText(oneBackslash), equals('a\nb'));
+      expect(normalizeMessageText(twoBackslashes), equals('a\nb'));
+    });
+
+    test('both documented hatches keep the literal backslash-n', () async {
+      final fourBackslashesDoubleQuoted = await argumentFrom(r'"a\\\\nb"');
+      final twoBackslashesSingleQuoted = await argumentFrom(r"'a\\nb'");
+
+      for (final argument in [
+        fourBackslashesDoubleQuoted,
+        twoBackslashesSingleQuoted,
+      ]) {
+        expect(argument.codeUnits, equals([0x61, 0x5C, 0x5C, 0x6E, 0x62]));
+        expect(normalizeMessageText(argument), equals(r'a\nb'));
       }
+    });
 
-      test('double quotes: 1 and 2 backslashes are equal', () async {
-        final oneBackslash = await argumentFrom(r'"a\nb"');
-        final twoBackslashes = await argumentFrom(r'"a\\nb"');
+    test('a Windows path needs the doubling too', () async {
+      final undoubled = await argumentFrom(r"'C:\new'");
+      final doubled = await argumentFrom(r"'C:\\new'");
 
-        expect(oneBackslash.codeUnits, equals([0x61, 0x5C, 0x6E, 0x62]));
-        expect(twoBackslashes.codeUnits, equals(oneBackslash.codeUnits));
-        expect(normalizeMessageText(oneBackslash), equals('a\nb'));
-        expect(normalizeMessageText(twoBackslashes), equals('a\nb'));
-      });
-
-      test('both documented hatches keep the literal backslash-n', () async {
-        final fourBackslashesDoubleQuoted = await argumentFrom(r'"a\\\\nb"');
-        final twoBackslashesSingleQuoted = await argumentFrom(r"'a\\nb'");
-
-        for (final argument in [
-          fourBackslashesDoubleQuoted,
-          twoBackslashesSingleQuoted,
-        ]) {
-          expect(argument.codeUnits, equals([0x61, 0x5C, 0x5C, 0x6E, 0x62]));
-          expect(normalizeMessageText(argument), equals(r'a\nb'));
-        }
-      });
-
-      test('a Windows path needs the doubling too', () async {
-        final undoubled = await argumentFrom(r"'C:\new'");
-        final doubled = await argumentFrom(r"'C:\\new'");
-
-        expect(normalizeMessageText(undoubled), equals('C:\new'));
-        expect(normalizeMessageText(doubled), equals(r'C:\new'));
-      });
-    },
-    skip: Platform.isWindows ? 'needs a POSIX shell' : null,
-  );
+      expect(normalizeMessageText(undoubled), equals('C:\new'));
+      expect(normalizeMessageText(doubled), equals(r'C:\new'));
+    });
+  }, skip: Platform.isWindows ? 'needs a POSIX shell' : null);
 }

@@ -14,10 +14,9 @@ enum CanvasEditMode {
   append('insert_at_end'),
 
   /// Insert the content before the existing body.
-  prepend('insert_at_start')
-  ;
+  prepend('insert_at_start');
 
-  const CanvasEditMode(this.operation);
+  new(this.operation);
 
   /// The Slack `canvases.edit` operation name.
   final String operation;
@@ -43,21 +42,18 @@ enum CanvasEditMode {
 /// ```
 class Slack {
   /// Creates a [Slack] instance authenticated with [token].
-  Slack({required String token, http.Client? httpClient})
+  new({required String token, http.Client? httpClient})
     : _client = SlackApiClient(token: token, httpClient: httpClient);
 
   /// Creates a [Slack] instance from a [SlackApiClient].
   ///
   /// Useful for testing or when you already have a configured client.
-  Slack.fromClient(SlackApiClient client) : _client = client;
+  new fromClient(SlackApiClient client) : _client = client;
 
   /// Creates a [Slack] instance from stored credentials.
   ///
   /// Returns `null` if no credentials are saved.
-  static Slack? fromStore({
-    CredentialsStore? store,
-    http.Client? httpClient,
-  }) {
+  static Slack? fromStore({CredentialsStore? store, http.Client? httpClient}) {
     final credentials = (store ?? CredentialsStore()).load();
     if (credentials == null) return null;
     return Slack(token: credentials.accessToken, httpClient: httpClient);
@@ -143,9 +139,7 @@ class Slack {
   }
 
   /// Lists channels the authenticated user has access to.
-  Future<List<SlackChannel>> listChannels({
-    bool excludeArchived = true,
-  }) async {
+  Future<List<SlackChannel>> listChannels({bool excludeArchived = true}) async {
     final channels = await _client.listChannels(
       excludeArchived: excludeArchived,
     );
@@ -176,10 +170,8 @@ class Slack {
   }
 
   /// Deletes a message.
-  Future<void> deleteMessage({
-    required String channel,
-    required String ts,
-  }) => _client.deleteMessage(channel: channel, ts: ts);
+  Future<void> deleteMessage({required String channel, required String ts}) =>
+      _client.deleteMessage(channel: channel, ts: ts);
 
   /// Joins a public channel by [channelId].
   Future<void> joinChannel(String channelId) => _client.joinChannel(channelId);
@@ -235,9 +227,7 @@ class Slack {
   }
 
   /// Gets detailed information about [channel].
-  Future<SlackChannel> conversationsInfo({
-    required String channel,
-  }) async {
+  Future<SlackChannel> conversationsInfo({required String channel}) async {
     final json = await _client.conversationsInfo(channel: channel);
     return SlackChannel.fromJson(json['channel'] as Map<String, dynamic>);
   }
@@ -255,11 +245,7 @@ class Slack {
     );
     final members = (json['members'] as List<dynamic>).cast<String>();
     final next = _nextCursor(json);
-    return CursorPage(
-      items: members,
-      hasMore: next != null,
-      nextCursor: next,
-    );
+    return CursorPage(items: members, hasMore: next != null, nextCursor: next);
   }
 
   /// Searches messages the authenticated user can see for [query].
@@ -286,10 +272,7 @@ class Slack {
         .cast<Map<String, dynamic>>()
         .map(SlackSearchMatch.fromJson)
         .toList();
-    return CursorPage(
-      items: matches,
-      hasMore: _hasMorePages(messages),
-    );
+    return CursorPage(items: matches, hasMore: _hasMorePages(messages));
   }
 
   /// Whether `search.messages` reports a page after the one just returned.
@@ -315,11 +298,7 @@ class Slack {
         .map(SlackUser.fromJson)
         .toList();
     final next = _nextCursor(json);
-    return CursorPage(
-      items: users,
-      hasMore: next != null,
-      nextCursor: next,
-    );
+    return CursorPage(items: users, hasMore: next != null, nextCursor: next);
   }
 
   /// Gets detailed information about a [user].
@@ -460,10 +439,8 @@ class Slack {
   );
 
   /// Clears the authenticated user's custom status.
-  Future<void> clearStatus() => _client.usersProfileSet(
-    statusText: '',
-    statusEmoji: '',
-  );
+  Future<void> clearStatus() =>
+      _client.usersProfileSet(statusText: '', statusEmoji: '');
 
   /// Releases the underlying HTTP client resources.
   void close() => _client.close();

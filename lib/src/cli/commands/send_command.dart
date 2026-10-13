@@ -13,11 +13,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Posts a message to a Slack channel.
 class SendCommand extends AuthenticatedCommand with MessageTextCommand {
   /// Creates a [SendCommand].
-  SendCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'channel',

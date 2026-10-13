@@ -18,13 +18,12 @@ class _TokenPrefix {
 /// history or on screen.
 class ConfigureCommand extends Command<int> {
   /// Creates a [ConfigureCommand].
-  ConfigureCommand({
-    required Logger logger,
+  new({
+    required this._logger,
     AppConfigStore? configStore,
     @visibleForTesting Stdin? stdin,
     @visibleForTesting Stdout? stdout,
-  }) : _logger = logger,
-       _configStore = configStore ?? AppConfigStore(),
+  }) : _configStore = configStore ?? AppConfigStore(),
        _stdin = stdin ?? io.stdin,
        _stdout = stdout ?? io.stdout {
     argParser.addFlag(

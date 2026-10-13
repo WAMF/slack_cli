@@ -10,15 +10,12 @@ import 'package:mason_logger/mason_logger.dart';
 /// Authenticates with Slack via OAuth 2.0 and stores the access token.
 class LoginCommand extends Command<int> {
   /// Creates a [LoginCommand].
-  LoginCommand({
-    required Logger logger,
+  new({
+    required this._logger,
     CredentialsStore? credentialsStore,
-    OAuthFlow? oauthFlow,
-    http.Client? httpClient,
-  }) : _logger = logger,
-       _credentialsStore = credentialsStore ?? CredentialsStore(),
-       _oauthFlow = oauthFlow,
-       _httpClient = httpClient;
+    this._oauthFlow,
+    this._httpClient,
+  }) : _credentialsStore = credentialsStore ?? CredentialsStore();
 
   @override
   String get description => 'Authenticate with Slack via OAuth 2.0.';
@@ -34,9 +31,7 @@ class LoginCommand extends Command<int> {
   @override
   Future<int> run() async {
     if (_credentialsStore.hasCredentials) {
-      final reauth = _logger.confirm(
-        'Already logged in. Re-authenticate?',
-      );
+      final reauth = _logger.confirm('Already logged in. Re-authenticate?');
       if (!reauth) return ExitCode.success.code;
     }
 

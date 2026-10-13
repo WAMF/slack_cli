@@ -7,11 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Lists member user IDs in a channel.
 class MembersCommand extends AuthenticatedCommand {
   /// Creates a [MembersCommand].
-  MembersCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser.addOption(
       'channel',
       abbr: 'c',

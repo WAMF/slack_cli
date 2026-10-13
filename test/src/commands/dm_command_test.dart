@@ -10,11 +10,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('DmCommand', () {
@@ -57,10 +57,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -110,9 +107,8 @@ void main() {
 
       await runner.run(['dm', '-u', 'U9', '-t', 'hey']);
 
-      verify(
-        () => logger.success('DM sent to U9 (ts: 1784206000.222000).'),
-      ).called(1);
+      verify(() => logger.success('DM sent to U9 (ts: 1784206000.222000).'))
+          .called(1);
     });
 
     test('uploads and attaches a file when --file is given', () async {
@@ -122,18 +118,17 @@ void main() {
       addTearDown(tempFile.deleteSync);
 
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'upload_url': 'https://files.slack.com/upload/v1/abc',
-            'file_id': 'F123',
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'upload_url': 'https://files.slack.com/upload/v1/abc',
+                'file_id': 'F123',
+              }),
+              200,
+            ),
+          );
       when(() => httpClient.send(any())).thenAnswer(
         (_) async =>
             http.StreamedResponse(Stream.value(utf8.encode('OK')), 200),
@@ -171,31 +166,34 @@ void main() {
         tempFile.path,
       ]);
 
-      verify(
-        () => logger.success('File "dart_slack_dm_test.txt" sent to U9.'),
-      ).called(1);
+      verify(() => logger.success('File "dart_slack_dm_test.txt" sent to U9.'))
+          .called(1);
 
-      final completeBody =
-          jsonDecode(
-                verify(
-                      () => httpClient.post(
-                        captureAny(),
-                        headers: any(named: 'headers'),
-                        body: captureAny(named: 'body'),
-                      ),
-                    ).captured[3]
-                    as String,
-              )
-              as Map<String, dynamic>;
+      final completeBody = jsonDecode(
+        verify(
+              () => httpClient.post(
+                captureAny(),
+                headers: any(named: 'headers'),
+                body: captureAny(named: 'body'),
+              ),
+            ).captured[3]
+            as String,
+      ) as Map<String, dynamic>;
       expect(completeBody['channel_id'], equals('D9'));
     });
 
     test('reports a clean error when the file does not exist', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
 
-      final exitCode = await runner.run(
-        ['dm', '-u', 'U9', '-t', 'hey', '-f', '/no/such/file.txt'],
-      );
+      final exitCode = await runner.run([
+        'dm',
+        '-u',
+        'U9',
+        '-t',
+        'hey',
+        '-f',
+        '/no/such/file.txt',
+      ]);
 
       expect(exitCode, equals(ExitCode.noInput.code));
       verify(() => logger.err('File not found: /no/such/file.txt')).called(1);
@@ -216,10 +214,7 @@ void main() {
     late CommandRunner<int> runner;
     late List<String> sentBodies;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));

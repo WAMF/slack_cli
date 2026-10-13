@@ -4,7 +4,7 @@ import 'package:dart_slack/src/models/slack_reaction.dart';
 /// A posted Slack message.
 class SlackMessage {
   /// Creates a [SlackMessage].
-  const SlackMessage({
+  const new({
     required this.channel,
     required this.ts,
     required this.text,
@@ -16,7 +16,7 @@ class SlackMessage {
   });
 
   /// Deserializes from a `chat.postMessage` response.
-  factory SlackMessage.fromJson(Map<String, dynamic> json) {
+  factory fromJson(Map<String, dynamic> json) {
     final message = json['message'] as Map<String, dynamic>?;
     return SlackMessage(
       channel: json['channel'] as String,
@@ -27,7 +27,7 @@ class SlackMessage {
 
   /// Deserializes from a `conversations.history` or `conversations.replies`
   /// message object.
-  factory SlackMessage.fromHistory({
+  factory fromHistory({
     required String channel,
     required Map<String, dynamic> json,
   }) {

@@ -4,10 +4,10 @@
 /// per-user OAuth credentials.
 class AppConfig {
   /// Creates an [AppConfig].
-  const AppConfig({required this.appToken});
+  const new({required this.appToken});
 
   /// Deserializes from the JSON map read from the config file.
-  factory AppConfig.fromJson(Map<String, dynamic> json) =>
+  factory fromJson(Map<String, dynamic> json) =>
       AppConfig(appToken: json['app_token'] as String);
 
   /// The Socket Mode app-level token (`xapp-*`).

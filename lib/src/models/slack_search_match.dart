@@ -6,7 +6,7 @@
 /// both, so a caller can print a readable line without a second lookup.
 class SlackSearchMatch {
   /// Creates a [SlackSearchMatch].
-  const SlackSearchMatch({
+  const new({
     required this.ts,
     required this.text,
     this.channelId,
@@ -16,7 +16,7 @@ class SlackSearchMatch {
   });
 
   /// Deserializes from one entry of `search.messages`' `messages.matches`.
-  factory SlackSearchMatch.fromJson(Map<String, dynamic> json) {
+  factory fromJson(Map<String, dynamic> json) {
     final channel = json['channel'] as Map<String, dynamic>?;
     return SlackSearchMatch(
       ts: json['ts'] as String,

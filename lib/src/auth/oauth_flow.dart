@@ -21,15 +21,14 @@ const Duration _authTimeout = Duration(minutes: 5);
 /// Number of random bytes used to generate the OAuth state token.
 const int _stateLength = 32;
 
-typedef BindServer =
-    Future<HttpServer> Function(
-      Object address,
-      int port,
-      SecurityContext context, {
-      int backlog,
-      bool shared,
-      bool v6Only,
-    });
+typedef BindServer = Future<HttpServer> Function(
+  Object address,
+  int port,
+  SecurityContext context, {
+  int backlog,
+  bool shared,
+  bool v6Only,
+});
 
 String _generateState() {
   final random = Random.secure();
@@ -47,7 +46,7 @@ String _escapeHtml(String input) => input
 /// Thrown when the OAuth authorization flow fails.
 class OAuthException implements Exception {
   /// Creates an [OAuthException] with the given [message].
-  const OAuthException(this.message);
+  const new(this.message);
 
   /// A human-readable description of the failure.
   final String message;
@@ -71,19 +70,16 @@ class OAuthFlow {
   ///
   /// The [configDirectory] is where the self-signed TLS certificate and
   /// key are stored. Defaults to `~/.dart_slack`.
-  OAuthFlow({
-    required String clientId,
-    required String clientSecret,
-    required Logger logger,
+  new({
+    required this._clientId,
+    required this._clientSecret,
+    required this._logger,
     http.Client? httpClient,
     Future<Process> Function(String, List<String>)? processStarter,
     BindServer? bindServer,
     Directory? configDirectory,
     int? port,
-  }) : _clientId = clientId,
-       _clientSecret = clientSecret,
-       _logger = logger,
-       _httpClient = httpClient ?? http.Client(),
+  }) : _httpClient = httpClient ?? http.Client(),
        _processStarter = processStarter ?? Process.start,
        _bindServer = bindServer ?? HttpServer.bindSecure,
        _configDirectory =
@@ -130,14 +126,8 @@ class OAuthFlow {
       await _openBrowser(authorizeUrl.toString());
       _logger.info('Waiting for authorization callback...');
 
-      final code = await _waitForCallback(
-        server,
-        expectedState: state,
-      );
-      return await _exchangeCodeForToken(
-        code: code,
-        redirectUri: redirectUri,
-      );
+      final code = await _waitForCallback(server, expectedState: state);
+      return await _exchangeCodeForToken(code: code, redirectUri: redirectUri);
     } finally {
       await server.close();
     }
@@ -152,7 +142,7 @@ class OAuthFlow {
         v6Only: false,
       );
     } on SocketException {
-      return _bindServer(InternetAddress.loopbackIPv4, _port, context);
+      return await _bindServer(InternetAddress.loopbackIPv4, _port, context);
     }
   }
 
@@ -220,10 +210,7 @@ class OAuthFlow {
       final returnedState = request.uri.queryParameters['state'];
 
       if (error != null) {
-        _respondWithHtml(
-          request.response,
-          'Authorization failed: $error',
-        );
+        _respondWithHtml(request.response, 'Authorization failed: $error');
         completer.completeError(OAuthException(error));
       } else if (returnedState != expectedState) {
         _respondWithHtml(
@@ -231,9 +218,7 @@ class OAuthFlow {
           'Authorization failed: invalid state parameter.',
         );
         completer.completeError(
-          const OAuthException(
-            'Invalid OAuth state parameter (possible CSRF)',
-          ),
+          const OAuthException('Invalid OAuth state parameter (possible CSRF)'),
         );
       } else if (code != null) {
         _respondWithHtml(
@@ -247,9 +232,7 @@ class OAuthFlow {
           'Unexpected callback — missing code parameter.',
         );
         completer.completeError(
-          const OAuthException(
-            'Missing authorization code in callback',
-          ),
+          const OAuthException('Missing authorization code in callback'),
         );
       }
     });
@@ -284,9 +267,7 @@ class OAuthFlow {
   }) async {
     final response = await _httpClient.post(
       SlackUrls.tokenExchange,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: {
         'client_id': _clientId,
         'client_secret': _clientSecret,
@@ -297,9 +278,7 @@ class OAuthFlow {
 
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     if (json['ok'] != true) {
-      throw OAuthException(
-        'Token exchange failed: ${json['error']}',
-      );
+      throw OAuthException('Token exchange failed: ${json['error']}');
     }
 
     final authedUser = json['authed_user'] as Map<String, dynamic>;

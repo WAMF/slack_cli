@@ -55,27 +55,22 @@ void main() {
     });
 
     test('throws StateError when SLACK_CLIENT_ID is missing', () {
-      File('${tempDir.path}/.env').writeAsStringSync(
-        'SLACK_CLIENT_SECRET=secret\n',
-      );
+      File('${tempDir.path}/.env')
+          .writeAsStringSync('SLACK_CLIENT_SECRET=secret\n');
       SlackApp.resetForTesting(dotEnvPath: '${tempDir.path}/.env');
 
       expect(() => SlackApp.clientId, throwsA(isA<StateError>()));
     });
 
     test('throws StateError when SLACK_CLIENT_SECRET is missing', () {
-      File('${tempDir.path}/.env').writeAsStringSync(
-        'SLACK_CLIENT_ID=id\n',
-      );
+      File('${tempDir.path}/.env').writeAsStringSync('SLACK_CLIENT_ID=id\n');
       SlackApp.resetForTesting(dotEnvPath: '${tempDir.path}/.env');
 
       expect(() => SlackApp.clientSecret, throwsA(isA<StateError>()));
     });
 
     test('handles missing .env file gracefully', () {
-      SlackApp.resetForTesting(
-        dotEnvPath: '${tempDir.path}/nonexistent.env',
-      );
+      SlackApp.resetForTesting(dotEnvPath: '${tempDir.path}/nonexistent.env');
 
       // Without SLACK_CLIENT_ID in the real environment this should throw.
       expect(() => SlackApp.clientId, throwsA(isA<StateError>()));

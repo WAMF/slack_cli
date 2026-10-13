@@ -16,10 +16,7 @@ void main() {
     });
 
     test('nextCursor defaults to null', () {
-      const page = CursorPage<int>(
-        items: [1],
-        hasMore: false,
-      );
+      const page = CursorPage<int>(items: [1], hasMore: false);
 
       expect(page.nextCursor, isNull);
       expect(page.hasMore, isFalse);

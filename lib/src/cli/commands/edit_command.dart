@@ -11,11 +11,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Edits an existing Slack message.
 class EditCommand extends AuthenticatedCommand with MessageTextCommand {
   /// Creates an [EditCommand].
-  EditCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption(
         'channel',

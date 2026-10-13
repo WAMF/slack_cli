@@ -9,11 +9,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 void main() {
   group('HistoryCommand', () {
@@ -22,10 +22,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -57,21 +54,20 @@ void main() {
 
     test('displays messages in chronological order', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'messages': [
-              {'ts': '2.0', 'text': 'Second', 'user': 'U2'},
-              {'ts': '1.0', 'text': 'First', 'user': 'U1'},
-            ],
-            'has_more': false,
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'messages': [
+                  {'ts': '2.0', 'text': 'Second', 'user': 'U2'},
+                  {'ts': '1.0', 'text': 'First', 'user': 'U1'},
+                ],
+                'has_more': false,
+              }),
+              200,
+            ),
+          );
 
       await runner.run(['history', '-c', 'C1']);
 
@@ -86,80 +82,74 @@ void main() {
 
     test('shows thread reply count', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'messages': [
-              {
-                'ts': '1.0',
-                'text': 'Thread parent',
-                'user': 'U1',
-                'reply_count': 5,
-              },
-            ],
-            'has_more': false,
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'messages': [
+                  {
+                    'ts': '1.0',
+                    'text': 'Thread parent',
+                    'user': 'U1',
+                    'reply_count': 5,
+                  },
+                ],
+                'has_more': false,
+              }),
+              200,
+            ),
+          );
 
       await runner.run(['history', '-c', 'C1']);
 
-      verify(
-        () => logger.info('[1.0] <U1> Thread parent [5 replies]'),
-      ).called(1);
+      verify(() => logger.info('[1.0] <U1> Thread parent [5 replies]'))
+          .called(1);
     });
 
     test('shows an attachment indicator for messages with files', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'messages': [
-              {
-                'ts': '1.0',
-                'text': 'Here is the spec',
-                'user': 'U1',
-                'files': [
-                  {'name': 'spec.pdf'},
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'messages': [
+                  {
+                    'ts': '1.0',
+                    'text': 'Here is the spec',
+                    'user': 'U1',
+                    'files': [
+                      {'name': 'spec.pdf'},
+                    ],
+                  },
                 ],
-              },
-            ],
-            'has_more': false,
-          }),
-          200,
-        ),
-      );
+                'has_more': false,
+              }),
+              200,
+            ),
+          );
 
       await runner.run(['history', '-c', 'C1']);
 
       verify(
-        () => logger.info(
-          '[1.0] <U1> Here is the spec [attachment: spec.pdf]',
-        ),
+        () => logger.info('[1.0] <U1> Here is the spec [attachment: spec.pdf]'),
       ).called(1);
     });
 
     test('shows empty state message', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            'ok': true,
-            'messages': <Map<String, dynamic>>[],
-            'has_more': false,
-          }),
-          200,
-        ),
-      );
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+            (_) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'messages': <Map<String, dynamic>>[],
+                'has_more': false,
+              }),
+              200,
+            ),
+          );
 
       await runner.run(['history', '-c', 'C1']);
 
@@ -174,13 +164,9 @@ void main() {
 
       expect(exitCode, equals(ExitCode.usage.code));
       verify(
-        () => logger.err(
-          'Invalid --limit value: "0". Use a positive integer.',
-        ),
+        () => logger.err('Invalid --limit value: "0". Use a positive integer.'),
       ).called(1);
-      verifyNever(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      );
+      verifyNever(() => httpClient.get(any(), headers: any(named: 'headers')));
     });
   });
 }

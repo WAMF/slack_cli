@@ -17,22 +17,17 @@ import 'package:meta/meta.dart';
 /// Runs until interrupted with Ctrl+C.
 class StreamCommand extends Command<int> {
   /// Creates a [StreamCommand].
-  StreamCommand({
-    required Logger logger,
-    http.Client? httpClient,
+  new({
+    required this._logger,
+    this._httpClient,
     @visibleForTesting AppConfigStore? configStore,
     @visibleForTesting String? Function()? appTokenProvider,
-    @visibleForTesting WebSocketChannelFactory? channelFactory,
-    @visibleForTesting Future<void> Function(Duration)? delay,
-    @visibleForTesting Stream<ProcessSignal>? signalStream,
+    @visibleForTesting this._channelFactory,
+    @visibleForTesting this._delay,
+    @visibleForTesting this._signalStream,
     @visibleForTesting String? appToken,
-  }) : _logger = logger,
-       _httpClient = httpClient,
-       _configStore = configStore ?? AppConfigStore(),
+  }) : _configStore = configStore ?? AppConfigStore(),
        _appTokenProvider = appTokenProvider ?? (() => SlackApp.appTokenOrNull),
-       _channelFactory = channelFactory,
-       _delay = delay,
-       _signalStream = signalStream,
        _appTokenOverride = appToken {
     argParser.addOption(
       'channel',
@@ -91,9 +86,7 @@ class StreamCommand extends Command<int> {
     try {
       eventSub = client.events
           .where((event) => event.channel == channel)
-          .listen((
-            event,
-          ) {
+          .listen((event) {
             final thread = event.replyCount != null
                 ? ' [${event.replyCount} replies]'
                 : '';

@@ -78,11 +78,7 @@ void main() {
       });
 
       test('treats an empty channel ID as absent', () {
-        const match = SlackSearchMatch(
-          ts: '1.0',
-          text: 'hi',
-          channelId: '',
-        );
+        const match = SlackSearchMatch(ts: '1.0', text: 'hi', channelId: '');
 
         expect(match.channelLabel, equals('unknown'));
       });

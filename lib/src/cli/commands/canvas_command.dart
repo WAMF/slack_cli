@@ -15,7 +15,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// message-level `edit` and `delete` commands.
 class CanvasCommand extends Command<int> {
   /// Creates a [CanvasCommand] and registers its subcommands.
-  CanvasCommand({
+  new({
     required Logger logger,
     CredentialsStore? credentialsStore,
     http.Client? httpClient,
@@ -63,11 +63,7 @@ class CanvasCommand extends Command<int> {
 /// that channel; otherwise a standalone canvas is created.
 class CanvasCreateCommand extends AuthenticatedCommand {
   /// Creates a [CanvasCreateCommand].
-  CanvasCreateCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
       ..addOption('title', help: 'The canvas title.')
       ..addOption(
@@ -122,17 +118,9 @@ class CanvasCreateCommand extends AuthenticatedCommand {
 /// retrievable.
 class CanvasReadCommand extends AuthenticatedCommand {
   /// Creates a [CanvasReadCommand].
-  CanvasReadCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
-      ..addOption(
-        'canvas',
-        help: 'The canvas ID to read.',
-        mandatory: true,
-      )
+      ..addOption('canvas', help: 'The canvas ID to read.', mandatory: true)
       ..addOption(
         'output',
         abbr: 'o',
@@ -181,22 +169,10 @@ class CanvasReadCommand extends AuthenticatedCommand {
 /// Replaces, appends, or prepends markdown content in an existing canvas.
 class CanvasEditCommand extends AuthenticatedCommand {
   /// Creates a [CanvasEditCommand].
-  CanvasEditCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
-      ..addOption(
-        'canvas',
-        help: 'The canvas ID to edit.',
-        mandatory: true,
-      )
-      ..addOption(
-        'content',
-        abbr: 'm',
-        help: 'Markdown content to write.',
-      )
+      ..addOption('canvas', help: 'The canvas ID to edit.', mandatory: true)
+      ..addOption('content', abbr: 'm', help: 'Markdown content to write.')
       ..addOption(
         'file',
         abbr: 'f',
@@ -237,11 +213,7 @@ class CanvasEditCommand extends AuthenticatedCommand {
 /// Deletes a canvas.
 class CanvasDeleteCommand extends AuthenticatedCommand {
   /// Creates a [CanvasDeleteCommand].
-  CanvasDeleteCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser.addOption(
       'canvas',
       help: 'The canvas ID to delete.',

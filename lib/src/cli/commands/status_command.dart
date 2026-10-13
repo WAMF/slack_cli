@@ -14,7 +14,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// and fail with `not_allowed_token_type`.
 class StatusCommand extends Command<int> {
   /// Creates a [StatusCommand].
-  StatusCommand({
+  new({
     required Logger logger,
     CredentialsStore? credentialsStore,
     http.Client? httpClient,
@@ -50,7 +50,7 @@ class StatusCommand extends Command<int> {
 /// Sets the authenticated user's custom status.
 class StatusSetCommand extends AuthenticatedCommand {
   /// Creates a [StatusSetCommand].
-  StatusSetCommand({
+  new({
     required super.logger,
     super.credentialsStore,
     super.httpClient,
@@ -162,11 +162,7 @@ class StatusSetCommand extends AuthenticatedCommand {
 /// Clears the authenticated user's custom status.
 class StatusClearCommand extends AuthenticatedCommand {
   /// Creates a [StatusClearCommand].
-  StatusClearCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  });
+  new({required super.logger, super.credentialsStore, super.httpClient});
 
   @override
   String get description => "Clear the authenticated user's custom status.";

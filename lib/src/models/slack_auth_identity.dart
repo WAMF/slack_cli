@@ -1,7 +1,7 @@
 /// Identity details for the token validated by `auth.test`.
 class SlackAuthIdentity {
   /// Creates a [SlackAuthIdentity].
-  const SlackAuthIdentity({
+  const new({
     required this.team,
     required this.teamId,
     required this.user,
@@ -10,14 +10,13 @@ class SlackAuthIdentity {
   });
 
   /// Deserializes from an `auth.test` response.
-  factory SlackAuthIdentity.fromJson(Map<String, dynamic> json) =>
-      SlackAuthIdentity(
-        team: json['team'] as String? ?? '',
-        teamId: json['team_id'] as String? ?? '',
-        user: json['user'] as String? ?? '',
-        userId: json['user_id'] as String? ?? '',
-        botId: json['bot_id'] as String?,
-      );
+  factory fromJson(Map<String, dynamic> json) => SlackAuthIdentity(
+    team: json['team'] as String? ?? '',
+    teamId: json['team_id'] as String? ?? '',
+    user: json['user'] as String? ?? '',
+    userId: json['user_id'] as String? ?? '',
+    botId: json['bot_id'] as String?,
+  );
 
   /// The workspace name.
   final String team;

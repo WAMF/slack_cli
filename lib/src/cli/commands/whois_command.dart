@@ -7,11 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// Shows profile details for a user.
 class WhoisCommand extends AuthenticatedCommand {
   /// Creates a [WhoisCommand].
-  WhoisCommand({
-    required super.logger,
-    super.credentialsStore,
-    super.httpClient,
-  }) {
+  new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser.addOption(
       'user',
       abbr: 'u',

@@ -11,16 +11,15 @@ class CredentialsStore {
   /// Creates a [CredentialsStore] that writes to [configDirectory].
   ///
   /// Defaults to `~/.dart_slack` when [configDirectory] is omitted.
-  CredentialsStore({Directory? configDirectory})
+  new({Directory? configDirectory})
     : _configDirectory =
           configDirectory ??
           Directory('${Platform.environment['HOME']}/.dart_slack');
 
   final Directory _configDirectory;
 
-  File get _credentialsFile => File(
-    '${_configDirectory.path}/credentials.json',
-  );
+  File get _credentialsFile =>
+      File('${_configDirectory.path}/credentials.json');
 
   /// Returns stored [Credentials], or `null` if no credentials file exists.
   Credentials? load() {

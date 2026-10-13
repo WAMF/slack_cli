@@ -11,9 +11,7 @@ abstract final class SlackUrls {
   );
 
   /// Delete a message.
-  static final Uri chatDelete = Uri.parse(
-    'https://slack.com/api/chat.delete',
-  );
+  static final Uri chatDelete = Uri.parse('https://slack.com/api/chat.delete');
 
   /// Post a message to a channel, thread, or DM.
   static final Uri postMessage = Uri.parse(
@@ -21,9 +19,7 @@ abstract final class SlackUrls {
   );
 
   /// Update the text of an existing message.
-  static final Uri chatUpdate = Uri.parse(
-    'https://slack.com/api/chat.update',
-  );
+  static final Uri chatUpdate = Uri.parse('https://slack.com/api/chat.update');
 
   /// Join a public channel.
   static final Uri conversationsJoin = Uri.parse(
@@ -66,19 +62,13 @@ abstract final class SlackUrls {
   );
 
   /// List all users in the workspace.
-  static final Uri usersList = Uri.parse(
-    'https://slack.com/api/users.list',
-  );
+  static final Uri usersList = Uri.parse('https://slack.com/api/users.list');
 
   /// Get information about a user.
-  static final Uri usersInfo = Uri.parse(
-    'https://slack.com/api/users.info',
-  );
+  static final Uri usersInfo = Uri.parse('https://slack.com/api/users.info');
 
   /// Get information about a file, including a canvas's download URL.
-  static final Uri filesInfo = Uri.parse(
-    'https://slack.com/api/files.info',
-  );
+  static final Uri filesInfo = Uri.parse('https://slack.com/api/files.info');
 
   /// Request a pre-signed URL to upload a file's bytes to.
   static final Uri filesGetUploadURLExternal = Uri.parse(
@@ -111,7 +101,5 @@ abstract final class SlackUrls {
   );
 
   /// Verify a token and get identity details for the authenticated user.
-  static final Uri authTest = Uri.parse(
-    'https://slack.com/api/auth.test',
-  );
+  static final Uri authTest = Uri.parse('https://slack.com/api/auth.test');
 }

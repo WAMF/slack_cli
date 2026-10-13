@@ -1,7 +1,7 @@
 /// A Slack channel.
 class SlackChannel {
   /// Creates a [SlackChannel].
-  const SlackChannel({
+  const new({
     required this.id,
     required this.name,
     required this.isPrivate,
@@ -13,7 +13,7 @@ class SlackChannel {
   });
 
   /// Deserializes from a Slack API channel object.
-  factory SlackChannel.fromJson(Map<String, dynamic> json) {
+  factory fromJson(Map<String, dynamic> json) {
     final topicMap = json['topic'] as Map<String, dynamic>?;
     final purposeMap = json['purpose'] as Map<String, dynamic>?;
     return SlackChannel(

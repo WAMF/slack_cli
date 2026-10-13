@@ -9,11 +9,11 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger;
 
-class _MockCredentialsStore extends Mock implements CredentialsStore {}
+class _MockCredentialsStore extends Mock implements CredentialsStore;
 
-class _MockHttpClient extends Mock implements http.Client {}
+class _MockHttpClient extends Mock implements http.Client;
 
 /// A 200 answer carrying [body], decoded as UTF-8.
 ///
@@ -76,10 +76,7 @@ void main() {
     late _MockHttpClient httpClient;
     late CommandRunner<int> runner;
 
-    const credentials = Credentials(
-      accessToken: 'xoxp-test',
-      userId: 'U123',
-    );
+    const credentials = Credentials(accessToken: 'xoxp-test', userId: 'U123');
 
     setUpAll(() {
       registerFallbackValue(Uri.parse('https://example.com'));
@@ -108,9 +105,8 @@ void main() {
     /// Answers every GET with [body] and returns the captured request URI
     /// after [args] have run.
     Future<Uri> capturedRequestUri(List<String> args, String body) async {
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async => _okResponse(body));
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => _okResponse(body));
 
       await runner.run(args);
 
@@ -121,9 +117,8 @@ void main() {
     }
 
     void answerWith(String body) {
-      when(
-        () => httpClient.get(any(), headers: any(named: 'headers')),
-      ).thenAnswer((_) async => _okResponse(body));
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => _okResponse(body));
     }
 
     test('has correct name and description', () {
@@ -140,14 +135,10 @@ void main() {
       // against the usage the user is actually shown on a usage error.
       await runner.run(['search']);
 
-      final logged = verify(
-        () => logger.info(captureAny()),
-      ).captured.cast<String>();
+      final logged = verify(() => logger.info(captureAny())).captured
+          .cast<String>();
 
-      expect(
-        logged.join('\n'),
-        contains('Required. The text to search for.'),
-      );
+      expect(logged.join('\n'), contains('Required. The text to search for.'));
     });
 
     group('argument validation', () {
@@ -239,9 +230,8 @@ void main() {
 
         expect(exitCode, equals(ExitCode.usage.code));
         verify(
-          () => logger.err(
-            'Invalid --limit value: "0". Use a positive integer.',
-          ),
+          () =>
+              logger.err('Invalid --limit value: "0". Use a positive integer.'),
         ).called(1);
         verifyNever(
           () => httpClient.get(any(), headers: any(named: 'headers')),
@@ -266,19 +256,23 @@ void main() {
       });
 
       test('sends the default limit of 20 when --limit is omitted', () async {
-        final uri = await capturedRequestUri(
-          ['search', '-q', 'deploy failed'],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+        ], _searchResponse([_match()]));
 
         expect(uri.queryParameters['count'], equals('20'));
       });
 
       test('sends the requested limit as the count parameter', () async {
-        final uri = await capturedRequestUri(
-          ['search', '-q', 'deploy failed', '-l', '5'],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+          '-l',
+          '5',
+        ], _searchResponse([_match()]));
 
         expect(uri.queryParameters['count'], equals('5'));
       });
@@ -286,19 +280,23 @@ void main() {
 
     group('channel filtering', () {
       test('adds no modifier when --channel is omitted', () async {
-        final uri = await capturedRequestUri(
-          ['search', '-q', 'deploy failed'],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+        ], _searchResponse([_match()]));
 
         expect(uri.queryParameters['query'], equals('deploy failed'));
       });
 
       test('adds the channel-link modifier for a channel ID', () async {
-        final uri = await capturedRequestUri(
-          ['search', '-q', 'deploy failed', '-c', 'C1763JQAD'],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+          '-c',
+          'C1763JQAD',
+        ], _searchResponse([_match()]));
 
         expect(
           uri.queryParameters['query'],
@@ -307,10 +305,13 @@ void main() {
       });
 
       test('adds the name modifier for a channel name', () async {
-        final uri = await capturedRequestUri(
-          ['search', '-q', 'deploy failed', '-c', 'incidents'],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+          '-c',
+          'incidents',
+        ], _searchResponse([_match()]));
 
         expect(
           uri.queryParameters['query'],
@@ -319,10 +320,13 @@ void main() {
       });
 
       test('does not double the # of a channel name typed with one', () async {
-        final uri = await capturedRequestUri(
-          ['search', '-q', 'deploy failed', '-c', '#incidents'],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+          '-c',
+          '#incidents',
+        ], _searchResponse([_match()]));
 
         expect(
           uri.queryParameters['query'],
@@ -331,16 +335,13 @@ void main() {
       });
 
       test('keeps the modifiers the user typed in the query', () async {
-        final uri = await capturedRequestUri(
-          [
-            'search',
-            '-q',
-            'deploy from:@lee after:2026-08-01',
-            '-c',
-            'C1763JQAD',
-          ],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy from:@lee after:2026-08-01',
+          '-c',
+          'C1763JQAD',
+        ], _searchResponse([_match()]));
 
         expect(
           uri.queryParameters['query'],
@@ -409,10 +410,13 @@ void main() {
 
       for (final (channel, expected, reason) in cases) {
         test('reads -c "$channel" as $reason', () async {
-          final uri = await capturedRequestUri(
-            ['search', '-q', 'deploy failed', '-c', channel],
-            _searchResponse([_match()]),
-          );
+          final uri = await capturedRequestUri([
+            'search',
+            '-q',
+            'deploy failed',
+            '-c',
+            channel,
+          ], _searchResponse([_match()]));
 
           expect(
             uri.queryParameters['query'],
@@ -465,10 +469,11 @@ void main() {
 
     group('API request', () {
       test('calls search.messages with the query and the first page', () async {
-        final uri = await capturedRequestUri(
-          ['search', '-q', 'deploy failed'],
-          _searchResponse([_match()]),
-        );
+        final uri = await capturedRequestUri([
+          'search',
+          '-q',
+          'deploy failed',
+        ], _searchResponse([_match()]));
 
         expect(uri.host, equals('slack.com'));
         expect(uri.path, equals('/api/search.messages'));
@@ -497,10 +502,7 @@ void main() {
         () async {
           answerWith(
             _searchResponse([
-              _match(
-                ts: '1234567890.123456',
-                text: 'deploy failed on staging',
-              ),
+              _match(ts: '1234567890.123456', text: 'deploy failed on staging'),
               _match(
                 ts: '1234567891.000100',
                 channelId: 'C2',
@@ -555,9 +557,7 @@ void main() {
 
         await runner.run(['search', '-q', 'deploy']);
 
-        verify(
-          () => logger.info('[unknown] [1.0] <unknown> orphan'),
-        ).called(1);
+        verify(() => logger.info('[unknown] [1.0] <unknown> orphan')).called(1);
       });
 
       test('collapses a multi-line match onto one line', () async {
@@ -581,9 +581,8 @@ void main() {
 
         await runner.run(['search', '-q', 'deploy']);
 
-        final logged = verify(
-          () => logger.info(captureAny()),
-        ).captured.cast<String>();
+        final logged = verify(() => logger.info(captureAny())).captured
+            .cast<String>();
         final line = logged.singleWhere((l) => l.startsWith('[#incidents]'));
         expect(line, equals('[#incidents] [1.0] <lee> ${'x' * 200}…'));
       });
@@ -598,9 +597,8 @@ void main() {
 
           await runner.run(['search', '-q', 'deploy']);
 
-          final logged = verify(
-            () => logger.info(captureAny()),
-          ).captured.cast<String>();
+          final logged = verify(() => logger.info(captureAny())).captured
+              .cast<String>();
           final line = logged.singleWhere((l) => l.startsWith('[#incidents]'));
           expect(
             line,
@@ -620,9 +618,7 @@ void main() {
         await runner.run(['search', '-q', 'deploy']);
 
         verify(
-          () => logger.info(
-            '[#incidents] [1.0] <lee> ${'\u{1F600}' * 200}',
-          ),
+          () => logger.info('[#incidents] [1.0] <lee> ${'\u{1F600}' * 200}'),
         ).called(1);
       });
 
@@ -631,9 +627,8 @@ void main() {
 
         await runner.run(['search', '-q', 'deploy']);
 
-        verify(
-          () => logger.info('[#incidents] [1.0] <lee> ${'x' * 200}'),
-        ).called(1);
+        verify(() => logger.info('[#incidents] [1.0] <lee> ${'x' * 200}'))
+            .called(1);
       });
 
       test('truncates a match of exactly 201 characters', () async {
@@ -644,9 +639,8 @@ void main() {
 
         await runner.run(['search', '-q', 'deploy']);
 
-        verify(
-          () => logger.info('[#incidents] [1.0] <lee> ${'x' * 200}…'),
-        ).called(1);
+        verify(() => logger.info('[#incidents] [1.0] <lee> ${'x' * 200}…'))
+            .called(1);
       });
 
       test('trims the whitespace around a match', () async {
@@ -690,9 +684,8 @@ void main() {
         final exitCode = await runner.run(['search', '-q', 'deploy']);
 
         expect(exitCode, equals(ExitCode.success.code));
-        verify(
-          () => logger.info('[#incidents] [1.0] <lee> deploy failed'),
-        ).called(1);
+        verify(() => logger.info('[#incidents] [1.0] <lee> deploy failed'))
+            .called(1);
         verifyNever(() => logger.info('(more results available)'));
       });
     });
@@ -745,9 +738,7 @@ void main() {
           ),
         ).called(1);
         verify(
-          () => logger.err(
-            jsonEncode({'ok': false, 'error': 'missing_scope'}),
-          ),
+          () => logger.err(jsonEncode({'ok': false, 'error': 'missing_scope'})),
         ).called(1);
       });
 
