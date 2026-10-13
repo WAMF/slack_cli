@@ -127,9 +127,36 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
       _logger.info(packageVersion);
       exitCode = ExitCode.success.code;
     } else {
+      _checkMandatoryOptions(topLevelResults);
       exitCode = await super.runCommand(topLevelResults);
     }
 
     return exitCode;
+  }
+
+  /// Throws a [UsageException] when the chosen command misses a mandatory
+  /// option.
+  ///
+  /// `package:args` does not reject a missing `mandatory: true` option when
+  /// it parses. It throws an `ArgumentError` later, when the command reads
+  /// the option, and that error reached the user as a Dart stack trace. This
+  /// check runs before any command starts, so the user gets the command
+  /// usage and exit code 64, and no credential is read first. See issue #42.
+  void _checkMandatoryOptions(ArgResults topLevelResults) {
+    var results = topLevelResults.command;
+    var available = commands;
+    while (results != null) {
+      final command = available[results.name];
+      if (command == null) return;
+      // `--help` prints the usage. A missing option must not block it.
+      if (results.options.contains('help') && results.flag('help')) return;
+      for (final option in command.argParser.options.values) {
+        if (option.mandatory && !results.wasParsed(option.name)) {
+          command.usageException('Option ${option.name} is mandatory.');
+        }
+      }
+      available = command.subcommands;
+      results = results.command;
+    }
   }
 }
