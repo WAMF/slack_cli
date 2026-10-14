@@ -118,6 +118,10 @@
 
 ### Fixed
 
+- `search` now rejects a `--channel` value that holds whitespace, or that is
+  only `#`, with a usage error (exit 64). A Slack channel name cannot contain
+  whitespace, so `-c "my channel"` used to build the broken modifier
+  `in:#my channel` and search the wrong place without a warning. See #44.
 - `send`, `reply`, `dm`, and `edit` now normalize `--text` before they build
   the Slack API request (#35). A plain double-quoted shell string does not
   interpret backslash escapes, so `-t "line1\nline2"` used to reach Slack as
