@@ -15,6 +15,9 @@ class _MockCredentialsStore extends Mock implements CredentialsStore;
 
 class _MockHttpClient extends Mock implements http.Client;
 
+/// The flag of the United Kingdom: one grapheme made of two runes.
+const String _flag = '\u{1F1EC}\u{1F1E7}';
+
 /// A 200 answer carrying [body], decoded as UTF-8.
 ///
 /// `http.Response(String, int)` encodes the body as Latin-1 and throws on any
@@ -789,7 +792,56 @@ void main() {
         },
       );
 
-      test('keeps a match of exactly 200 runes whole', () async {
+      test(
+        'cuts a long match of joined emoji between whole graphemes',
+        () async {
+          // A family emoji is 7 runes: 4 people joined by 3 zero-width
+          // joiners. A cut at rune 200 lands inside the 29th family and ends
+          // on a dangling joiner. The cut must count user-visible characters.
+          const family =
+              '\u{1F468}\u{200D}\u{1F469}\u{200D}'
+              '\u{1F467}\u{200D}\u{1F466}';
+          answerWith(_searchResponse([_match(text: family * 250)]));
+
+          await runner.run(['search', '-q', 'deploy']);
+
+          verify(() => logger.info('[#incidents] [1.0] <lee> ${family * 200}…'))
+              .called(1);
+        },
+      );
+
+      test('cuts a long match of flags between whole flags', () async {
+        // A flag is a pair of regional indicators. A cut that counts runes
+        // keeps only 100 flags, and an odd rune limit would split one.
+        answerWith(_searchResponse([_match(text: _flag * 250)]));
+
+        await runner.run(['search', '-q', 'deploy']);
+
+        verify(() => logger.info('[#incidents] [1.0] <lee> ${_flag * 200}…'))
+            .called(1);
+      });
+
+      test('keeps a match of exactly 200 flags whole', () async {
+        // 200 flags are 400 runes. The limit counts graphemes, so the match
+        // is not cut.
+        answerWith(_searchResponse([_match(text: _flag * 200)]));
+
+        await runner.run(['search', '-q', 'deploy']);
+
+        verify(() => logger.info('[#incidents] [1.0] <lee> ${_flag * 200}'))
+            .called(1);
+      });
+
+      test('truncates a match of exactly 201 flags', () async {
+        answerWith(_searchResponse([_match(text: _flag * 201)]));
+
+        await runner.run(['search', '-q', 'deploy']);
+
+        verify(() => logger.info('[#incidents] [1.0] <lee> ${_flag * 200}…'))
+            .called(1);
+      });
+
+      test('keeps a match of exactly 200 single-rune emoji whole', () async {
         answerWith(_searchResponse([_match(text: '\u{1F600}' * 200)]));
 
         await runner.run(['search', '-q', 'deploy']);
