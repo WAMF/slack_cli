@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:meta/meta.dart';
 
@@ -41,20 +42,16 @@ void ensurePrivateDirectory(Directory directory) {
 /// restricted to mode 600, then the temp file is renamed over [file]. The
 /// rename is atomic, so a reader sees the old file or the complete new one,
 /// and the final file is always 600.
+///
+/// Each call creates its own uniquely named temp file, so two overlapping
+/// saves to the same [file] never write to, or delete, each other's temp
+/// file. The last rename wins.
 void writePrivateFile(
   File file,
   String contents, {
   @visibleForTesting Chmod? chmod,
 }) {
-  final temp = File('${file.path}.tmp');
-  try {
-    temp.createSync(exclusive: true);
-  } on FileSystemException {
-    // A temp file left by an interrupted write: start again from empty.
-    temp
-      ..deleteSync()
-      ..createSync(exclusive: true);
-  }
+  final temp = _createUniqueTemp(file);
   try {
     if (_isPosix) (chmod ?? _runChmod)('600', temp.path);
     temp
@@ -63,5 +60,23 @@ void writePrivateFile(
   } on Object {
     if (temp.existsSync()) temp.deleteSync();
     rethrow;
+  }
+}
+
+final _random = Random.secure();
+
+/// Creates a new, empty `<file>.<pid>.<random>.tmp` that no other writer
+/// owns. The exclusive create fails if the name already exists, so a
+/// collision picks a new name instead of taking over another file.
+File _createUniqueTemp(File file) {
+  for (var attempt = 0; ; attempt++) {
+    final suffix = _random.nextInt(1 << 32).toRadixString(16).padLeft(8, '0');
+    final temp = File('${file.path}.$pid.$suffix.tmp');
+    try {
+      temp.createSync(exclusive: true);
+      return temp;
+    } on FileSystemException {
+      if (attempt >= 9) rethrow;
+    }
   }
 }

@@ -113,6 +113,50 @@ void main() {
 
       expect(targetExistedAtChmod, equals([false]));
     }, skip: posixOnly);
+
+    test('an overlapping save keeps the file complete and 600', () {
+      // Writer B runs a whole save while writer A is between its chmod and
+      // its write. With a shared temp name, B removed A's temp and A then
+      // wrote a new temp with the default umask (644).
+      writePrivateFile(
+        target,
+        'writer A',
+        chmod: (mode, path) {
+          Process.runSync('chmod', [mode, path]);
+          writePrivateFile(target, 'writer B');
+        },
+      );
+
+      expect(target.readAsStringSync(), equals('writer A'));
+      expect(_permissions(target), equals(0x180));
+      expect(
+        tempDir.listSync().map((e) => e.uri.pathSegments.last),
+        equals(['secret.json']),
+      );
+    }, skip: posixOnly);
+
+    test('a failed save removes only its own temp file', () {
+      final other = File('${target.path}.1.0000abcd.tmp')
+        ..writeAsStringSync('another writer');
+      String? ownTemp;
+
+      expect(
+        () => writePrivateFile(
+          target,
+          'xoxp-secret',
+          chmod: (mode, path) {
+            ownTemp = path;
+            throw const FileSystemException('chmod failed');
+          },
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      expect(ownTemp, isNot(equals(other.path)));
+      expect(File(ownTemp!).existsSync(), isFalse);
+      expect(other.readAsStringSync(), equals('another writer'));
+      expect(target.existsSync(), isFalse);
+    }, skip: posixOnly);
   });
 
   group('dartSlackConfigPath', () {
