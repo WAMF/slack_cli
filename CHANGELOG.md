@@ -123,6 +123,10 @@
 
 ### Fixed
 
+- `search` now cuts a long match after 200 user-visible characters
+  (graphemes), not after 200 runes. A flag is two runes and a family emoji is
+  seven, so a rune cut could split one and print the wrong glyphs. Text
+  without multi-rune characters is cut at the same place as before. See #47.
 - `search` now rejects a `--limit` above 100 with a usage error (exit 64).
   Slack documents `count` on `search.messages` in the range 1 to 100, so
   `-l 500` used to send `count=500` and return a different number of matches

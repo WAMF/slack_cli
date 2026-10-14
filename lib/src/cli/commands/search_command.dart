@@ -1,10 +1,11 @@
+import 'package:characters/characters.dart';
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
 import 'package:dart_slack/src/slack.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-/// The largest snippet printed for one match, counted in Unicode code
-/// points. Search matches can be long and multi-line; the full message is
-/// still readable with `history` or `thread`.
+/// The largest snippet printed for one match, counted in user-visible
+/// characters (extended grapheme clusters). Search matches can be long and
+/// multi-line; the full message is still readable with `history` or `thread`.
 const int _snippetLength = 200;
 
 /// The largest `--limit`. Slack documents `count` on `search.messages` in
@@ -188,15 +189,18 @@ class SearchCommand extends AuthenticatedCommand {
   /// message — collapses to a single space, so one match stays on one line.
   /// Text longer than [_snippetLength] is cut and marked with an ellipsis.
   ///
-  /// The cut counts runes, not code units. A Dart string is indexed in UTF-16
-  /// code units, so cutting with `substring` can land between the two halves
-  /// of a surrogate pair and emit a lone surrogate. A Slack message with an
-  /// emoji near the limit would print as mojibake.
+  /// The cut counts graphemes, not code units or runes. A Dart string is
+  /// indexed in UTF-16 code units, so cutting with `substring` can land
+  /// between the two halves of a surrogate pair and emit a lone surrogate.
+  /// Cutting on runes avoids that, but one visible character can still be
+  /// several runes: a flag is a pair of regional indicators, and a family
+  /// emoji is four people joined by zero-width joiners. A rune cut can split
+  /// either one and print the wrong glyphs.
   static String snippet(String text) {
     final collapsed = text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    final runes = collapsed.runes;
-    if (runes.length <= _snippetLength) return collapsed;
-    return '${String.fromCharCodes(runes.take(_snippetLength))}…';
+    final graphemes = collapsed.characters;
+    if (graphemes.length <= _snippetLength) return collapsed;
+    return '${graphemes.take(_snippetLength)}…';
   }
 
   /// Prints [message] with the command usage and returns the usage exit code.
