@@ -125,6 +125,13 @@ void main() {
         expect(result, equals(ExitCode.success.code));
         verifyNever(() => logger.err(any()));
       });
+
+      test('still prints the help when --help is before the command', () async {
+        final result = await commandRunner.run(['--help', 'history']);
+
+        expect(result, equals(ExitCode.success.code));
+        verifyNever(() => logger.err(any()));
+      });
     });
   });
 }

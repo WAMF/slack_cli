@@ -143,6 +143,8 @@ class DartSlackCommandRunner extends CompletionCommandRunner<int> {
   /// check runs before any command starts, so the user gets the command
   /// usage and exit code 64, and no credential is read first. See issue #42.
   void _checkMandatoryOptions(ArgResults topLevelResults) {
+    // `dart_slack --help <command>` also prints the command usage.
+    if (topLevelResults.flag('help')) return;
     var results = topLevelResults.command;
     var available = commands;
     while (results != null) {
