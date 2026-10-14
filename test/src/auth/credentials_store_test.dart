@@ -81,5 +81,39 @@ void main() {
           ? 'File permissions only testable on POSIX'
           : null,
     );
+
+    test(
+      'save makes the config directory private (700) before writing',
+      () {
+        Process.runSync('chmod', ['755', tempDir.path]);
+
+        store.save(credentials);
+
+        // 0x1C0 = octal 700
+        expect(tempDir.statSync().mode & 0x1FF, equals(0x1C0));
+      },
+      skip: !Platform.isMacOS && !Platform.isLinux
+          ? 'File permissions only testable on POSIX'
+          : null,
+    );
+
+    test('uses USERPROFILE when HOME is unavailable', () {
+      final homeDir = Directory.systemTemp.createTempSync(
+        'slackcli_credentials_home_test_',
+      );
+      addTearDown(() {
+        if (homeDir.existsSync()) {
+          homeDir.deleteSync(recursive: true);
+        }
+      });
+
+      CredentialsStore(environment: {'USERPROFILE': homeDir.path})
+          .save(credentials);
+
+      expect(
+        File('${homeDir.path}/.dart_slack/credentials.json').existsSync(),
+        isTrue,
+      );
+    });
   });
 }

@@ -98,5 +98,20 @@ void main() {
           ? 'File permissions only testable on POSIX'
           : null,
     );
+
+    test(
+      'save makes the config directory private (700) before writing',
+      () {
+        Process.runSync('chmod', ['755', tempDir.path]);
+
+        store.save(config);
+
+        // 0x1C0 = octal 700
+        expect(tempDir.statSync().mode & 0x1FF, equals(0x1C0));
+      },
+      skip: !Platform.isMacOS && !Platform.isLinux
+          ? 'File permissions only testable on POSIX'
+          : null,
+    );
   });
 }

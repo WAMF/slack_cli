@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dart_slack/src/auth/credentials.dart';
+import 'package:dart_slack/src/auth/private_files.dart';
 import 'package:dart_slack/src/slack_api/slack_scopes.dart';
 import 'package:dart_slack/src/slack_api/slack_urls.dart';
 import 'package:http/http.dart' as http;
@@ -84,7 +85,7 @@ class OAuthFlow {
        _bindServer = bindServer ?? HttpServer.bindSecure,
        _configDirectory =
            configDirectory ??
-           Directory('${Platform.environment['HOME']}/.dart_slack'),
+           Directory(dartSlackConfigPath(Platform.environment)),
        _port = port ?? _callbackPort;
 
   final String _clientId;
@@ -149,7 +150,9 @@ class OAuthFlow {
   void _ensureCertificate() {
     if (_certFile.existsSync() && _keyFile.existsSync()) return;
 
-    _configDirectory.createSync(recursive: true);
+    // openssl writes the private key with the default umask; a 700 directory
+    // keeps it unreadable by other users until the chmod below.
+    ensurePrivateDirectory(_configDirectory);
 
     final result = Process.runSync('openssl', [
       'req',

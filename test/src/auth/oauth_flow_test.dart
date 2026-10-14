@@ -482,5 +482,45 @@ void main() {
         equals(keyModified),
       );
     });
+
+    test(
+      'generates the TLS key inside a private (700) directory, mode 600',
+      () async {
+        Process.runSync('chmod', ['755', tempDir.path]);
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode(tokenResponse), 200),
+        );
+
+        final flow = createFlow(
+          processStarter: (command, args) async {
+            final url = Uri.parse(args.first);
+            final cbPort = callbackPortFrom(url);
+            fireCallback(
+              'code=c&state=${stateFrom(url)}',
+              callbackPort: cbPort,
+            );
+            return process;
+          },
+        );
+
+        await flow.execute();
+
+        // 0x1C0 = octal 700, 0x180 = octal 600
+        expect(tempDir.statSync().mode & 0x1FF, equals(0x1C0));
+        expect(
+          File('${tempDir.path}/key.pem').statSync().mode & 0x1FF,
+          equals(0x180),
+        );
+      },
+      skip: !Platform.isMacOS && !Platform.isLinux
+          ? 'File permissions only testable on POSIX'
+          : null,
+    );
   });
 }
