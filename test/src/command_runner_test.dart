@@ -78,5 +78,60 @@ void main() {
         verifyNever(() => logger.detail('    Command options:'));
       });
     });
+
+    group('mandatory options', () {
+      // Issue #42: `package:args` does not reject a missing mandatory option
+      // when it parses. It throws an `ArgumentError` later, when the command
+      // reads the option, and that error escaped as a Dart stack trace.
+
+      test('prints the usage and exits 64 when one is missing', () async {
+        final result = await commandRunner.run(['history']);
+
+        expect(result, equals(ExitCode.usage.code));
+        verify(() => logger.err('Option channel is mandatory.')).called(1);
+        verify(
+          () => logger.info(any(that: contains('Usage: dart_slack history'))),
+        ).called(1);
+      });
+
+      test('names the first missing option', () async {
+        final result = await commandRunner.run(['thread', '-c', 'C1']);
+
+        expect(result, equals(ExitCode.usage.code));
+        verify(() => logger.err('Option ts is mandatory.')).called(1);
+      });
+
+      test('checks a nested subcommand', () async {
+        final result = await commandRunner.run(['canvas', 'read']);
+
+        expect(result, equals(ExitCode.usage.code));
+        verify(() => logger.err('Option canvas is mandatory.')).called(1);
+        verify(
+          () =>
+              logger.info(any(that: contains('Usage: dart_slack canvas read'))),
+        ).called(1);
+      });
+
+      test('checks a command that needs no Slack login', () async {
+        final result = await commandRunner.run(['stream']);
+
+        expect(result, equals(ExitCode.usage.code));
+        verify(() => logger.err('Option channel is mandatory.')).called(1);
+      });
+
+      test('still prints the help when --help is given', () async {
+        final result = await commandRunner.run(['history', '--help']);
+
+        expect(result, equals(ExitCode.success.code));
+        verifyNever(() => logger.err(any()));
+      });
+
+      test('still prints the help when --help is before the command', () async {
+        final result = await commandRunner.run(['--help', 'history']);
+
+        expect(result, equals(ExitCode.success.code));
+        verifyNever(() => logger.err(any()));
+      });
+    });
   });
 }

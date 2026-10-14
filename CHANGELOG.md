@@ -122,6 +122,11 @@
   only `#`, with a usage error (exit 64). A Slack channel name cannot contain
   whitespace, so `-c "my channel"` used to build the broken modifier
   `in:#my channel` and search the wrong place without a warning. See #44.
+- A command called without a mandatory option, such as `history` with no
+  `--channel`, now prints that command's usage and exits 64 (#42). It used
+  to crash with an unhandled `ArgumentError` and a Dart stack trace. The
+  check runs before any credential is read, so the answer is the same with
+  or without a login.
 - `send`, `reply`, `dm`, and `edit` now normalize `--text` before they build
   the Slack API request (#35). A plain double-quoted shell string does not
   interpret backslash escapes, so `-t "line1\nline2"` used to reach Slack as
