@@ -118,6 +118,11 @@
 
 ### Fixed
 
+- `search` now rejects a `--limit` above 100 with a usage error (exit 64).
+  Slack documents `count` on `search.messages` in the range 1 to 100, so
+  `-l 500` used to send `count=500` and return a different number of matches
+  than asked for, without a warning. The `--limit` help text now names the
+  range. See #46.
 - `search` now rejects a `--channel` value that holds whitespace, or that is
   only `#`, with a usage error (exit 64). A Slack channel name cannot contain
   whitespace, so `-c "my channel"` used to build the broken modifier
