@@ -14,6 +14,11 @@
 
 ### Added
 
+- `search` takes `-p`/`--page` (default 1, a positive integer) and passes it
+  to `Slack.searchMessages(page:)`. The `(more results available)` line now
+  names the next page, for example `(more results available: use --page 2)`.
+  Before this, `search` always read page 1, so the line pointed at results
+  the user had no way to reach. See #45.
 - `send`, `reply`, `dm`, and `edit` take the message text from a file with
   `--text-file <path>`, or from standard input with `--text-stdin`
   (`--text-file -` is the same thing). Those bytes never pass through a shell,
