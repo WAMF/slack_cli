@@ -38,6 +38,8 @@ void main() {
   Future<ProcessResult> run(List<String> args) => Process.run(
     executable,
     args,
+    // The app reads `.env` from the working directory: use the empty home.
+    workingDirectory: home.path,
     includeParentEnvironment: false,
     environment: {
       'PATH': Platform.environment['PATH'] ?? '',
@@ -113,14 +115,18 @@ void main() {
     stream: 'stderr',
     expected: 'Missing the message text',
   );
-  // Pins current behaviour on main: with no credentials, `history` stops at the
-  // login check with exit 67 before it validates arguments. PR #58 changes this
-  // to 64 with "Option channel is mandatory."
   expectRun(
-    'history without credentials exits 67',
-    ['history'],
-    exitCode: 67,
+    'search with --limit 101 exits 64',
+    ['search', '-q', 'x', '-l', '101'],
+    exitCode: 64,
     stream: 'stderr',
-    expected: 'Not logged in',
+    expected: 'Invalid --limit value',
+  );
+  expectRun(
+    'history without --channel exits 64',
+    ['history'],
+    exitCode: 64,
+    stream: 'stderr',
+    expected: 'Option channel is mandatory.',
   );
 }
