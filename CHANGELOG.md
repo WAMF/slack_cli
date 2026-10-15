@@ -149,6 +149,12 @@
   into place. Before, the file was written with the default permissions and
   set to 600 only afterwards. `CredentialsStore` and `OAuthFlow` also fall
   back to `USERPROFILE` when `HOME` is not set, like `AppConfigStore` does.
+- A save of `credentials.json` or `config.json` now fails with a clear error
+  when `chmod` exits non-zero, and removes its temp file (#64). Before, the
+  exit code was ignored, so a file could keep the default mode. A save also
+  removes `<name>.<pid>.<random>.tmp` files that an interrupted save left in
+  `~/.dart_slack`, but only when they are older than 1 hour, so a save that
+  runs at the same time is never touched.
 
 - `send`, `reply`, `dm`, and `edit` now normalize `--text` before they build
   the Slack API request (#35). A plain double-quoted shell string does not
