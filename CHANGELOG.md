@@ -141,6 +141,15 @@
   to crash with an unhandled `ArgumentError` and a Dart stack trace. The
   check runs before any credential is read, so the answer is the same with
   or without a login.
+- The OAuth token, the Socket Mode app token and the local TLS key are no
+  longer readable by other users, not even briefly, while they are written
+  (#33). On macOS and Linux, `~/.dart_slack` is now set to mode 700 before
+  anything is written into it. `credentials.json` and `config.json` are
+  written to an empty temp file that is set to mode 600 first, then renamed
+  into place. Before, the file was written with the default permissions and
+  set to 600 only afterwards. `CredentialsStore` and `OAuthFlow` also fall
+  back to `USERPROFILE` when `HOME` is not set, like `AppConfigStore` does.
+
 - `send`, `reply`, `dm`, and `edit` now normalize `--text` before they build
   the Slack API request (#35). A plain double-quoted shell string does not
   interpret backslash escapes, so `-t "line1\nline2"` used to reach Slack as
