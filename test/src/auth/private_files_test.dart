@@ -39,6 +39,23 @@ void main() {
 
       expect(_permissions(tempDir), equals(0x1C0));
     }, skip: posixOnly);
+
+    test('throws when chmod exits non-zero', () {
+      expect(
+        () => ensurePrivateDirectory(tempDir, chmod: (_, _) => 1),
+        throwsA(
+          isA<FileSystemException>()
+              .having(
+                (e) => e.message,
+                'message',
+                equals(
+                  'Could not restrict to mode 700: chmod exited with code 1',
+                ),
+              )
+              .having((e) => e.path, 'path', equals(tempDir.path)),
+        ),
+      );
+    }, skip: posixOnly);
   });
 
   group('writePrivateFile', () {
@@ -86,7 +103,7 @@ void main() {
         chmod: (mode, path) {
           modesAtChmod.add(mode);
           lengthsAtChmod.add(File(path).lengthSync());
-          Process.runSync('chmod', [mode, path]);
+          return Process.runSync('chmod', [mode, path]).exitCode;
         },
       );
 
@@ -108,6 +125,7 @@ void main() {
         chmod: (mode, path) {
           targetExistedAtChmod.add(target.existsSync());
           expect(path, isNot(equals(target.path)));
+          return 0;
         },
       );
 
@@ -122,8 +140,9 @@ void main() {
         target,
         'writer A',
         chmod: (mode, path) {
-          Process.runSync('chmod', [mode, path]);
+          final exitCode = Process.runSync('chmod', [mode, path]).exitCode;
           writePrivateFile(target, 'writer B');
+          return exitCode;
         },
       );
 
@@ -157,6 +176,127 @@ void main() {
       expect(other.readAsStringSync(), equals('another writer'));
       expect(target.existsSync(), isFalse);
     }, skip: posixOnly);
+
+    test(
+      'fails the save and removes its temp file when chmod exits non-zero',
+      () {
+        target.writeAsStringSync('old');
+        String? ownTemp;
+
+        expect(
+          () => writePrivateFile(
+            target,
+            'xoxp-secret',
+            chmod: (mode, path) {
+              ownTemp = path;
+              return 1;
+            },
+          ),
+          throwsA(
+            isA<FileSystemException>()
+                .having(
+                  (e) => e.message,
+                  'message',
+                  equals(
+                    'Could not restrict to mode 600: chmod exited with code 1',
+                  ),
+                )
+                .having((e) => e.path, 'path', endsWith('.tmp')),
+          ),
+        );
+
+        expect(File(ownTemp!).existsSync(), isFalse);
+        expect(target.readAsStringSync(), equals('old'));
+      },
+      skip: posixOnly,
+    );
+  });
+
+  group('stale temp files', () {
+    late Directory tempDir;
+    late File target;
+
+    setUp(() {
+      tempDir = Directory.systemTemp.createTempSync('private_files_test_');
+      target = File('${tempDir.path}/secret.json');
+    });
+
+    tearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+
+    /// Creates [name] in the test directory and returns it with its mtime.
+    (File, DateTime) leftover(String name) {
+      final file = File('${tempDir.path}/$name')..createSync();
+      return (file, file.lastModifiedSync());
+    }
+
+    test('a save removes a temp file older than staleTempAge', () {
+      final (stale, modified) = leftover('secret.json.4242.0000abcd.tmp');
+
+      writePrivateFile(
+        target,
+        'new',
+        chmod: (_, _) => 0,
+        now: () => modified.add(staleTempAge + const Duration(seconds: 1)),
+      );
+
+      expect(stale.existsSync(), isFalse);
+      expect(target.readAsStringSync(), equals('new'));
+    });
+
+    test('a save keeps a temp file younger than staleTempAge', () {
+      final (recent, modified) = leftover('secret.json.4242.0000abcd.tmp');
+
+      writePrivateFile(
+        target,
+        'new',
+        chmod: (_, _) => 0,
+        now: () => modified.add(staleTempAge - const Duration(seconds: 1)),
+      );
+
+      expect(recent.existsSync(), isTrue);
+    });
+
+    test('a save removes stale temp files of other files in the directory', () {
+      final (stale, modified) = leftover('config.json.7.89abcdef.tmp');
+
+      writePrivateFile(
+        target,
+        'new',
+        chmod: (_, _) => 0,
+        now: () => modified.add(const Duration(days: 1)),
+      );
+
+      expect(stale.existsSync(), isFalse);
+    });
+
+    test('a save keeps old files whose name this tool does not create', () {
+      final names = [
+        'notes.tmp',
+        'secret.json.tmp',
+        'secret.json.bak',
+        'secret.json.4242.0000ABCD.tmp',
+        'secret.json.4242.abcd.tmp',
+        'secret.json.pid.0000abcd.tmp',
+        'secret.json.4242.0000abcd.tmp.keep',
+      ];
+      final kept = [for (final name in names) leftover(name).$1];
+      final directory = Directory('${tempDir.path}/secret.json.1.0000abcd.tmp')
+        ..createSync();
+
+      writePrivateFile(
+        target,
+        'new',
+        chmod: (_, _) => 0,
+        now: () => DateTime.now().add(const Duration(days: 1)),
+      );
+
+      for (final file in kept) {
+        expect(file.existsSync(), isTrue, reason: file.path);
+      }
+      expect(directory.existsSync(), isTrue);
+    });
   });
 
   group('dartSlackConfigPath', () {
