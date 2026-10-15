@@ -154,6 +154,60 @@ void main() {
       );
     }, skip: posixOnly);
 
+    test('a save keeps the temp file of a paused writer in this process', () {
+      // Writer A pauses after its chmod. Writer B runs with a clock that is
+      // past A's temp mtime + staleTempAge, as for a suspended writer or a
+      // clock change. B must not remove A's temp file.
+      var removedActive = false;
+      writePrivateFile(
+        target,
+        'writer A',
+        chmod: (mode, path) {
+          final exitCode = Process.runSync('chmod', [mode, path]).exitCode;
+          final temp = File(path);
+          final later = temp.lastModifiedSync().add(
+            staleTempAge + const Duration(seconds: 1),
+          );
+          writePrivateFile(target, 'writer B', now: () => later);
+          removedActive = !temp.existsSync();
+          return exitCode;
+        },
+      );
+
+      expect(removedActive, isFalse);
+      expect(target.readAsStringSync(), equals('writer A'));
+      expect(_permissions(target), equals(0x180));
+    }, skip: posixOnly);
+
+    test('a save fails and creates no file when its temp file is removed', () {
+      // Another process removes the temp file while this save is paused
+      // after chmod. Before, the write recreated the temp path with the
+      // default umask and the rename published a file that was not 600.
+      target.writeAsStringSync('old');
+      String? ownTemp;
+
+      expect(
+        () => writePrivateFile(
+          target,
+          'xoxp-secret',
+          chmod: (mode, path) {
+            ownTemp = path;
+            final exitCode = Process.runSync('chmod', [mode, path]).exitCode;
+            File(path).deleteSync();
+            return exitCode;
+          },
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      expect(File(ownTemp!).existsSync(), isFalse);
+      expect(target.readAsStringSync(), equals('old'));
+      expect(
+        tempDir.listSync().map((e) => e.uri.pathSegments.last),
+        equals(['secret.json']),
+      );
+    }, skip: posixOnly);
+
     test('a failed save removes only its own temp file', () {
       final other = File('${target.path}.1.0000abcd.tmp')
         ..writeAsStringSync('another writer');
@@ -269,6 +323,19 @@ void main() {
       );
 
       expect(stale.existsSync(), isFalse);
+    });
+
+    test('a save keeps an old temp file that this process created', () {
+      final (own, modified) = leftover('secret.json.$pid.0000abcd.tmp');
+
+      writePrivateFile(
+        target,
+        'new',
+        chmod: (_, _) => 0,
+        now: () => modified.add(const Duration(days: 1)),
+      );
+
+      expect(own.existsSync(), isTrue);
     });
 
     test('a save keeps old files whose name this tool does not create', () {

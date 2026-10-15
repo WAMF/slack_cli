@@ -65,6 +65,12 @@ void ensurePrivateDirectory(
 /// saves to the same [file] never write to, or delete, each other's temp
 /// file. The last rename wins.
 ///
+/// The bytes go through a handle that is opened before `chmod`, never
+/// through the temp path. If another process removes the temp file while the
+/// save is paused, the bytes go to the removed file and the rename fails, so
+/// the save fails and [file] is unchanged. The save never creates a second
+/// temp file with the default permissions.
+///
 /// Before it writes, the call removes temp files that an interrupted save
 /// left in the same directory (see [staleTempAge]).
 void writePrivateFile(
@@ -76,10 +82,16 @@ void writePrivateFile(
   _removeStaleTemps(file.parent, (now ?? DateTime.now)());
   final temp = _createUniqueTemp(file);
   try {
-    if (_isPosix) _restrict('600', temp.path, chmod ?? _runChmod);
-    temp
-      ..writeAsStringSync(contents, flush: true)
-      ..renameSync(file.path);
+    final handle = temp.openSync(mode: FileMode.writeOnly);
+    try {
+      if (_isPosix) _restrict('600', temp.path, chmod ?? _runChmod);
+      handle
+        ..writeStringSync(contents)
+        ..flushSync();
+    } finally {
+      handle.closeSync();
+    }
+    temp.renameSync(file.path);
   } on Object {
     if (temp.existsSync()) temp.deleteSync();
     rethrow;
@@ -89,18 +101,21 @@ void writePrivateFile(
 /// How old a leftover temp file must be before a save removes it.
 ///
 /// A save takes milliseconds, so a temp file this old belongs to a save that
-/// was interrupted. A save that runs at the same time is never touched.
+/// was interrupted. The temp files of this process are never removed, and a
+/// save in another process that pauses for longer than this fails instead of
+/// writing a file that is not 600.
 @visibleForTesting
 const staleTempAge = Duration(hours: 1);
 
 /// Matches the names that [_createUniqueTemp] gives:
-/// `<name>.<pid>.<8 hex digits>.tmp`.
-final _tempName = RegExp(r'^.+\.\d+\.[0-9a-f]{8}\.tmp$');
+/// `<name>.<pid>.<8 hex digits>.tmp`. Group 1 is the pid.
+final _tempName = RegExp(r'^.+\.(\d+)\.[0-9a-f]{8}\.tmp$');
 
 /// Removes the temp files of interrupted saves from [directory].
 ///
-/// Only regular files whose name matches [_tempName] and that were last
-/// modified more than [staleTempAge] before [now] are removed. The cleanup
+/// Only regular files whose name matches [_tempName], that this process did
+/// not create, and that were last modified more than [staleTempAge] before
+/// [now] are removed. The cleanup
 /// never fails a save: a file that another process removes first, or that
 /// cannot be read, is skipped.
 void _removeStaleTemps(Directory directory, DateTime now) {
@@ -113,7 +128,8 @@ void _removeStaleTemps(Directory directory, DateTime now) {
   }
   for (final entry in entries) {
     if (entry is! File) continue;
-    if (!_tempName.hasMatch(entry.uri.pathSegments.last)) continue;
+    final match = _tempName.firstMatch(entry.uri.pathSegments.last);
+    if (match == null || match[1] == '$pid') continue;
     try {
       if (entry.lastModifiedSync().isBefore(cutoff)) entry.deleteSync();
     } on FileSystemException {
