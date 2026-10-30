@@ -60,9 +60,15 @@ void main() {
     http.Response historyResponse(
       List<Map<String, dynamic>> messages, {
       bool hasMore = false,
+      String? nextCursor,
     }) {
       return http.Response(
-        jsonEncode({'ok': true, 'messages': messages, 'has_more': hasMore}),
+        jsonEncode({
+          'ok': true,
+          'messages': messages,
+          'has_more': hasMore,
+          'response_metadata': {'next_cursor': nextCursor ?? ''},
+        }),
         200,
       );
     }
@@ -197,6 +203,148 @@ void main() {
       expect(messageLines, hasLength(1));
       expect(messageLines.first, equals('<U1> Initial'));
     });
+
+    for (final cursorOnly in [false, true]) {
+      test('drains all polling pages (cursor only: $cursorOnly)', () async {
+        when(() => credentialsStore.load()).thenReturn(credentials);
+        final requests = <Uri>[];
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((invocation) async {
+              final uri = invocation.positionalArguments.first as Uri;
+              requests.add(uri);
+              return switch (requests.length) {
+                1 => historyResponse([
+                  {'ts': '1.0', 'text': 'Initial', 'user': 'U1'},
+                ]),
+                2 => historyResponse(
+                  [
+                    {'ts': '5.0', 'text': 'Five', 'user': 'U1'},
+                    {'ts': '4.0', 'text': 'Four', 'user': 'U1'},
+                  ],
+                  hasMore: !cursorOnly,
+                  nextCursor: cursorOnly ? 'more' : null,
+                ),
+                3 => historyResponse([
+                  {'ts': '3.0', 'text': 'Three', 'user': 'U1'},
+                  {'ts': '2.0', 'text': 'Two', 'user': 'U1'},
+                ]),
+                // This arrived while the earlier pages were being fetched.
+                _ => historyResponse([
+                  {'ts': '6.0', 'text': 'Six', 'user': 'U1'},
+                ]),
+              };
+            });
+        final runner = buildRunner(
+          delay: (_) async {
+            if (requests.length >= 4) {
+              signalController.add(ProcessSignal.sigint);
+            }
+          },
+        );
+
+        expect(await runner.run(['watch', '-c', 'C1']), ExitCode.success.code);
+
+        expect(requests, hasLength(4));
+        expect(requests[1].queryParameters['oldest'], '1.0');
+        expect(requests[2].queryParameters['oldest'], '1.0');
+        expect(requests[2].queryParameters['latest'], '4.0');
+        expect(requests[3].queryParameters['oldest'], '5.0');
+        expect(requests[3].queryParameters, isNot(contains('latest')));
+        final lines = verify(() => logger.info(captureAny())).captured
+            .cast<String>()
+            .where((line) => line.startsWith('<'));
+        expect(lines, [
+          '<U1> Initial',
+          '<U1> Two',
+          '<U1> Three',
+          '<U1> Four',
+          '<U1> Five',
+          '<U1> Six',
+        ]);
+      });
+    }
+
+    test('continues past an empty page with a cursor', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      final requests = <Uri>[];
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((invocation) async {
+            requests.add(invocation.positionalArguments.first as Uri);
+            return switch (requests.length) {
+              1 => historyResponse([
+                {'ts': '1.0', 'text': 'Initial', 'user': 'U1'},
+              ]),
+              2 => historyResponse([], nextCursor: 'after-empty-page'),
+              _ => historyResponse([
+                {'ts': '2.0', 'text': 'Found', 'user': 'U1'},
+              ]),
+            };
+          });
+      final runner = buildRunner(
+        delay: (_) async {
+          if (requests.length >= 3) signalController.add(ProcessSignal.sigint);
+        },
+      );
+
+      await runner.run(['watch', '-c', 'C1']);
+
+      expect(requests[2].queryParameters['cursor'], 'after-empty-page');
+      expect(requests[2].queryParameters['oldest'], '1.0');
+      verify(() => logger.info('<U1> Found')).called(1);
+    });
+
+    test('does not publish an incomplete polling batch', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      var calls = 0;
+      when(() => httpClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async {
+            calls++;
+            return switch (calls) {
+              1 => historyResponse([
+                {'ts': '1.0', 'text': 'Initial', 'user': 'U1'},
+              ]),
+              2 => historyResponse([
+                {'ts': '3.0', 'text': 'Partial', 'user': 'U1'},
+              ], hasMore: true),
+              _ => http.Response('{"ok":false,"error":"internal_error"}', 200),
+            };
+          });
+
+      expect(
+        await buildRunner().run(['watch', '-c', 'C1']),
+        ExitCode.software.code,
+      );
+      verifyNever(() => logger.info('<U1> Partial'));
+    });
+
+    test(
+      'stops between polling pages without printing a partial batch',
+      () async {
+        when(() => credentialsStore.load()).thenReturn(credentials);
+        var calls = 0;
+        when(() => httpClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async {
+              calls++;
+              if (calls == 1) {
+                return historyResponse([
+                  {'ts': '1.0', 'text': 'Initial', 'user': 'U1'},
+                ]);
+              }
+              signalController.add(ProcessSignal.sigint);
+              await Future<void>.delayed(Duration.zero);
+              return historyResponse([
+                {'ts': '3.0', 'text': 'Partial', 'user': 'U1'},
+              ], hasMore: true);
+            });
+
+        expect(
+          await buildRunner().run(['watch', '-c', 'C1']),
+          ExitCode.success.code,
+        );
+        expect(calls, 2);
+        verifyNever(() => logger.info('<U1> Partial'));
+      },
+    );
 
     test('exits cleanly on SIGINT', () async {
       when(() => credentialsStore.load()).thenReturn(credentials);
