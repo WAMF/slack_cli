@@ -108,8 +108,8 @@ class OAuthFlow {
       ..useCertificateChain(_certFile.path)
       ..usePrivateKey(_keyFile.path);
 
-    final server = await _bindCallbackServer(context);
-    final redirectUri = 'https://localhost:${server.port}$_callbackPath';
+    final servers = await _bindCallbackServers(context);
+    final redirectUri = 'https://localhost:${servers.first.port}$_callbackPath';
 
     try {
       final state = _generateState();
@@ -127,24 +127,56 @@ class OAuthFlow {
       await _openBrowser(authorizeUrl.toString());
       _logger.info('Waiting for authorization callback...');
 
-      final code = await _waitForCallback(server, expectedState: state);
+      final code = await _waitForCallback(servers, expectedState: state);
       return await _exchangeCodeForToken(code: code, redirectUri: redirectUri);
     } finally {
-      await server.close();
+      await Future.wait(servers.map((server) => server.close()));
     }
   }
 
-  Future<HttpServer> _bindCallbackServer(SecurityContext context) async {
+  Future<List<HttpServer>> _bindCallbackServers(SecurityContext context) async {
+    final servers = <HttpServer>[];
     try {
-      return await _bindServer(
+      for (final address in [
         InternetAddress.loopbackIPv6,
-        _port,
-        context,
-        v6Only: false,
-      );
-    } on SocketException {
-      return await _bindServer(InternetAddress.loopbackIPv4, _port, context);
+        InternetAddress.loopbackIPv4,
+      ]) {
+        try {
+          // A socket bound to ::1 cannot also receive IPv4 loopback traffic.
+          // Keep both listeners on the same port, including when using port 0.
+          servers.add(
+            await _bindServer(
+              address,
+              servers.isEmpty ? _port : servers.first.port,
+              context,
+              v6Only: address.type == InternetAddressType.IPv6,
+            ),
+          );
+        } on SocketException catch (error) {
+          // A port conflict must fail login, rather than leave a different
+          // process listening for callbacks on the other loopback address.
+          if (!_isUnavailableAddressFamily(error)) rethrow;
+          if (address == InternetAddress.loopbackIPv4 && servers.isEmpty) {
+            rethrow;
+          }
+        }
+      }
+      return servers;
+    } on Object {
+      await Future.wait(servers.map((server) => server.close()));
+      rethrow;
     }
+  }
+
+  bool _isUnavailableAddressFamily(SocketException error) {
+    // EPROTONOSUPPORT, EPFNOSUPPORT, EAFNOSUPPORT, and EADDRNOTAVAIL.
+    // Use the platform's error codes rather than matching localized messages.
+    final codes = Platform.isWindows
+        ? const [10043, 10046, 10047, 10049]
+        : Platform.isMacOS || Platform.isIOS
+        ? const [43, 46, 47, 49]
+        : const [93, 96, 97, 99];
+    return codes.contains(error.osError?.errorCode);
   }
 
   void _ensureCertificate() {
@@ -196,12 +228,17 @@ class OAuthFlow {
   }
 
   Future<String> _waitForCallback(
-    HttpServer server, {
+    List<HttpServer> servers, {
     required String expectedState,
   }) async {
     final completer = Completer<String>();
 
-    final subscription = server.listen((request) {
+    void handleRequest(HttpRequest request) {
+      if (completer.isCompleted) {
+        request.response.statusCode = HttpStatus.conflict;
+        unawaited(request.response.close());
+        return;
+      }
       if (request.uri.path != _callbackPath) {
         request.response.statusCode = HttpStatus.notFound;
         unawaited(request.response.close());
@@ -238,7 +275,11 @@ class OAuthFlow {
           const OAuthException('Missing authorization code in callback'),
         );
       }
-    });
+    }
+
+    final subscriptions = servers
+        .map((server) => server.listen(handleRequest))
+        .toList();
 
     try {
       return await completer.future.timeout(
@@ -248,7 +289,9 @@ class OAuthFlow {
         ),
       );
     } finally {
-      await subscription.cancel();
+      await Future.wait(
+        subscriptions.map((subscription) => subscription.cancel()),
+      );
     }
   }
 

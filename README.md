@@ -211,6 +211,7 @@ One message match, returned by `Slack.searchMessages` inside a `CursorPage`.
    - `files:read` (look up a canvas's downloadable file)
    - `files:write` (attach a file with `send`/`reply`/`dm --file`)
    - `groups:read`
+   - `im:read` (inspect direct-message conversations with `info`)
    - `im:write`
    - `search:read` (full-text message search with `search`)
    - `users:read`
@@ -378,9 +379,35 @@ dart run bin/dart_slack.dart watch -c <channel-id> -i 5 -n 10
 # Stream a channel in real time (Socket Mode, uses app-level token)
 dart run bin/dart_slack.dart stream -c <channel-id>
 
+# Stream several channels through the same connection
+dart run bin/dart_slack.dart stream -c <first-channel-id> -c <second-channel-id>
+
 # Log out
 dart run bin/dart_slack.dart logout
 ```
+
+### Live monitoring
+
+`watch` displays recent history and then polls for new messages. Each poll
+reads all available pages before advancing its timestamp, and displays the
+complete batch in chronological order. Messages arriving while that batch is
+being read are picked up by a subsequent poll.
+
+`stream` receives new events through one Socket Mode connection. Repeat `-c`
+to monitor several channels; output includes the channel ID when more than
+one channel is selected. It does not load history or backfill disconnected
+periods.
+
+Only one `stream` command can run per local configuration directory
+(`~/.dart_slack`). A second listener exits with code 75 before connecting.
+Stop the existing listener and include all desired channels in one command.
+The listener slot is released automatically when the process exits, including
+after a crash; the empty `stream.lock` file should be left in place.
+
+Slack distributes events between connections for the same app, so listeners
+on other machines or in other applications can still consume events. Use a
+dedicated Slack app for this stream, with a single active listener across
+machines. See [Slack's connection behavior](https://docs.slack.dev/apis/events-api/using-socket-mode/#using-multiple-connections).
 
 ### Search
 

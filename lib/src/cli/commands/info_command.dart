@@ -4,7 +4,7 @@ import 'package:mason_logger/mason_logger.dart';
 
 /// `dart_slack info --channel <id>`
 ///
-/// Shows detailed information about a channel.
+/// Shows detailed information about a channel or direct message.
 class InfoCommand extends AuthenticatedCommand {
   /// Creates an [InfoCommand].
   new({required super.logger, super.credentialsStore, super.httpClient}) {
@@ -28,8 +28,18 @@ class InfoCommand extends AuthenticatedCommand {
     final channel = await slack.conversationsInfo(channel: channelId);
     final memberCount = await _countMembers(slack, channelId);
 
-    final prefix = channel.isPrivate ? '\u{1F512}' : '#';
-    logger.info('$prefix ${channel.name}  (${channel.id})');
+    if (channel.isIm) {
+      final participant = channel.userId;
+      final label = participant == null
+          ? 'Direct message'
+          : 'Direct message with $participant';
+      logger.info('$label  (${channel.id})');
+    } else if (channel.name.isEmpty) {
+      logger.info('Conversation  (${channel.id})');
+    } else {
+      final prefix = channel.isPrivate ? '\u{1F512}' : '#';
+      logger.info('$prefix ${channel.name}  (${channel.id})');
+    }
     if (channel.topic.isNotEmpty) {
       logger.info('  Topic: ${channel.topic}');
     }

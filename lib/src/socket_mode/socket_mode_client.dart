@@ -52,7 +52,8 @@ class SocketModeClient {
 
   /// Opens the Socket Mode connection and begins streaming events.
   ///
-  /// Throws [SocketModeException] if `apps.connections.open` fails.
+  /// Throws [SocketModeException] if `apps.connections.open` or the WebSocket
+  /// handshake fails.
   Future<void> connect() async {
     _closed = false;
     await _connectWebSocket();
@@ -61,8 +62,7 @@ class SocketModeClient {
   /// Closes the WebSocket connection and releases resources.
   Future<void> close() async {
     _closed = true;
-    await _subscription?.cancel();
-    await _channel?.sink.close();
+    await _closeConnection();
     await _eventController.close();
     _httpClient.close();
   }
@@ -83,14 +83,56 @@ class SocketModeClient {
 
   Future<void> _connectWebSocket() async {
     final wssUrl = await _requestWebSocketUrl();
-    _channel = _channelFactory(wssUrl);
-    _backoffDelay = _Backoff.initialDelay;
+    if (_closed) return;
 
-    _subscription = _channel!.stream.listen(
+    final channel = _channelFactory(wssUrl);
+    _channel = channel;
+    var ready = false;
+    var disconnected = false;
+
+    void onDisconnect() {
+      disconnected = true;
+      if (ready && identical(_channel, channel)) {
+        unawaited(_reconnect());
+      }
+    }
+
+    // A failed handshake reports an error on both ready and the stream. Listen
+    // before awaiting ready, leaving failed connection attempts to the caller.
+    _subscription = channel.stream.listen(
       _onMessage,
-      onError: (_) => unawaited(_reconnect()),
-      onDone: () => unawaited(_reconnect()),
+      onError: (_) => onDisconnect(),
+      onDone: onDisconnect,
     );
+
+    try {
+      await channel.ready;
+      if (_closed) return;
+      if (disconnected) {
+        throw const SocketModeException('WebSocket closed during connection');
+      }
+      ready = true;
+      _backoffDelay = _Backoff.initialDelay;
+    } on Exception catch (error) {
+      throw SocketModeException('WebSocket connection failed: $error');
+    } finally {
+      if (!ready && identical(_channel, channel)) {
+        await _closeConnection();
+      }
+    }
+  }
+
+  Future<void> _closeConnection() async {
+    final channel = _channel;
+    _channel = null;
+    final cancellation = _subscription?.cancel();
+    _subscription = null;
+    await cancellation;
+    try {
+      await channel?.sink.close();
+    } on Exception {
+      // Failed or disconnected sockets can also fail while being closed.
+    }
   }
 
   void _onMessage(dynamic raw) {
@@ -134,9 +176,8 @@ class SocketModeClient {
     if (_closed || _reconnecting) return;
     _reconnecting = true;
 
-    await _subscription?.cancel();
-
     try {
+      await _closeConnection();
       while (!_closed) {
         try {
           await _delay(_backoffDelay);

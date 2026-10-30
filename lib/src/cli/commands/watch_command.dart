@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
 import 'package:dart_slack/src/models/slack_message.dart';
 import 'package:dart_slack/src/slack.dart';
+import 'package:dart_slack/src/slack_api/slack_api_client.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 
@@ -99,7 +100,12 @@ class WatchCommand extends AuthenticatedCommand {
         ]);
         if (stopCompleter.isCompleted) break;
 
-        lastTs = await _poll(slack, channel, lastTs);
+        lastTs = await _poll(
+          slack,
+          channel,
+          lastTs,
+          isStopped: () => stopCompleter.isCompleted,
+        );
       }
     } finally {
       await signalSub.cancel();
@@ -120,16 +126,55 @@ class WatchCommand extends AuthenticatedCommand {
     return page.items.first.ts;
   }
 
-  Future<String?> _poll(Slack slack, String channel, String? lastTs) async {
-    final page = await slack.conversationsHistory(
-      channel: channel,
-      oldest: lastTs,
-    );
-    if (page.items.isEmpty) return lastTs;
+  Future<String?> _poll(
+    Slack slack,
+    String channel,
+    String? lastTs, {
+    required bool Function() isStopped,
+  }) async {
+    final messages = <String, SlackMessage>{};
+    final cursors = <String>{};
+    String? latest;
+    String? cursor;
 
-    page.items.reversed.forEach(_printMessage);
+    while (true) {
+      if (isStopped()) return lastTs;
+      final page = await slack.conversationsHistory(
+        channel: channel,
+        oldest: lastTs,
+        latest: latest,
+        cursor: cursor,
+      );
+      for (final message in page.items) {
+        messages.putIfAbsent(message.ts, () => message);
+      }
+      if (!page.hasMore && page.nextCursor == null) break;
 
-    return page.items.first.ts;
+      if (page.items.isNotEmpty) {
+        // Walk backwards from the oldest message already fetched. Slack
+        // excludes this boundary, so new arrivals cannot move this window
+        // or cause the next poll to skip an older, unseen message.
+        final nextLatest = page.items.last.ts;
+        if (nextLatest == latest) {
+          throw const SlackApiException('invalid_pagination');
+        }
+        latest = nextLatest;
+        cursor = null;
+      } else {
+        // A filtered page can be empty while still carrying a cursor.
+        final next = page.nextCursor;
+        if (next == null || !cursors.add(next)) {
+          throw const SlackApiException('invalid_pagination');
+        }
+        cursor = next;
+      }
+    }
+
+    // Only publish the batch and advance its checkpoint after every page
+    // succeeds. Keep chronological output across page boundaries.
+    if (isStopped()) return lastTs;
+    messages.values.toList().reversed.forEach(_printMessage);
+    return messages.isEmpty ? lastTs : messages.values.first.ts;
   }
 
   void _printMessage(SlackMessage message) {
