@@ -26,7 +26,152 @@ void main() {
       );
     });
 
+    group('response validation', () {
+      final requests = <String, Future<Object?> Function(SlackApiClient)>{
+        'GET': (client) => client.conversationsInfo(channel: 'C1'),
+        'POST': (client) => client.authTest(),
+        'postMessage': (client) =>
+            client.postMessage(channel: 'C1', text: 'hi'),
+      };
+      final responses = [
+        (
+          label: 'HTML gateway failure',
+          body: '<html><body>Bad Gateway</body></html>',
+          status: 502,
+          error: 'http_error_502',
+        ),
+        (
+          label: 'empty HTTP failure',
+          body: '',
+          status: 503,
+          error: 'http_error_503',
+        ),
+        (
+          label: 'non-JSON successful HTTP response',
+          body: 'temporarily unavailable',
+          status: 200,
+          error: 'invalid_response',
+        ),
+        (
+          label: 'JSON array response',
+          body: '[]',
+          status: 200,
+          error: 'invalid_response',
+        ),
+        (
+          label: 'JSON null response',
+          body: 'null',
+          status: 200,
+          error: 'invalid_response',
+        ),
+        (
+          label: 'missing Slack envelope',
+          body: '{"message":"not a Slack response"}',
+          status: 200,
+          error: 'invalid_response',
+        ),
+        (
+          label: 'HTTP failure with misleading ok field',
+          body: '{"ok":true}',
+          status: 500,
+          error: 'http_error_500',
+        ),
+        (
+          label: 'Slack error in HTTP failure',
+          body: '{"ok":false,"error":"service_unavailable"}',
+          status: 503,
+          error: 'service_unavailable',
+        ),
+      ];
+
+      for (final request in requests.entries) {
+        for (final response in responses) {
+          test('${request.key} normalizes ${response.label}', () async {
+            final httpResponse = http.Response(response.body, response.status);
+            when(() => httpClient.get(any(), headers: any(named: 'headers')))
+                .thenAnswer((_) async => httpResponse);
+            when(
+              () => httpClient.post(
+                any(),
+                headers: any(named: 'headers'),
+                body: any(named: 'body'),
+              ),
+            ).thenAnswer((_) async => httpResponse);
+
+            await expectLater(
+              request.value(slackClient),
+              throwsA(
+                isA<SlackApiException>().having(
+                  (e) => e.error,
+                  'error',
+                  response.error,
+                ),
+              ),
+            );
+          });
+        }
+
+        test('${request.key} preserves scope details in HTTP errors', () async {
+          final response = http.Response(
+            '{"ok":false,"error":"missing_scope","needed":"im:read"}',
+            403,
+          );
+          when(() => httpClient.get(any(), headers: any(named: 'headers')))
+              .thenAnswer((_) async => response);
+          when(
+            () => httpClient.post(
+              any(),
+              headers: any(named: 'headers'),
+              body: any(named: 'body'),
+            ),
+          ).thenAnswer((_) async => response);
+
+          await expectLater(
+            request.value(slackClient),
+            throwsA(
+              isA<SlackApiException>()
+                  .having((e) => e.error, 'error', 'missing_scope')
+                  .having((e) => e.needed, 'needed', 'im:read'),
+            ),
+          );
+        });
+      }
+    });
+
     group('postMessage', () {
+      test('joins and retries once after not_in_channel', () async {
+        final requests = <String>[];
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer((invocation) async {
+          final uri = invocation.positionalArguments.first as Uri;
+          requests.add(uri.path);
+          if (requests.length == 1) {
+            return http.Response('{"ok":false,"error":"not_in_channel"}', 200);
+          }
+          if (uri == SlackUrls.conversationsJoin) {
+            return http.Response('{"ok":true}', 200);
+          }
+          return http.Response('{"ok":true,"ts":"1234.5678"}', 200);
+        });
+
+        final result = await slackClient.postMessage(
+          channel: 'C123',
+          text: 'Hello',
+        );
+
+        expect(result['ts'], equals('1234.5678'));
+        expect(requests, [
+          SlackUrls.postMessage.path,
+          SlackUrls.conversationsJoin.path,
+          SlackUrls.postMessage.path,
+        ]);
+      });
+
       test('sends correct headers and body', () async {
         when(
           () => httpClient.post(

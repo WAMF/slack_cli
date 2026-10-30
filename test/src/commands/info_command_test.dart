@@ -100,6 +100,36 @@ void main() {
       verify(() => logger.info('  Members: 2')).called(1);
     });
 
+    test('displays an unnamed direct-message conversation', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      stubChannel(
+        {
+          'id': 'D1',
+          'created': 1507235627,
+          'is_im': true,
+          'user': 'U2',
+          'is_open': true,
+        },
+        ['U1', 'U2'],
+      );
+
+      final result = await runner.run(['info', '-c', 'D1']);
+
+      expect(result, equals(ExitCode.success.code));
+      verify(() => logger.info('Direct message with U2  (D1)')).called(1);
+      verify(() => logger.info('  Members: 2')).called(1);
+    });
+
+    test('displays an unnamed conversation by its ID', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      stubChannel({'id': 'C1'}, ['U1']);
+
+      final result = await runner.run(['info', '-c', 'C1']);
+
+      expect(result, equals(ExitCode.success.code));
+      verify(() => logger.info('Conversation  (C1)')).called(1);
+    });
+
     test(
       'reports the real member count when conversations.info under-counts',
       () async {

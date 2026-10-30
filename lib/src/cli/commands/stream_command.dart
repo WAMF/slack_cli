@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:dart_slack/src/auth/app_config_store.dart';
 import 'package:dart_slack/src/cli/slack_app.dart';
+import 'package:dart_slack/src/cli/stream_lock.dart';
 import 'package:dart_slack/src/socket_mode/socket_mode.dart';
 import 'package:http/http.dart' as http;
 import 'package:mason_logger/mason_logger.dart';
@@ -26,14 +27,14 @@ class StreamCommand extends Command<int> {
     @visibleForTesting this._delay,
     @visibleForTesting this._signalStream,
     @visibleForTesting String? appToken,
+    @visibleForTesting this._lockDirectory,
   }) : _configStore = configStore ?? AppConfigStore(),
        _appTokenProvider = appTokenProvider ?? (() => SlackApp.appTokenOrNull),
        _appTokenOverride = appToken {
-    argParser.addOption(
+    argParser.addMultiOption(
       'channel',
       abbr: 'c',
-      help: 'The channel ID to stream messages from.',
-      mandatory: true,
+      help: 'Channel IDs to stream. Repeat -c to watch several channels.',
     );
   }
 
@@ -45,6 +46,7 @@ class StreamCommand extends Command<int> {
   final Future<void> Function(Duration)? _delay;
   final Stream<ProcessSignal>? _signalStream;
   final String? _appTokenOverride;
+  final Directory? _lockDirectory;
 
   @override
   String get description => 'Stream messages from a channel via Socket Mode.';
@@ -54,7 +56,13 @@ class StreamCommand extends Command<int> {
 
   @override
   Future<int> run() async {
-    final channel = argResults!['channel'] as String;
+    final channels = (argResults!['channel'] as List<String>)
+        .map((channel) => channel.trim())
+        .toSet();
+    if (channels.isEmpty) usageException('Option channel is mandatory.');
+    if (channels.contains('')) {
+      usageException('Provide a non-empty channel ID.');
+    }
 
     final appToken =
         _appTokenOverride ??
@@ -68,6 +76,28 @@ class StreamCommand extends Command<int> {
       return ExitCode.config.code;
     }
 
+    final StreamLock? streamLock;
+    try {
+      streamLock = StreamLock.acquire(directory: _lockDirectory);
+    } on FileSystemException catch (e) {
+      _logger.err('Cannot reserve the local stream listener: ${e.message}');
+      return ExitCode.cantCreate.code;
+    }
+    if (streamLock == null) {
+      _logger.err(
+        'Another local stream is already running. Stop it first, or watch '
+        'all channels in one command: dart_slack stream -c C1 -c C2.',
+      );
+      return ExitCode.tempFail.code;
+    }
+    try {
+      return await _stream(channels, appToken);
+    } finally {
+      streamLock.close();
+    }
+  }
+
+  Future<int> _stream(Set<String> channels, String appToken) async {
     final client = SocketModeClient(
       appToken: appToken,
       httpClient: _httpClient,
@@ -85,16 +115,17 @@ class StreamCommand extends Command<int> {
 
     try {
       eventSub = client.events
-          .where((event) => event.channel == channel)
+          .where((event) => channels.contains(event.channel))
           .listen((event) {
             final thread = event.replyCount != null
                 ? ' [${event.replyCount} replies]'
                 : '';
-            _logger.info('<${event.user}> ${event.text}$thread');
+            final prefix = channels.length > 1 ? '[${event.channel}] ' : '';
+            _logger.info('$prefix<${event.user}> ${event.text}$thread');
           });
 
       await client.connect();
-      _logger.info('Streaming $channel (Ctrl+C to stop)...');
+      _logger.info('Streaming ${channels.join(', ')} (Ctrl+C to stop)...');
 
       await stopCompleter.future;
     } on SocketModeException catch (e) {

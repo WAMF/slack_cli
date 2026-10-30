@@ -6,6 +6,7 @@ import 'package:args/command_runner.dart';
 import 'package:dart_slack/src/auth/app_config.dart';
 import 'package:dart_slack/src/auth/app_config_store.dart';
 import 'package:dart_slack/src/cli/commands/stream_command.dart';
+import 'package:dart_slack/src/cli/stream_lock.dart';
 import 'package:http/http.dart' as http;
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
@@ -25,6 +26,7 @@ class _MockWebSocketSink extends Mock implements WebSocketSink;
 void main() {
   group('StreamCommand', () {
     late _MockLogger logger;
+    late Directory lockDirectory;
     late _MockHttpClient httpClient;
     late _MockWebSocketChannel wsChannel;
     late _MockWebSocketSink wsSink;
@@ -38,6 +40,7 @@ void main() {
     });
 
     setUp(() {
+      lockDirectory = Directory.systemTemp.createTempSync('slack-stream-test-');
       logger = _MockLogger();
       httpClient = _MockHttpClient();
       wsChannel = _MockWebSocketChannel();
@@ -49,6 +52,7 @@ void main() {
       when(() => logger.err(any())).thenReturn(null);
       when(() => wsChannel.stream).thenAnswer((_) => serverController.stream);
       when(() => wsChannel.sink).thenReturn(wsSink);
+      when(() => wsChannel.ready).thenAnswer((_) async {});
       when(() => wsSink.add(any<dynamic>())).thenReturn(null);
       when(() => wsSink.close()).thenAnswer((_) async {});
       when(() => httpClient.close()).thenReturn(null);
@@ -64,6 +68,7 @@ void main() {
     tearDown(() async {
       await serverController.close();
       await signalController.close();
+      lockDirectory.deleteSync(recursive: true);
     });
 
     CommandRunner<int> buildRunner() {
@@ -74,6 +79,7 @@ void main() {
           channelFactory: (_) => wsChannel,
           delay: (_) async {},
           signalStream: signalController.stream,
+          lockDirectory: lockDirectory,
           appToken: appToken,
         ),
       );
@@ -148,6 +154,75 @@ void main() {
       verifyNever(() => logger.info('<U456> Wrong channel'));
     });
 
+    test('watches several channels through one connection', () async {
+      final connected = Completer<void>();
+      when(() => logger.info('Streaming C123, C456 (Ctrl+C to stop)...'))
+          .thenAnswer((_) => connected.complete());
+      final result = buildRunner().run(['stream', '-c', 'C123', '-c', 'C456']);
+      await connected.future;
+
+      for (final channel in ['C123', 'C456', 'C999']) {
+        serverController.add(
+          jsonEncode({
+            'type': 'events_api',
+            'envelope_id': channel,
+            'payload': {
+              'event': {
+                'type': 'message',
+                'channel': channel,
+                'user': 'U1',
+                'text': 'Hello',
+                'ts': '1.0',
+              },
+            },
+          }),
+        );
+      }
+      await Future<void>.delayed(Duration.zero);
+      signalController.add(ProcessSignal.sigint);
+
+      expect(await result, ExitCode.success.code);
+      verify(() => logger.info('[C123] <U1> Hello')).called(1);
+      verify(() => logger.info('[C456] <U1> Hello')).called(1);
+      verifyNever(() => logger.info('[C999] <U1> Hello'));
+      verify(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .called(1);
+    });
+
+    test('rejects another local listener before contacting Slack', () async {
+      final held = StreamLock.acquire(directory: lockDirectory)!;
+      addTearDown(held.close);
+
+      expect(
+        await buildRunner().run(['stream', '-c', 'C123']),
+        ExitCode.tempFail.code,
+      );
+      verifyNever(() => httpClient.post(any(), headers: any(named: 'headers')));
+      verify(() => logger.err(any(that: contains('already running'))))
+          .called(1);
+    });
+
+    test('releases the listener slot after a connection failure', () async {
+      when(() => httpClient.post(any(), headers: any(named: 'headers')))
+          .thenThrow(const SocketException('offline'));
+
+      expect(
+        await buildRunner().run(['stream', '-c', 'C123']),
+        ExitCode.software.code,
+      );
+      final held = StreamLock.acquire(directory: lockDirectory);
+      expect(held, isNotNull);
+      held?.close();
+    });
+
+    test('rejects missing channels before reading configuration', () async {
+      await expectLater(
+        buildRunner().run(['stream']),
+        throwsA(isA<UsageException>()),
+      );
+      verifyNever(() => httpClient.post(any(), headers: any(named: 'headers')));
+    });
+
     test('displays thread reply count', () async {
       final runner = buildRunner();
       final resultFuture = runner.run(['stream', '-c', 'C123']);
@@ -203,6 +278,7 @@ void main() {
             configStore: configStore,
             appTokenProvider: () => null,
             signalStream: signalController.stream,
+            lockDirectory: lockDirectory,
           ),
         );
 
@@ -228,6 +304,7 @@ void main() {
             channelFactory: (_) => wsChannel,
             delay: (_) async {},
             signalStream: signalController.stream,
+            lockDirectory: lockDirectory,
           ),
         );
 
@@ -253,6 +330,7 @@ void main() {
             configStore: configStore,
             appTokenProvider: () => null,
             signalStream: signalController.stream,
+            lockDirectory: lockDirectory,
           ),
         );
 
