@@ -310,6 +310,28 @@ void main() {
       verify(() => logger.err('Slack API error: invalid_auth')).called(1);
     });
 
+    test('reports an HTML gateway failure as a structured API error', () async {
+      when(() => credentialsStore.load()).thenReturn(credentials);
+      when(
+        () => httpClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response('<html>Bad Gateway</html>', 502));
+      final command = _TestCommand(
+        logger: logger,
+        credentialsStore: credentialsStore,
+        httpClient: httpClient,
+        onRun: _probeToken,
+      );
+
+      final result = await command.run();
+
+      expect(result, equals(ExitCode.software.code));
+      verify(() => logger.err('Slack API error: http_error_502')).called(1);
+      verify(
+        () => logger.err(jsonEncode({'ok': false, 'error': 'http_error_502'})),
+      ).called(1);
+      verify(() => httpClient.close()).called(1);
+    });
+
     test(
       'emits a machine-readable JSON error line on SlackApiException',
       () async {

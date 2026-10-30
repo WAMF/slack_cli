@@ -8,12 +8,14 @@ class _Retry {
   static const maxAttempts = 3;
 }
 
-/// Thrown when the Slack API returns a non-ok response.
+/// Thrown when the Slack API returns a failed or invalid response.
 class SlackApiException implements Exception {
   /// Creates a [SlackApiException] from the decoded JSON error response.
   const new(this.error, {this.needed});
 
-  /// The error code returned by the Slack API (e.g. `invalid_auth`).
+  /// The Slack error code (e.g. `invalid_auth`), `http_error_<status>` for
+  /// HTTP failures without a Slack error, or `invalid_response` for a
+  /// successful HTTP response without a valid Slack JSON envelope.
   final String error;
 
   /// The OAuth scope required for the request, present on `missing_scope`.
@@ -25,7 +27,8 @@ class SlackApiException implements Exception {
 
 /// HTTP client wrapper for the Slack Web API.
 ///
-/// All methods throw [SlackApiException] when the API returns `ok: false`.
+/// All methods throw [SlackApiException] when the API returns `ok: false`,
+/// an HTTP failure, or an invalid response body.
 class SlackApiClient {
   /// Creates a [SlackApiClient] authenticated with [_token].
   ///
@@ -57,17 +60,13 @@ class SlackApiClient {
       'text': text,
       'thread_ts': ?threadTs,
     };
-    final response = await _postRaw(SlackUrls.postMessage, body);
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    if (json['ok'] == true) return json;
-
-    final error = json['error'] as String? ?? 'unknown_error';
-    if (error == 'not_in_channel') {
+    try {
+      return await _post(SlackUrls.postMessage, body);
+    } on SlackApiException catch (error) {
+      if (error.error != 'not_in_channel') rethrow;
       await joinChannel(channel);
       return await _post(SlackUrls.postMessage, body);
     }
-
-    throw SlackApiException(error, needed: json['needed'] as String?);
   }
 
   /// Joins a public channel by [channelId].
@@ -461,16 +460,37 @@ class SlackApiClient {
     return _checkOk(response);
   }
 
-  /// Decodes [response] and throws [SlackApiException] when `ok` is false.
+  /// Validates the HTTP status and Slack envelope before returning its body.
   Map<String, dynamic> _checkOk(http.Response response) {
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    if (json['ok'] != true) {
-      throw SlackApiException(
-        json['error'] as String? ?? 'unknown_error',
-        needed: json['needed'] as String?,
-      );
+    final httpOk = response.statusCode >= 200 && response.statusCode < 300;
+    final responseError = httpOk
+        ? 'invalid_response'
+        : 'http_error_${response.statusCode}';
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw SlackApiException(responseError);
     }
-    return json;
+    if (decoded is! Map<String, dynamic>) {
+      throw SlackApiException(responseError);
+    }
+
+    // Slack error codes and scope details are more useful than the status
+    // alone, including when Slack sends them with a non-2xx response.
+    final error = decoded['error'];
+    final needed = decoded['needed'];
+    if (decoded['ok'] == false && error is String && error.isNotEmpty) {
+      throw SlackApiException(error, needed: needed is String ? needed : null);
+    }
+    if (!httpOk) throw SlackApiException(responseError);
+    if (decoded['ok'] == false) {
+      throw const SlackApiException('unknown_error');
+    }
+    if (decoded['ok'] != true) {
+      throw const SlackApiException('invalid_response');
+    }
+    return decoded;
   }
 
   String? _nextCursor(Map<String, dynamic> json) {

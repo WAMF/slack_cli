@@ -3,6 +3,36 @@ import 'package:test/test.dart';
 
 void main() {
   group('SlackChannel', () {
+    test('fromJson parses a documented one-to-one DM without a name', () {
+      // https://docs.slack.dev/reference/methods/conversations.info/
+      final channel = SlackChannel.fromJson(const {
+        'id': 'C012AB3CD',
+        'created': 1507235627,
+        'is_im': true,
+        'is_org_shared': false,
+        'user': 'U27FFLNF4',
+        'last_read': '1513718191.000038',
+        'latest': {
+          'type': 'message',
+          'user': 'U5R3PALPN',
+          'text': 'Psssst!',
+          'ts': '1513718191.000038',
+        },
+        'unread_count': 0,
+        'unread_count_display': 0,
+        'is_open': true,
+        'locale': 'en-US',
+        'priority': 0.043016851216706,
+      });
+
+      expect(channel.id, equals('C012AB3CD'));
+      expect(channel.name, isEmpty);
+      expect(channel.isIm, isTrue);
+      expect(channel.userId, equals('U27FFLNF4'));
+      expect(channel.isPrivate, isTrue);
+      expect(channel.created, equals(1507235627));
+    });
+
     test('fromJson parses a public channel', () {
       final channel = SlackChannel.fromJson(const {
         'id': 'C123',
@@ -66,6 +96,8 @@ void main() {
       expect(channel.memberCount, isZero);
       expect(channel.isArchived, isFalse);
       expect(channel.created, isZero);
+      expect(channel.isIm, isFalse);
+      expect(channel.userId, isNull);
     });
   });
 }

@@ -63,10 +63,17 @@ void main() {
     Future<String> sendCallback(
       String queryString, {
       required int callbackPort,
+      String host = 'localhost',
     }) async {
       final client = HttpClient()..badCertificateCallback = (_, _, _) => true;
       final request = await client.getUrl(
-        Uri.parse('https://localhost:$callbackPort/callback?$queryString'),
+        Uri(
+          scheme: 'https',
+          host: host,
+          port: callbackPort,
+          path: '/callback',
+          query: queryString,
+        ),
       );
       final response = await request.close();
       final body = await response.transform(utf8.decoder).join();
@@ -76,15 +83,7 @@ void main() {
 
     OAuthFlow createFlow({
       required Future<Process> Function(String, List<String>) processStarter,
-      Future<HttpServer> Function(
-        Object address,
-        int port,
-        SecurityContext context, {
-        int backlog,
-        bool shared,
-        bool v6Only,
-      })?
-      bindServer,
+      BindServer? bindServer,
     }) {
       return OAuthFlow(
         clientId: 'test-id',
@@ -100,11 +99,16 @@ void main() {
 
     /// Fires a callback request without awaiting. Errors are expected
     /// when the server closes before the response is fully read.
-    void fireCallback(String queryString, {required int callbackPort}) {
+    void fireCallback(
+      String queryString, {
+      required int callbackPort,
+      String host = 'localhost',
+    }) {
       unawaited(
         sendCallback(
           queryString,
           callbackPort: callbackPort,
+          host: host,
         ).onError((_, _) => ''),
       );
     }
@@ -140,25 +144,252 @@ void main() {
       expect(capturedUrl.queryParameters, containsPair('state', isNotEmpty));
     });
 
-    test('prefers an IPv6 callback server with dual-stack enabled', () async {
-      Object? boundAddress;
-      bool? boundV6Only;
+    Future<void> expectPortReleased(InternetAddress address, int port) async {
+      final socket = await ServerSocket.bind(
+        address,
+        port,
+        v6Only: address.type == InternetAddressType.IPv6,
+      );
+      await socket.close();
+    }
 
-      when(
-        () => httpClient.post(
-          any(),
-          headers: any(named: 'headers'),
-          body: any(named: 'body'),
-        ),
-      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
+    SocketException unavailableFamily() => SocketException(
+      'Address family unavailable',
+      osError: OSError(
+        'Address family unavailable',
+        Platform.isWindows
+            ? 10047
+            : Platform.isMacOS || Platform.isIOS
+            ? 47
+            : 97,
+      ),
+    );
 
-      final flow = createFlow(
-        processStarter: (command, args) async {
-          final url = Uri.parse(args.first);
-          final cbPort = callbackPortFrom(url);
-          fireCallback('code=c&state=${stateFrom(url)}', callbackPort: cbPort);
-          return process;
+    for (final callbackAddress in [
+      InternetAddress.loopbackIPv4,
+      InternetAddress.loopbackIPv6,
+    ]) {
+      test('accepts callbacks on ${callbackAddress.address}', () async {
+        final listeners = <(InternetAddress, int)>[];
+        final v6OnlyOptions = <bool>[];
+        late Uri redirectUri;
+
+        when(
+          () => httpClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(jsonEncode(tokenResponse), 200),
+        );
+
+        final flow = createFlow(
+          processStarter: (command, args) async {
+            final url = Uri.parse(args.first);
+            redirectUri = Uri.parse(url.queryParameters['redirect_uri']!);
+            fireCallback(
+              'code=c&state=${stateFrom(url)}',
+              callbackPort: redirectUri.port,
+              host: callbackAddress.address,
+            );
+            return process;
+          },
+          bindServer:
+              (
+                address,
+                port,
+                context, {
+                backlog = 0,
+                shared = false,
+                v6Only = false,
+              }) async {
+                v6OnlyOptions.add(v6Only);
+                final server = await HttpServer.bindSecure(
+                  address,
+                  port,
+                  context,
+                  backlog: backlog,
+                  shared: shared,
+                  v6Only: v6Only,
+                );
+                listeners.add((server.address, server.port));
+                return server;
+              },
+        );
+
+        final credentials = await flow.execute();
+
+        expect(credentials.accessToken, 'xoxp-test');
+        expect(redirectUri.host, 'localhost');
+        expect(listeners.map((listener) => listener.$1), [
+          InternetAddress.loopbackIPv6,
+          InternetAddress.loopbackIPv4,
+        ]);
+        expect(v6OnlyOptions, [true, false]);
+        expect(listeners.map((listener) => listener.$2).toSet(), {
+          redirectUri.port,
+        });
+        for (final listener in listeners) {
+          await expectPortReleased(listener.$1, listener.$2);
+        }
+      });
+    }
+
+    for (final unavailableAddress in [
+      InternetAddress.loopbackIPv6,
+      InternetAddress.loopbackIPv4,
+    ]) {
+      test(
+        'uses available loopback when $unavailableAddress is unavailable',
+        () async {
+          final bindAttempts = <Object>[];
+          final availableAddress =
+              unavailableAddress == InternetAddress.loopbackIPv6
+              ? InternetAddress.loopbackIPv4
+              : InternetAddress.loopbackIPv6;
+
+          when(
+            () => httpClient.post(
+              any(),
+              headers: any(named: 'headers'),
+              body: any(named: 'body'),
+            ),
+          ).thenAnswer(
+            (_) async => http.Response(jsonEncode(tokenResponse), 200),
+          );
+
+          final flow = createFlow(
+            processStarter: (command, args) async {
+              final url = Uri.parse(args.first);
+              fireCallback(
+                'code=c&state=${stateFrom(url)}',
+                callbackPort: callbackPortFrom(url),
+                host: availableAddress.address,
+              );
+              return process;
+            },
+            bindServer:
+                (
+                  address,
+                  port,
+                  context, {
+                  backlog = 0,
+                  shared = false,
+                  v6Only = false,
+                }) {
+                  bindAttempts.add(address);
+                  if (address == unavailableAddress) throw unavailableFamily();
+                  return HttpServer.bindSecure(
+                    address,
+                    port,
+                    context,
+                    backlog: backlog,
+                    shared: shared,
+                    v6Only: v6Only,
+                  );
+                },
+          );
+
+          expect((await flow.execute()).accessToken, 'xoxp-test');
+          expect(bindAttempts, [
+            InternetAddress.loopbackIPv6,
+            InternetAddress.loopbackIPv4,
+          ]);
         },
+      );
+    }
+
+    test(
+      'does not fall back when the first listener has a port conflict',
+      () async {
+        final bindAttempts = <Object>[];
+        final occupied = await ServerSocket.bind(
+          InternetAddress.loopbackIPv6,
+          0,
+          v6Only: true,
+        );
+        addTearDown(occupied.close);
+        var openedBrowser = false;
+
+        final flow = createFlow(
+          processStarter: (command, args) async {
+            openedBrowser = true;
+            return process;
+          },
+          bindServer:
+              (
+                address,
+                port,
+                context, {
+                backlog = 0,
+                shared = false,
+                v6Only = false,
+              }) {
+                bindAttempts.add(address);
+                return HttpServer.bindSecure(
+                  address,
+                  occupied.port,
+                  context,
+                  v6Only: v6Only,
+                );
+              },
+        );
+
+        await expectLater(flow.execute(), throwsA(isA<SocketException>()));
+        expect(bindAttempts, [InternetAddress.loopbackIPv6]);
+        expect(openedBrowser, isFalse);
+      },
+    );
+
+    test(
+      'closes the first listener when the second has a port conflict',
+      () async {
+        final occupied = await ServerSocket.bind(
+          InternetAddress.loopbackIPv4,
+          0,
+        );
+        addTearDown(occupied.close);
+        HttpServer? firstServer;
+        var openedBrowser = false;
+
+        final flow = createFlow(
+          processStarter: (command, args) async {
+            openedBrowser = true;
+            return process;
+          },
+          bindServer:
+              (
+                address,
+                port,
+                context, {
+                backlog = 0,
+                shared = false,
+                v6Only = false,
+              }) async {
+                final server = await HttpServer.bindSecure(
+                  address,
+                  occupied.port,
+                  context,
+                  v6Only: v6Only,
+                );
+                firstServer = server;
+                return server;
+              },
+        );
+
+        await expectLater(flow.execute(), throwsA(isA<SocketException>()));
+        expect(firstServer, isNotNull);
+        expect(openedBrowser, isFalse);
+        await expectPortReleased(InternetAddress.loopbackIPv6, occupied.port);
+      },
+    );
+
+    test('closes both listeners when opening the browser fails', () async {
+      final listeners = <(InternetAddress, int)>[];
+      final flow = createFlow(
+        processStarter: (command, args) async =>
+            throw StateError('Browser failed'),
         bindServer:
             (
               address,
@@ -167,42 +398,31 @@ void main() {
               backlog = 0,
               shared = false,
               v6Only = false,
-            }) {
-              boundAddress = address;
-              boundV6Only = v6Only;
-              return HttpServer.bindSecure(
+            }) async {
+              final server = await HttpServer.bindSecure(
                 address,
                 port,
                 context,
-                backlog: backlog,
-                shared: shared,
                 v6Only: v6Only,
               );
+              listeners.add((server.address, server.port));
+              return server;
             },
       );
 
-      await flow.execute();
-
-      expect(boundAddress, equals(InternetAddress.loopbackIPv6));
-      expect(boundV6Only, isFalse);
+      await expectLater(flow.execute(), throwsA(isA<StateError>()));
+      expect(listeners, hasLength(2));
+      for (final listener in listeners) {
+        await expectPortReleased(listener.$1, listener.$2);
+      }
     });
 
-    test('falls back to IPv4 when IPv6 callback binding fails', () async {
+    test('fails when neither loopback address family is available', () async {
       final bindAttempts = <Object>[];
-
-      when(
-        () => httpClient.post(
-          any(),
-          headers: any(named: 'headers'),
-          body: any(named: 'body'),
-        ),
-      ).thenAnswer((_) async => http.Response(jsonEncode(tokenResponse), 200));
-
+      var openedBrowser = false;
       final flow = createFlow(
         processStarter: (command, args) async {
-          final url = Uri.parse(args.first);
-          final cbPort = callbackPortFrom(url);
-          fireCallback('code=c&state=${stateFrom(url)}', callbackPort: cbPort);
+          openedBrowser = true;
           return process;
         },
         bindServer:
@@ -213,29 +433,18 @@ void main() {
               backlog = 0,
               shared = false,
               v6Only = false,
-            }) {
+            }) async {
               bindAttempts.add(address);
-              if (address == InternetAddress.loopbackIPv6) {
-                throw const SocketException('IPv6 unsupported');
-              }
-
-              return HttpServer.bindSecure(
-                address,
-                port,
-                context,
-                backlog: backlog,
-                shared: shared,
-                v6Only: v6Only,
-              );
+              throw unavailableFamily();
             },
       );
 
-      await flow.execute();
-
-      expect(
-        bindAttempts,
-        equals([InternetAddress.loopbackIPv6, InternetAddress.loopbackIPv4]),
-      );
+      await expectLater(flow.execute(), throwsA(isA<SocketException>()));
+      expect(bindAttempts, [
+        InternetAddress.loopbackIPv6,
+        InternetAddress.loopbackIPv4,
+      ]);
+      expect(openedBrowser, isFalse);
     });
 
     test('completes successfully with valid code and matching state', () async {

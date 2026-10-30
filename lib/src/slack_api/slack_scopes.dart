@@ -10,6 +10,7 @@ abstract final class SlackScopes {
   static const _filesWrite = 'files:write';
   static const _groupsHistory = 'groups:history';
   static const _groupsRead = 'groups:read';
+  static const _imRead = 'im:read';
   static const _imWrite = 'im:write';
   static const _searchRead = 'search:read';
   static const _usersRead = 'users:read';
@@ -28,6 +29,7 @@ abstract final class SlackScopes {
     _filesWrite,
     _groupsHistory,
     _groupsRead,
+    _imRead,
     _imWrite,
     _searchRead,
     _usersRead,

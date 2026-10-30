@@ -1,3 +1,21 @@
+## Unreleased
+
+### Fixed
+
+- Socket Mode waits for the WebSocket handshake, contains connection errors,
+  closes failed sockets, and preserves retry backoff until connected.
+- `watch` reads every page in a polling window before advancing its timestamp,
+  preserving chronological output without skipping bursts of messages.
+- `stream` prevents competing local listeners and accepts repeated `--channel`
+  options to monitor multiple channels through one connection.
+- OAuth listens on both IPv4 and IPv6 loopback addresses on the same port,
+  with cleanup and fallback for unavailable address families.
+- Non-JSON HTTP failures and malformed API responses produce structured errors
+  rather than parsing exceptions; Slack error codes and scopes are preserved.
+- Direct-message conversation information no longer requires a channel name;
+  `info` displays the participant and conversation ID. Login requests `im:read`
+  for this operation; existing tokens need reauthorization to gain that scope.
+
 ## 0.2.0
 
 ### Breaking
