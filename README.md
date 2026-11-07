@@ -293,6 +293,13 @@ dart run bin/dart_slack.dart members -c <channel-id>
 # Show recent messages
 dart run bin/dart_slack.dart history -c <channel-id> -l 20
 
+# Read older messages with the cursor that the last run printed
+dart run bin/dart_slack.dart history -c <channel-id> --cursor <cursor>
+
+# Read every message in a time range (Slack timestamps)
+dart run bin/dart_slack.dart history -c <channel-id> --all \
+  --oldest 1730000000 --latest 1730600000
+
 # Show thread replies
 dart run bin/dart_slack.dart thread -c <channel-id> --ts <thread_ts>
 
@@ -381,6 +388,38 @@ dart run bin/dart_slack.dart stream -c <channel-id>
 # Log out
 dart run bin/dart_slack.dart logout
 ```
+
+### History
+
+`history` reads Slack's `conversations.history` method. It prints the
+messages oldest first, one line for each message:
+
+```
+[1756719000.123456] <U012AB3CD> deploy failed on staging [4 replies]
+```
+
+| Option | Meaning |
+| --- | --- |
+| `-c`, `--channel` | The channel ID. Required. |
+| `-l`, `--limit` | The most messages to show. The default is 20 and the maximum is 10000. A value above one Slack page (200) is filled by following cursors. |
+| `--all` | Follow cursors until no more messages exist, or until the safety limit of 10000 messages (50 requests). Cannot be used with `--limit`. |
+| `--cursor` | Start from this cursor. Use the cursor that a previous run printed. |
+| `--oldest` | Only messages after this Slack timestamp. |
+| `--latest` | Only messages before this Slack timestamp. |
+
+The last line always gives the number of messages returned and tells you if
+more exist. When more exist, it also gives the cursor for the next run and
+the limit that stopped this run:
+
+```
+(20 messages returned; stopped at --limit 20; more messages available: use --cursor dXNlcjpVMDYxTkZUVDI=)
+(10000 messages returned; stopped at the --all safety limit of 10000 messages; more messages available: use --cursor bmV4dF90czoxNzMw)
+(3 messages returned; no more messages)
+```
+
+To find an old thread root, run `history` again with `--cursor` and the
+printed cursor, or narrow the range with `--oldest` and `--latest`. Then use
+`thread` with the root's timestamp to read the replies.
 
 ### Search
 
