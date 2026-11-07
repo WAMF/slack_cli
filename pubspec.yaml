@@ -1,6 +1,6 @@
 name: dart_slack
 description: A CLI for reading and writing messages, browsing channels, and looking up users in Slack.
-version: 0.2.0
+version: 0.3.0
 repository: https://github.com/WAMF/slack_cli
 topics:
   - slack

@@ -1,3 +1,27 @@
+## 0.3.0
+
+### Changed
+
+- `history` now always ends with a summary line. The line gives the number of
+  messages returned and tells you if more exist, also when a page is empty,
+  for example `(20 messages returned; stopped at --limit 20; more messages
+  available: use --cursor <cursor>)`. It replaces the old
+  `(more messages available)` line, which was skipped on an empty page. A
+  script that reads `history` output must expect this line. See
+  WAMF/WAAF_DigitalWorkforce#4241.
+
+### Added
+
+- `history` takes `--cursor`, `--oldest` and `--latest`, and passes them to
+  `conversations.history`. A thread root older than the first page is now
+  reachable with the printed cursor or a time range.
+- `history --limit` above one Slack page (200) is filled by following
+  cursors until the limit is reached or no more messages exist. The maximum
+  `--limit` is 10000.
+- `history --all` follows cursors until no more messages exist, or until the
+  safety limit of 10000 messages (50 requests). The summary line says which
+  one stopped it.
+
 ## 0.2.0
 
 ### Breaking
