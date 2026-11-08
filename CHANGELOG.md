@@ -1,5 +1,13 @@
 ## Unreleased
 
+### Breaking
+
+- A second `stream` for the same config directory (`~/.dart_slack`) now exits
+  with code 75 before it connects. Use one `stream` command with repeated `-c`
+  instead.
+- Login now requests `im:read`. Existing OAuth tokens must log in again before
+  `info` works on a direct-message conversation.
+
 ### Fixed
 
 - Socket Mode waits for the WebSocket handshake, contains connection errors,
