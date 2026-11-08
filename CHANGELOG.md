@@ -1,6 +1,6 @@
 ## 0.3.0
 
-### Changed
+### Breaking
 
 - `history` now always ends with a summary line. The line gives the number of
   messages returned and tells you if more exist, also when a page is empty,
