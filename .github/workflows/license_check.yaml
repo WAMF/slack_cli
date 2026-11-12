@@ -23,6 +23,6 @@ permissions:
 
 jobs:
   license_check:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@bf86fc749b907c6cc60e655f7f2ef619287b1b15 # v2.0.3
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@33d441b1f92ff046f1945309a204d9ed039e6fc9 # v2.1.0
     with:
       allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
