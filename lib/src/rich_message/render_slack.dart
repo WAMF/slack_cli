@@ -32,6 +32,31 @@ String escapeSlackMrkdwn(String value) => value
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
 
+/// Block Kit's limit for a `section` block's `text`.
+const slackSectionTextMaxChars = 3000;
+
+/// Block Kit's limit for one item of a `section` block's `fields`.
+const slackSectionFieldMaxChars = 2000;
+
+/// Refuses [text] when it is longer than [max] code points.
+///
+/// Escaping runs after validation and can make a value longer (`&` becomes
+/// `&amp;`). A schema-valid card can therefore exceed a Block Kit limit, and
+/// Slack then refuses the whole post with `invalid_blocks`. This refuses it
+/// before any request and names [field]. It is the same check, limits and
+/// error text as `fitSlack` in the backend renderer.
+String _fitSlack(String text, int max, String field) {
+  final length = text.runes.length;
+  if (length > max) {
+    throw RichMessageValidationError(
+      field,
+      'the Slack text is $length characters after escaping; the maximum is '
+      '$max. Shorten it, or put detail behind a link.',
+    );
+  }
+  return text;
+}
+
 Map<String, dynamic> _mrkdwn(String text) => {'type': 'mrkdwn', 'text': text};
 
 Map<String, dynamic> _plainText(String text) => {
@@ -54,8 +79,12 @@ Map<String, dynamic> _plainText(String text) => {
 /// * `links` are an `actions` block of URL buttons. The first one is the
 ///   primary button.
 /// * `actions` and `choice` are refused (phase 2).
+/// * After escaping, the `summary` text may have at most
+///   [slackSectionTextMaxChars] code points, and each field text at most
+///   [slackSectionFieldMaxChars]. A longer one is refused.
 ///
-/// Throws a [RichMessageValidationError] when [input] breaks the schema.
+/// Throws a [RichMessageValidationError] when [input] breaks the schema, or
+/// when a text is too long for Slack after escaping.
 SlackCardPayload renderSlack(Object? input) {
   final message = validateRichMessage(input);
   assertStaticRichMessage(message);
@@ -79,13 +108,24 @@ Map<String, dynamic>? _section(Map<String, dynamic> message) {
   if (summary == null && fields.isEmpty) return null;
   return {
     'type': 'section',
-    if (summary != null) 'text': _mrkdwn(escapeSlackMrkdwn(summary)),
+    if (summary != null)
+      'text': _mrkdwn(
+        _fitSlack(
+          escapeSlackMrkdwn(summary),
+          slackSectionTextMaxChars,
+          'summary',
+        ),
+      ),
     if (fields.isNotEmpty)
       'fields': [
-        for (final field in fields)
+        for (final (index, field) in fields.indexed)
           _mrkdwn(
-            '*${escapeSlackMrkdwn(field['label'] as String)}*\n'
-            '${escapeSlackMrkdwn(field['value'] as String)}',
+            _fitSlack(
+              '*${escapeSlackMrkdwn(field['label'] as String)}*\n'
+                  '${escapeSlackMrkdwn(field['value'] as String)}',
+              slackSectionFieldMaxChars,
+              'fields[$index].value',
+            ),
           ),
       ],
   };

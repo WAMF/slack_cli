@@ -281,4 +281,89 @@ void main() {
       });
     });
   });
+
+  // Port of the backend `fitSlack` check (WAAF_DigitalWorkforce PR #8629).
+  // Escaping runs after validation and makes `&`, `<` and `>` longer, so a
+  // schema-valid card can be too long for Block Kit after escaping.
+  group('renderSlack escaped length', () {
+    Matcher refuses(String field, int length, int max) => throwsA(
+      isA<RichMessageValidationError>()
+          .having((e) => e.field, 'field', field)
+          .having(
+            (e) => e.message,
+            'message',
+            'RichMessage.$field: the Slack text is $length characters after '
+                'escaping; the maximum is $max. Shorten it, or put detail '
+                'behind a link.',
+          ),
+    );
+
+    String sectionText(SlackCardPayload payload) =>
+        ((payload.blocks[1]['text'] as Map)['text']) as String;
+
+    test('the limits are the Block Kit limits', () {
+      expect(slackSectionTextMaxChars, 3000);
+      expect(slackSectionFieldMaxChars, 2000);
+    });
+
+    test('refuses a schema-valid summary too long after escaping', () {
+      final card = _card({'summary': '&' * 3000});
+      expect(() => validateRichMessage(card), returnsNormally);
+      expect(() => renderSlack(card), refuses('summary', 15000, 3000));
+    });
+
+    test('the review case: 2900 characters with 50 & is refused', () {
+      final card = _card({'summary': '${'x' * 2850}${'&' * 50}'});
+      expect(() => validateRichMessage(card), returnsNormally);
+      expect(() => renderSlack(card), refuses('summary', 3100, 3000));
+    });
+
+    test('accepts a summary of exactly 3000 characters after escaping', () {
+      final summary = '${'x' * 2995}&';
+      final text = sectionText(renderSlack(_card({'summary': summary})));
+      expect(text.runes.length, 3000);
+      expect(text, endsWith('&amp;'));
+    });
+
+    test('refuses a summary of 3001 characters after escaping', () {
+      final card = _card({'summary': '${'x' * 2996}&'});
+      expect(() => renderSlack(card), refuses('summary', 3001, 3000));
+    });
+
+    test('counts code points, not UTF-16 units', () {
+      // 3000 emoji are 6000 UTF-16 units but 3000 code points.
+      final summary = '\u{1F600}' * 3000;
+      final text = sectionText(renderSlack(_card({'summary': summary})));
+      expect(text.runes.length, 3000);
+    });
+
+    test('refuses a field too long after escaping, naming its index', () {
+      final card = _card({
+        'fields': [
+          {'label': 'Fine', 'value': 'ok'},
+          {'label': 'Long', 'value': '<' * 1000},
+        ],
+      });
+      expect(() => validateRichMessage(card), returnsNormally);
+      // "*Long*\n" + 1000 x "&lt;" = 7 + 4000.
+      expect(() => renderSlack(card), refuses('fields[1].value', 4007, 2000));
+    });
+
+    test('a field counts the label markup too', () {
+      // "*L*\n" is 4 characters. 399 x "&amp;" is 1995, so one more
+      // character in the value is exactly 2000, and two is 2001.
+      Map<String, dynamic> withValue(String value) => _card({
+        'fields': [
+          {'label': 'L', 'value': value},
+        ],
+      });
+      final fields =
+          renderSlack(withValue('${'&' * 399}x')).blocks[1]['fields'] as List;
+      expect(((fields.single as Map)['text'] as String).runes.length, 2000);
+      expect(
+        () => renderSlack(withValue('${'&' * 399}xx')),
+        refuses('fields[0].value', 2001, 2000),
+      );
+    });
+  });
 }

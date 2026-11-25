@@ -5,7 +5,8 @@
 - `send`, `reply`, and `edit` take `--card-file <path>` to post a
   provider-neutral `RichMessage` card as Slack Block Kit. The card is checked
   against the shared schema before any API call, and an error names the
-  field. The rendering matches the WAAF backend renderer (golden tests). See
+  field. The rendering matches the WAAF backend renderer (golden tests). A
+  text that is too long for Slack after escaping is refused the same way. See
   WAMF/WAAF_DigitalWorkforce#8540.
 
 ### Breaking

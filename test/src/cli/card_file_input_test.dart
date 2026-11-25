@@ -215,6 +215,31 @@ void main() {
       expectNoCall();
     });
 
+    test('a summary too long after escaping exits 65', () async {
+      // Schema-valid: 3000 code points. Escaped: 3000 x "&amp;".
+      final path = writeCard({
+        'fallbackText': 'F',
+        'title': 'T',
+        'summary': '&' * 3000,
+      });
+
+      final code = await runner.run(['send', '-c', 'C1', '--card-file', path]);
+
+      expect(code, ExitCode.data.code);
+      verify(
+        () => logger.err(
+          'Invalid card file $path: RichMessage.summary: the Slack text is '
+          '15000 characters after escaping; the maximum is 3000. Shorten it, '
+          'or put detail behind a link.',
+        ),
+      ).called(1);
+      verify(
+        () =>
+            logger.err('{"ok":false,"error":"invalid_card","field":"summary"}'),
+      ).called(1);
+      expectNoCall();
+    });
+
     test('a phase 2 card is refused on actions', () async {
       final path = writeCard({
         'fallbackText': 'F',

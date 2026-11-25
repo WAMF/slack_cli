@@ -522,6 +522,10 @@ becomes the message `text`.
   `{"ok":false,"error":"invalid_card","field":"links[0].url"}`.
 - The card renders to Block Kit with the same rules as the backend renderer.
   The golden tests in `test/src/rich_message/` prove it.
+- Slack escapes `&`, `<` and `>`, so a text can grow after the schema check.
+  After escaping, the `summary` may have at most 3000 characters and each
+  field (`*Label*` and value) at most 2000. A longer one exits 65 and names
+  `summary` or `fields[<i>].value`, before any API call.
 - Phase 1 cards are static. A card with `actions` or `choice` is refused. Use
   `links` for URL buttons.
 - `--card-file` cannot be combined with `--file`.
