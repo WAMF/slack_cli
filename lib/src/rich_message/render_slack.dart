@@ -60,58 +60,68 @@ SlackCardPayload renderSlack(Object? input) {
   final message = validateRichMessage(input);
   assertStaticRichMessage(message);
 
-  final blocks = <Map<String, dynamic>>[
-    {'type': 'header', 'text': _plainText(message['title'] as String)},
-  ];
-
-  final summary = message['summary'] as String?;
-  final fields = (message['fields'] as List?)?.cast<Map<String, dynamic>>();
-  if (summary != null || (fields != null && fields.isNotEmpty)) {
-    blocks.add({
-      'type': 'section',
-      if (summary != null) 'text': _mrkdwn(escapeSlackMrkdwn(summary)),
-      if (fields != null && fields.isNotEmpty)
-        'fields': [
-          for (final field in fields)
-            _mrkdwn(
-              '*${escapeSlackMrkdwn(field['label'] as String)}*\n'
-              '${escapeSlackMrkdwn(field['value'] as String)}',
-            ),
-        ],
-    });
-  }
-
-  final status = message['status'] as Map<String, dynamic>?;
-  final context = message['context'] as String?;
-  if (status != null || context != null) {
-    blocks.add({
-      'type': 'context',
-      'elements': [
-        if (status != null)
-          _mrkdwn('Status: ${escapeSlackMrkdwn(status['label'] as String)}'),
-        if (context != null) _mrkdwn(escapeSlackMrkdwn(context)),
-      ],
-    });
-  }
-
-  final links = (message['links'] as List?)?.cast<Map<String, dynamic>>();
-  if (links != null && links.isNotEmpty) {
-    blocks.add({
-      'type': 'actions',
-      'elements': [
-        for (var index = 0; index < links.length; index++)
-          {
-            'type': 'button',
-            if (index == 0) 'style': 'primary',
-            'text': _plainText(links[index]['label'] as String),
-            'url': links[index]['url'],
-          },
-      ],
-    });
-  }
-
   return SlackCardPayload(
     text: message['fallbackText'] as String,
-    blocks: blocks,
+    blocks: [
+      {'type': 'header', 'text': _plainText(message['title'] as String)},
+      ?_section(message),
+      ?_context(message),
+      ?_actions(message),
+    ],
   );
+}
+
+/// `summary` and `fields` in one `section` block, or `null` for neither.
+Map<String, dynamic>? _section(Map<String, dynamic> message) {
+  final summary = message['summary'] as String?;
+  final fields =
+      (message['fields'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  if (summary == null && fields.isEmpty) return null;
+  return {
+    'type': 'section',
+    if (summary != null) 'text': _mrkdwn(escapeSlackMrkdwn(summary)),
+    if (fields.isNotEmpty)
+      'fields': [
+        for (final field in fields)
+          _mrkdwn(
+            '*${escapeSlackMrkdwn(field['label'] as String)}*\n'
+            '${escapeSlackMrkdwn(field['value'] as String)}',
+          ),
+      ],
+  };
+}
+
+/// `status` and `context` in one `context` block, or `null` for neither.
+Map<String, dynamic>? _context(Map<String, dynamic> message) {
+  final status = message['status'] as Map<String, dynamic>?;
+  final context = message['context'] as String?;
+  if (status == null && context == null) return null;
+  return {
+    'type': 'context',
+    'elements': [
+      if (status != null)
+        _mrkdwn('Status: ${escapeSlackMrkdwn(status['label'] as String)}'),
+      if (context != null) _mrkdwn(escapeSlackMrkdwn(context)),
+    ],
+  };
+}
+
+/// `links` as an `actions` block of URL buttons, or `null` for none. The
+/// first button is the primary one.
+Map<String, dynamic>? _actions(Map<String, dynamic> message) {
+  final links =
+      (message['links'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  if (links.isEmpty) return null;
+  return {
+    'type': 'actions',
+    'elements': [
+      for (final (index, link) in links.indexed)
+        {
+          'type': 'button',
+          if (index == 0) 'style': 'primary',
+          'text': _plainText(link['label'] as String),
+          'url': link['url'],
+        },
+    ],
+  };
 }
