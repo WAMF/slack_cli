@@ -1,0 +1,19 @@
+{
+  "text": "<b>Draft task needs approval</b>\nAdd Block Kit cards to draft notifications.\nProposed by: Artis\nAssignee: Riker\nSize: S",
+  "parse_mode": "HTML",
+  "disable_web_page_preview": true,
+  "reply_markup": {
+    "inline_keyboard": [
+      [
+        {
+          "text": "Approve draft",
+          "url": "https://…/tasks/<id>?action=approve-draft"
+        },
+        {
+          "text": "Open task",
+          "url": "https://…/w/task/<org>/<id>"
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "description": "Messages that break rich_message_schema.json. Every validator (backend TS, slack --card-file, telegram --card-file) must refuse each one and name `field` in its error.",
+  "cases": [
+    {
+      "name": "missing fallbackText",
+      "field": "fallbackText",
+      "message": {
+        "title": "T"
+      }
+    },
+    {
+      "name": "empty fallbackText",
+      "field": "fallbackText",
+      "message": {
+        "fallbackText": "",
+        "title": "T"
+      }
+    },
+    {
+      "name": "fallbackText over 140",
+      "field": "fallbackText",
+      "message": {
+        "fallbackText": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "T"
+      }
+    },
+    {
+      "name": "missing title",
+      "field": "title",
+      "message": {
+        "fallbackText": "F"
+      }
+    },
+    {
+      "name": "title over 150",
+      "field": "title",
+      "message": {
+        "fallbackText": "F",
+        "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "name": "seven fields",
+      "field": "fields",
+      "message": {
+        "fallbackText": "F",
+        "title": "T",
+        "fields": [
+          {
+            "label": "a",
+            "value": "1"
+          },
+          {
+            "label": "b",
+            "value": "2"
+          },
+          {
+            "label": "c",
+            "value": "3"
+          },
+          {
+            "label": "d",
+            "value": "4"
+          },
+          {
+            "label": "e",
+            "value": "5"
+          },
+          {
+            "label": "f",
+            "value": "6"
+          },
+          {
+            "label": "g",
+            "value": "7"
+          }
+        ]
+      }
+    },
+    {
+      "name": "four links",
+      "field": "links",
+      "message": {
+        "fallbackText": "F",
+        "title": "T",
+        "links": [
+          {
+            "label": "a",
+            "url": "https://a.example"
+          },
+          {
+            "label": "b",
+            "url": "https://b.example"
+          },
+          {
+            "label": "c",
+            "url": "https://c.example"
+          },
+          {
+            "label": "d",
+            "url": "https://d.example"
+          }
+        ]
+      }
+    },
+    {
+      "name": "link without url",
+      "field": "links[0].url",
+      "message": {
+        "fallbackText": "F",
+        "title": "T",
+        "links": [
+          {
+            "label": "a"
+          }
+        ]
+      }
+    },
+    {
+      "name": "link url not http",
+      "field": "links[0].url",
+      "message": {
+        "fallbackText": "F",
+        "title": "T",
+        "links": [
+          {
+            "label": "a",
+            "url": "javascript:alert(1)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "field value empty",
+      "field": "fields[0].value",
+      "message": {
+        "fallbackText": "F",
+        "title": "T",
+        "fields": [
+          {
+            "label": "a",
+            "value": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "unknown status tone",
+      "field": "status.tone",
+      "message": {
+        "fallbackText": "F",
+        "title": "T",
+        "status": {
+          "label": "x",
+          "tone": "red"
+        }
+      }
+    },
+    {
+      "name": "unknown top-level field",
+      "field": "colour",
+      "message": {
+        "fallbackText": "F",
+        "title": "T",
+        "colour": "red"
+      }
+    }
+  ]
+}

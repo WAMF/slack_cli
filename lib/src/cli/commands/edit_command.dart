@@ -1,3 +1,4 @@
+import 'package:dart_slack/src/cli/card_file_input.dart';
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
 import 'package:dart_slack/src/cli/message_text_input.dart';
 import 'package:dart_slack/src/slack.dart';
@@ -6,10 +7,12 @@ import 'package:mason_logger/mason_logger.dart';
 /// `dart_slack edit --channel <id> --ts <timestamp> --text-file <path>`
 ///
 /// The new text comes from exactly one of `--text`, `--text-file` or
-/// `--text-stdin`.
+/// `--text-stdin`. `--card-file <path>` replaces the message with a
+/// RichMessage card.
 ///
 /// Edits an existing Slack message.
-class EditCommand extends AuthenticatedCommand with MessageTextCommand {
+class EditCommand extends AuthenticatedCommand
+    with MessageTextCommand, CardFileCommand {
   /// Creates an [EditCommand].
   new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
@@ -25,6 +28,7 @@ class EditCommand extends AuthenticatedCommand with MessageTextCommand {
         mandatory: true,
       );
     addMessageTextOptions(argParser, help: 'The new message text.');
+    addCardFileOption(argParser);
   }
 
   @override
@@ -38,7 +42,12 @@ class EditCommand extends AuthenticatedCommand with MessageTextCommand {
     final channel = argResults!['channel'] as String;
     final ts = argResults!['ts'] as String;
 
-    await slack.updateMessage(channel: channel, ts: ts, text: messageText);
+    await slack.updateMessage(
+      channel: channel,
+      ts: ts,
+      text: card?.text ?? messageText,
+      card: card,
+    );
     logger.success('Message $ts in $channel updated.');
     return ExitCode.success.code;
   }

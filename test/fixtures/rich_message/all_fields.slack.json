@@ -1,0 +1,89 @@
+{
+  "text": "PR #8617 approved: R1 rich message cards",
+  "unfurl_links": false,
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "PR review: approved"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Static cards for &lt;draft&gt; &amp; task notifications."
+      },
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Verdict*\nApprove"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Head*\n2be90c58"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Reviewer*\nKumar"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Lens*\nQA"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Round*\n1"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Checks*\ngreen"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "Status: Approved"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "Reviewed 2026-11-25 · task jn7477c8"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "style": "primary",
+          "text": {
+            "type": "plain_text",
+            "text": "Open PR"
+          },
+          "url": "https://github.com/WAMF/WAAF_DigitalWorkforce/pull/8617"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Open review"
+          },
+          "url": "https://admin.example/w/task/org_1/jn7477c8"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Open sprint"
+          },
+          "url": "https://admin.example/w/collaboration/org_1/jd7rvb7g"
+        }
+      ]
+    }
+  ]
+}

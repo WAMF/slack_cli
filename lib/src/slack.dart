@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_slack/src/auth/credentials_store.dart';
 import 'package:dart_slack/src/models/models.dart';
+import 'package:dart_slack/src/rich_message/rich_message.dart';
 import 'package:dart_slack/src/slack_api/slack_api_client.dart';
 import 'package:http/http.dart' as http;
 
@@ -65,16 +66,21 @@ class Slack {
   ///
   /// Pass a user ID as [channel] to send a DM.
   /// Pass [threadTs] to reply in a thread.
+  /// Pass [card] to post a Block Kit card; its `text` is the notification
+  /// text and [text] is ignored.
   /// Automatically joins the channel if the user is not a member.
   Future<SlackMessage> postMessage({
     required String channel,
     required String text,
     String? threadTs,
+    SlackCardPayload? card,
   }) async {
     final json = await _client.postMessage(
       channel: channel,
-      text: text,
+      text: card?.text ?? text,
       threadTs: threadTs,
+      blocks: card?.blocks,
+      unfurlLinks: card == null ? null : false,
     );
     return SlackMessage.fromJson(json);
   }
@@ -156,15 +162,20 @@ class Slack {
   }
 
   /// Updates an existing message.
+  ///
+  /// Pass [card] to replace the message with a Block Kit card; its `text`
+  /// is the notification text and [text] is ignored.
   Future<SlackMessage> updateMessage({
     required String channel,
     required String ts,
     required String text,
+    SlackCardPayload? card,
   }) async {
     final json = await _client.updateMessage(
       channel: channel,
       ts: ts,
-      text: text,
+      text: card?.text ?? text,
+      blocks: card?.blocks,
     );
     return SlackMessage.fromJson(json);
   }

@@ -1,0 +1,56 @@
+{
+  "text": "Draft task needs approval: Add Block Kit cards",
+  "unfurl_links": false,
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Draft task needs approval"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Add Block Kit cards to draft notifications."
+      },
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Proposed by*\nArtis"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Assignee*\nRiker"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Size*\nS"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "style": "primary",
+          "text": {
+            "type": "plain_text",
+            "text": "Approve draft"
+          },
+          "url": "https://…/tasks/<id>?action=approve-draft"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Open task"
+          },
+          "url": "https://…/w/task/<org>/<id>"
+        }
+      ]
+    }
+  ]
+}
