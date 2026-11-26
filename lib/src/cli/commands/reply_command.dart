@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dart_slack/src/cli/card_file_input.dart';
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
 import 'package:dart_slack/src/cli/message_text_input.dart';
 import 'package:dart_slack/src/slack.dart';
@@ -10,9 +11,11 @@ import 'package:mason_logger/mason_logger.dart';
 ///
 /// The reply text comes from exactly one of `--text`, `--text-file` or
 /// `--text-stdin`. `--file` attaches a file and is a different option.
+/// `--card-file <path>` posts a RichMessage card instead of text.
 ///
 /// Replies to a message thread in a Slack channel.
-class ReplyCommand extends AuthenticatedCommand with MessageTextCommand {
+class ReplyCommand extends AuthenticatedCommand
+    with MessageTextCommand, CardFileCommand {
   /// Creates a [ReplyCommand].
   new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
@@ -30,6 +33,7 @@ class ReplyCommand extends AuthenticatedCommand with MessageTextCommand {
       )
       ..addOption('file', abbr: 'f', help: 'Path to a local file to attach.');
     addMessageTextOptions(argParser, help: 'The reply text.');
+    addCardFileOption(argParser);
   }
 
   @override
@@ -61,8 +65,9 @@ class ReplyCommand extends AuthenticatedCommand with MessageTextCommand {
 
     final message = await slack.postMessage(
       channel: channel,
-      text: messageText,
+      text: card?.text ?? messageText,
       threadTs: thread,
+      card: card,
     );
     logger.success(
       'Reply sent to thread $thread in $channel (ts: ${message.ts}).',

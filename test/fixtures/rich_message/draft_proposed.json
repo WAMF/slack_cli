@@ -1,0 +1,14 @@
+{
+  "fallbackText": "Draft task needs approval: Add Block Kit cards",
+  "title": "Draft task needs approval",
+  "summary": "Add Block Kit cards to draft notifications.",
+  "fields": [
+    { "label": "Proposed by", "value": "Artis" },
+    { "label": "Assignee", "value": "Riker" },
+    { "label": "Size", "value": "S" }
+  ],
+  "links": [
+    { "label": "Approve draft", "url": "https://…/tasks/<id>?action=approve-draft" },
+    { "label": "Open task", "url": "https://…/w/task/<org>/<id>" }
+  ]
+}

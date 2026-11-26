@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dart_slack/src/cli/card_file_input.dart';
 import 'package:dart_slack/src/cli/commands/authenticated_command.dart';
 import 'package:dart_slack/src/cli/message_text_input.dart';
 import 'package:dart_slack/src/slack.dart';
@@ -9,9 +10,11 @@ import 'package:mason_logger/mason_logger.dart';
 ///
 /// The message text comes from exactly one of `--text`, `--text-file` or
 /// `--text-stdin`. `--file` attaches a file and is a different option.
+/// `--card-file <path>` posts a RichMessage card instead of text.
 ///
 /// Posts a message to a Slack channel.
-class SendCommand extends AuthenticatedCommand with MessageTextCommand {
+class SendCommand extends AuthenticatedCommand
+    with MessageTextCommand, CardFileCommand {
   /// Creates a [SendCommand].
   new({required super.logger, super.credentialsStore, super.httpClient}) {
     argParser
@@ -23,6 +26,7 @@ class SendCommand extends AuthenticatedCommand with MessageTextCommand {
       )
       ..addOption('file', abbr: 'f', help: 'Path to a local file to attach.');
     addMessageTextOptions(argParser, help: 'The message text.');
+    addCardFileOption(argParser);
   }
 
   @override
@@ -52,7 +56,8 @@ class SendCommand extends AuthenticatedCommand with MessageTextCommand {
 
     final message = await slack.postMessage(
       channel: channel,
-      text: messageText,
+      text: card?.text ?? messageText,
+      card: card,
     );
     logger.success('Message sent to $channel (ts: ${message.ts}).');
     return ExitCode.success.code;

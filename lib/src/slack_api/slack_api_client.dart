@@ -54,11 +54,15 @@ class SlackApiClient {
     required String channel,
     required String text,
     String? threadTs,
+    List<Map<String, dynamic>>? blocks,
+    bool? unfurlLinks,
   }) async {
     final body = <String, dynamic>{
       'channel': channel,
       'text': text,
       'thread_ts': ?threadTs,
+      'blocks': ?blocks,
+      'unfurl_links': ?unfurlLinks,
     };
     try {
       return await _post(SlackUrls.postMessage, body);
@@ -366,12 +370,20 @@ class SlackApiClient {
       _post(SlackUrls.authTest, const {});
 
   /// Updates the text of an existing message.
+  ///
+  /// Pass [blocks] to replace the message with a Block Kit card; [text] is
+  /// then the notification and screen reader text.
   Future<Map<String, dynamic>> updateMessage({
     required String channel,
     required String ts,
     required String text,
-  }) =>
-      _post(SlackUrls.chatUpdate, {'channel': channel, 'ts': ts, 'text': text});
+    List<Map<String, dynamic>>? blocks,
+  }) => _post(SlackUrls.chatUpdate, {
+    'channel': channel,
+    'ts': ts,
+    'text': text,
+    'blocks': ?blocks,
+  });
 
   /// Deletes a message from [channel] at [ts].
   Future<void> deleteMessage({required String channel, required String ts}) =>

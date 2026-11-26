@@ -341,6 +341,9 @@ dart run bin/dart_slack.dart reply -c <channel-id> -r <thread_ts> --text-file ./
 # Edit a message
 dart run bin/dart_slack.dart edit -c <channel-id> --ts <message_ts> --text-file ./new.md
 
+# Post, reply with, or edit to a card (see "Cards" below)
+dart run bin/dart_slack.dart reply -c <channel-id> -r <thread_ts> --card-file ./card.json
+
 # Delete a message
 dart run bin/dart_slack.dart delete -c <channel-id> --ts <message_ts>
 
@@ -492,6 +495,43 @@ three sources. Giving none of them, or more than one, is a usage error.
 
 `--file` / `-f` is a different option. It attaches a file to the message.
 `--text-file` supplies the text of the message.
+
+#### Cards
+
+`send`, `reply`, and `edit` also take `--card-file <path>` (or
+`--card-file -` for standard input). The file holds one provider-neutral
+`RichMessage` as JSON, as defined by the shared schema in
+WAMF/WAAF_DigitalWorkforce
+(`backend/convex/convex/rich_message/rich_message_schema.json`). Give
+`--card-file` instead of the three text sources. The card's `fallbackText`
+becomes the message `text`.
+
+```json
+{
+  "fallbackText": "Draft task needs approval: Add Block Kit cards",
+  "title": "Draft task needs approval",
+  "summary": "Add Block Kit cards to draft notifications.",
+  "fields": [{ "label": "Assignee", "value": "Riker" }],
+  "links": [{ "label": "Open task", "url": "https://example.com/task" }]
+}
+```
+
+- The CLI checks the card against the schema before it reads a credential or
+  calls the API. A bad card exits 65 with an error that names the field, for
+  example `RichMessage.links[0].url: must match ^https?://`, and a JSON line
+  `{"ok":false,"error":"invalid_card","field":"links[0].url"}`.
+- The card renders to Block Kit with the same rules as the backend renderer.
+  The golden tests in `test/src/rich_message/` prove it.
+- Slack escapes `&`, `<` and `>`, so a text can grow after the schema check.
+  After escaping, the `summary` may have at most 3000 characters and each
+  field (`*Label*` and value) at most 2000. A longer one exits 65 and names
+  `summary` or `fields[<i>].value`, before any API call.
+- Phase 1 cards are static. A card with `actions` or `choice` is refused. Use
+  `links` for URL buttons.
+- `--card-file` cannot be combined with `--file`.
+
+The schema and golden files are copies. Refresh them with
+`dart run tool/sync_rich_message.dart <path-to-WAAF_DigitalWorkforce>`.
 
 #### Why the inline option is the unsafe one
 
